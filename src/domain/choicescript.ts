@@ -2,6 +2,22 @@ import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, LintIssue, Stor
 
 const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "goto", "goto_scene"]);
 
+export interface ChoiceForgeExportFile {
+  path: string;
+  encoding: "utf-8";
+  content: string;
+}
+
+export interface ChoiceForgeExportPackage {
+  format: "choiceforge.export";
+  version: 1;
+  project: {
+    title: string;
+    author: string;
+  };
+  files: ChoiceForgeExportFile[];
+}
+
 export function generateNodeChoiceScript(node: StoryNode): string {
   const lines: string[] = [];
 
@@ -51,8 +67,64 @@ export function generateSceneChoiceScript(project: ChoiceForgeProject): string {
     .join("\n\n");
 }
 
+export function generateStartupChoiceScript(project: ChoiceForgeProject): string {
+  const lines: string[] = [
+    `*title ${project.title}`,
+    `*author ${project.author}`,
+    "*scene_list",
+  ];
+
+  project.scenes
+    .filter((scene) => !scene.special && scene.name !== "startup")
+    .forEach((scene) => lines.push(`  ${scene.name}`));
+
+  if (project.variables.length) lines.push("");
+  project.variables.forEach((variable) => lines.push(`*create ${variable.name} ${variable.initial}`));
+
+  if (project.achievements.length) lines.push("");
+  project.achievements.forEach((achievement) => {
+    const visibility = achievement.hidden ? "hidden" : "visible";
+    lines.push(`*achievement ${achievement.id} ${visibility} ${achievement.points} ${achievement.title}`);
+    lines.push(`  ${achievement.desc}`);
+    lines.push(`  ${achievement.desc}`);
+  });
+
+  lines.push("");
+  lines.push(`*goto_scene ${project.sceneTitle}`);
+
+  return `${lines.join("\n")}\n`;
+}
+
 export function generateProjectJson(project: ChoiceForgeProject): string {
   return `${JSON.stringify(project, null, 2)}\n`;
+}
+
+export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExportPackage {
+  return {
+    format: "choiceforge.export",
+    version: 1,
+    project: {
+      title: project.title,
+      author: project.author,
+    },
+    files: [
+      {
+        path: "project.json",
+        encoding: "utf-8",
+        content: generateProjectJson(project),
+      },
+      {
+        path: "mygame/startup.txt",
+        encoding: "utf-8",
+        content: generateStartupChoiceScript(project),
+      },
+      {
+        path: `mygame/${project.sceneTitle}.txt`,
+        encoding: "utf-8",
+        content: `${generateSceneChoiceScript(project)}\n`,
+      },
+    ],
+  };
 }
 
 export function lintProject(project: ChoiceForgeProject): LintIssue[] {
