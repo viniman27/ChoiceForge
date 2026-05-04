@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, I18nLabels } from "../domain/types";
+import type { ChoiceForgeProject, I18nLabels, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -7,9 +7,10 @@ interface LeftPanelProps {
   labels: I18nLabels;
   onAddScene: () => void;
   onAddVariable: () => void;
+  onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
 }
 
-export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, onAddVariable }: LeftPanelProps) {
+export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, onAddVariable, onUpdateVariable }: LeftPanelProps) {
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
     { id: "variables", label: labels.leftTabs[1] },
@@ -35,7 +36,7 @@ export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, o
       </div>
       <div className="left-content">
         {activeTab === "scenes" && <ScenesList data={data} labels={labels} onAddScene={onAddScene} />}
-        {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} />}
+        {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
         {activeTab === "achievements" && <AchievementsList data={data} labels={labels} />}
         {activeTab === "assets" && <AssetsList />}
       </div>
@@ -67,25 +68,53 @@ function ScenesList({ data, labels, onAddScene }: { data: ChoiceForgeProject; la
   );
 }
 
-function VariablesList({ data, labels, onAddVariable }: { data: ChoiceForgeProject; labels: I18nLabels; onAddVariable: () => void }) {
+function VariablesList({
+  data,
+  labels,
+  onAddVariable,
+  onUpdateVariable,
+}: {
+  data: ChoiceForgeProject;
+  labels: I18nLabels;
+  onAddVariable: () => void;
+  onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+}) {
   return (
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>usos</th></tr></thead>
+        <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>desc</th></tr></thead>
         <tbody>
           {data.variables.map((variable) => (
             <tr key={variable.name}>
-              <td><span className={`type-pill type-${variable.type}`}>{variable.type[0]}</span></td>
-              <td><code className="var-cell">{variable.name}</code>{variable.fairmath && <span className="fm-tag">%</span>}</td>
-              <td><code className="dim">{variable.initial}</code></td>
-              <td className="dim">{variable.uses}x</td>
+              <td>
+                <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"] })}>
+                  <option value="number">num</option>
+                  <option value="string">str</option>
+                  <option value="boolean">bool</option>
+                </select>
+              </td>
+              <td>
+                <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
+                {variable.fairmath && <span className="fm-tag">%</span>}
+              </td>
+              <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
+              <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
+}
+
+function normalizeIdentifier(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/^[^a-z_]+/, "")
+    .replace(/_+/g, "_");
 }
 
 function AchievementsList({ data, labels }: { data: ChoiceForgeProject; labels: I18nLabels }) {

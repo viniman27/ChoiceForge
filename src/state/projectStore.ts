@@ -27,6 +27,7 @@ export interface ProjectActions {
   moveNode: (id: string, x: number, y: number) => void;
   addScene: () => void;
   addVariable: () => void;
+  updateVariable: (name: string, patch: Partial<VariableSummary>) => void;
 }
 
 export function useProjectStore() {
@@ -79,9 +80,45 @@ export function useProjectStore() {
         return { ...current, variables: [...current.variables, variable] };
       });
     },
+    updateVariable: (name, patch) => {
+      setProjectState((current) => {
+        const nextName = patch.name?.trim();
+        const shouldRename = Boolean(nextName && nextName !== name);
+
+        return {
+          ...current,
+          variables: current.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
+          nodes: shouldRename ? current.nodes.map((node) => ({
+            ...node,
+            body: node.body ? renameVariableReferences(node.body, name, nextName!) : node.body,
+            sets: node.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
+            options: node.options?.map((option) => ({
+              ...option,
+              cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
+            })),
+            branches: node.branches?.map((branch) => ({
+              ...branch,
+              expr: branch.expr ? renameExpressionName(branch.expr, name, nextName!) : branch.expr,
+            })),
+          })) : current.nodes,
+        };
+      });
+    },
   }), []);
 
   return { project, lintedProject, actions };
+}
+
+function renameVariableReferences(text: string, from: string, to: string): string {
+  return text.replace(new RegExp(`\\$\\{${escapeRegex(from)}\\}`, "g"), `\${${to}}`);
+}
+
+function renameExpressionName(expression: string, from: string, to: string): string {
+  return expression.replace(new RegExp(`\\b${escapeRegex(from)}\\b`, "g"), to);
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function nextAvailableName(base: string, existing: Set<string>): string {

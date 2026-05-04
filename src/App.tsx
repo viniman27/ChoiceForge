@@ -54,6 +54,7 @@ export default function App() {
         labels={i18n[lang]}
         onAddScene={actions.addScene}
         onAddVariable={actions.addVariable}
+        onUpdateVariable={actions.updateVariable}
       />
       <GraphCanvas
         data={lintedProject}

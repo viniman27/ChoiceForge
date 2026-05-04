@@ -217,6 +217,18 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .vars-table td { padding: 6px; border-bottom: 1px solid var(--paper-3); }
 .vars-table tr:hover td { background: var(--paper-3); }
 .var-cell { font-size: 11px; }
+.var-edit {
+  width: 100%;
+  min-width: 74px;
+  background: var(--paper-1);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  padding: 4px 6px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+.var-edit.small { min-width: 42px; }
+.var-edit.desc { font-family: var(--ff-ui); min-width: 90px; }
 .type-pill { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; line-height: 18px; font-family: var(--ff-mono); font-size: 11px; font-weight: 600; }
 .type-pill.type-string { background: var(--c-passage-tint); color: var(--c-passage); }
 .type-pill.type-number { background: var(--c-set-tint); color: var(--c-set); }
