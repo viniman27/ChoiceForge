@@ -11,6 +11,12 @@ Use these settings in Cloudflare Pages:
 - Root directory: repository root
 - Node version: `24.15.0`
 
+Do not add a `wrangler.toml` for this static Git deployment unless the Pages
+project configuration is intentionally managed through Wrangler. When Cloudflare
+detects `wrangler.toml`, that file becomes the source of truth for Pages config;
+if no build command is configured in the project, Cloudflare will skip the Vite
+build and then fail because `dist` does not exist in the repository.
+
 If the deployed page is blank, check whether the deployed HTML contains:
 
 ```html
