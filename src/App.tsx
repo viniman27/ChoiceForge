@@ -53,6 +53,9 @@ export default function App() {
         setActiveTab={setActiveTab}
         labels={i18n[lang]}
         onAddScene={actions.addScene}
+        onUpdateScene={actions.updateScene}
+        onDuplicateScene={actions.duplicateScene}
+        onDeleteScene={actions.deleteScene}
         onAddVariable={actions.addVariable}
         onUpdateVariable={actions.updateVariable}
       />

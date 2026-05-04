@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, I18nLabels, VariableSummary } from "../domain/types";
+import type { ChoiceForgeProject, I18nLabels, SceneSummary, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -6,11 +6,25 @@ interface LeftPanelProps {
   setActiveTab: (tab: string) => void;
   labels: I18nLabels;
   onAddScene: () => void;
+  onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  onDuplicateScene: (id: string) => void;
+  onDeleteScene: (id: string) => void;
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
 }
 
-export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, onAddVariable, onUpdateVariable }: LeftPanelProps) {
+export function LeftPanel({
+  data,
+  activeTab,
+  setActiveTab,
+  labels,
+  onAddScene,
+  onUpdateScene,
+  onDuplicateScene,
+  onDeleteScene,
+  onAddVariable,
+  onUpdateVariable,
+}: LeftPanelProps) {
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
     { id: "variables", label: labels.leftTabs[1] },
@@ -35,7 +49,16 @@ export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, o
         ))}
       </div>
       <div className="left-content">
-        {activeTab === "scenes" && <ScenesList data={data} labels={labels} onAddScene={onAddScene} />}
+        {activeTab === "scenes" && (
+          <ScenesList
+            data={data}
+            labels={labels}
+            onAddScene={onAddScene}
+            onUpdateScene={onUpdateScene}
+            onDuplicateScene={onDuplicateScene}
+            onDeleteScene={onDeleteScene}
+          />
+        )}
         {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
         {activeTab === "achievements" && <AchievementsList data={data} labels={labels} />}
         {activeTab === "assets" && <AssetsList />}
@@ -44,7 +67,21 @@ export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, o
   );
 }
 
-function ScenesList({ data, labels, onAddScene }: { data: ChoiceForgeProject; labels: I18nLabels; onAddScene: () => void }) {
+function ScenesList({
+  data,
+  labels,
+  onAddScene,
+  onUpdateScene,
+  onDuplicateScene,
+  onDeleteScene,
+}: {
+  data: ChoiceForgeProject;
+  labels: I18nLabels;
+  onAddScene: () => void;
+  onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  onDuplicateScene: (id: string) => void;
+  onDeleteScene: (id: string) => void;
+}) {
   return (
     <div className="scene-list">
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
@@ -54,12 +91,22 @@ function ScenesList({ data, labels, onAddScene }: { data: ChoiceForgeProject; la
             <span className="scene-handle">::</span>
             <div className="scene-meta">
               <div className="scene-name">
-                <code>{scene.name}.txt</code>
+                {scene.isStart || scene.special ? (
+                  <code>{scene.name}.txt</code>
+                ) : (
+                  <input className="scene-edit" value={scene.name} onChange={(event) => onUpdateScene(scene.id, { name: normalizeIdentifier(event.target.value) })} />
+                )}
                 {scene.isStart && <span className="scene-tag">start</span>}
                 {scene.special && <span className="scene-tag">stats</span>}
                 {scene.warning && <span className="scene-tag warn">!</span>}
               </div>
-              <div className="scene-stats">{scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}</div>
+              <div className="scene-stats">
+                {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
+                <span className="scene-actions">
+                  <button className="mini-action" onClick={() => onDuplicateScene(scene.id)}>dup</button>
+                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={() => onDeleteScene(scene.id)}>del</button>}
+                </span>
+              </div>
             </div>
           </li>
         ))}

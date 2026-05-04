@@ -210,6 +210,28 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .scene-tag.warn { background: var(--warn); color: var(--ink); }
 .scene-stats { font-size: 10px; color: var(--ink-mute); font-family: var(--ff-mono); margin-top: 2px; }
 .scene-item.is-special { opacity: 0.85; }
+.scene-edit {
+  flex: 1;
+  min-width: 0;
+  background: var(--paper-1);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  padding: 3px 6px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+.scene-actions { display: inline-flex; gap: 4px; margin-left: 6px; }
+.mini-action {
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-1);
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  padding: 1px 4px;
+}
+.mini-action:hover { color: var(--ink); background: var(--paper-3); }
+.mini-action.danger:hover { color: var(--err); }
 
 /* Variables table */
 .vars-table { width: 100%; border-collapse: collapse; font-size: 11px; }

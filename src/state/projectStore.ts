@@ -26,6 +26,9 @@ export interface ProjectActions {
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
   addScene: () => void;
+  updateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  duplicateScene: (id: string) => void;
+  deleteScene: (id: string) => void;
   addVariable: () => void;
   updateVariable: (name: string, patch: Partial<VariableSummary>) => void;
 }
@@ -71,6 +74,41 @@ export function useProjectStore() {
         const name = nextAvailableName("new_scene", new Set(current.scenes.map((scene) => scene.name)));
         const scene: SceneSummary = { id: name, name, words: 0, nodes: 0 };
         return { ...current, scenes: [...current.scenes, scene] };
+      });
+    },
+    updateScene: (id, patch) => {
+      setProjectState((current) => {
+        const currentScene = current.scenes.find((scene) => scene.id === id);
+        if (!currentScene || currentScene.isStart || currentScene.special) return current;
+
+        const nextName = patch.name ? normalizeIdentifier(patch.name) : undefined;
+        const shouldRename = Boolean(nextName && nextName !== currentScene.name);
+
+        return {
+          ...current,
+          sceneTitle: current.sceneTitle === currentScene.name && nextName ? nextName : current.sceneTitle,
+          scenes: current.scenes.map((scene) => (scene.id === id ? { ...scene, ...patch, id: nextName || scene.id, name: nextName || scene.name } : scene)),
+          nodes: shouldRename ? current.nodes.map((node) => (node.type === "goto_scene" && node.target === currentScene.name ? { ...node, target: nextName } : node)) : current.nodes,
+        };
+      });
+    },
+    duplicateScene: (id) => {
+      setProjectState((current) => {
+        const scene = current.scenes.find((candidate) => candidate.id === id);
+        if (!scene) return current;
+        const name = nextAvailableName(`${scene.name}_copy`, new Set(current.scenes.map((candidate) => candidate.name)));
+        return { ...current, scenes: [...current.scenes, { ...scene, id: name, name, current: false, isStart: false, special: false }] };
+      });
+    },
+    deleteScene: (id) => {
+      setProjectState((current) => {
+        const scene = current.scenes.find((candidate) => candidate.id === id);
+        if (!scene || scene.isStart || scene.special || current.scenes.filter((candidate) => !candidate.special).length <= 2) return current;
+        return {
+          ...current,
+          scenes: current.scenes.filter((candidate) => candidate.id !== id),
+          nodes: current.nodes.map((node) => (node.type === "goto_scene" && node.target === scene.name ? { ...node, target: undefined } : node)),
+        };
       });
     },
     addVariable: () => {
@@ -126,4 +164,13 @@ function nextAvailableName(base: string, existing: Set<string>): string {
   let index = 2;
   while (existing.has(`${base}_${index}`)) index += 1;
   return `${base}_${index}`;
+}
+
+function normalizeIdentifier(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/^[^a-z_]+/, "")
+    .replace(/_+/g, "_");
 }
