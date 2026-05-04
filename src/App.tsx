@@ -47,7 +47,14 @@ export default function App() {
           setSelectedId("n3");
         }}
       />
-      <LeftPanel data={lintedProject} activeTab={activeTab} setActiveTab={setActiveTab} labels={i18n[lang]} />
+      <LeftPanel
+        data={lintedProject}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        labels={i18n[lang]}
+        onAddScene={actions.addScene}
+        onAddVariable={actions.addVariable}
+      />
       <GraphCanvas
         data={lintedProject}
         density={density}

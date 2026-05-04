@@ -5,9 +5,11 @@ interface LeftPanelProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   labels: I18nLabels;
+  onAddScene: () => void;
+  onAddVariable: () => void;
 }
 
-export function LeftPanel({ data, activeTab, setActiveTab, labels }: LeftPanelProps) {
+export function LeftPanel({ data, activeTab, setActiveTab, labels, onAddScene, onAddVariable }: LeftPanelProps) {
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
     { id: "variables", label: labels.leftTabs[1] },
@@ -32,8 +34,8 @@ export function LeftPanel({ data, activeTab, setActiveTab, labels }: LeftPanelPr
         ))}
       </div>
       <div className="left-content">
-        {activeTab === "scenes" && <ScenesList data={data} labels={labels} />}
-        {activeTab === "variables" && <VariablesList data={data} labels={labels} />}
+        {activeTab === "scenes" && <ScenesList data={data} labels={labels} onAddScene={onAddScene} />}
+        {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} />}
         {activeTab === "achievements" && <AchievementsList data={data} labels={labels} />}
         {activeTab === "assets" && <AssetsList />}
       </div>
@@ -41,10 +43,10 @@ export function LeftPanel({ data, activeTab, setActiveTab, labels }: LeftPanelPr
   );
 }
 
-function ScenesList({ data, labels }: { data: ChoiceForgeProject; labels: I18nLabels }) {
+function ScenesList({ data, labels, onAddScene }: { data: ChoiceForgeProject; labels: I18nLabels; onAddScene: () => void }) {
   return (
     <div className="scene-list">
-      <div className="section-title"><span>scene_list</span><button className="ghost-btn">+ {labels.addScene}</button></div>
+      <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
         {data.scenes.map((scene) => (
           <li key={scene.id} className={`scene-item ${scene.current ? "is-current" : ""} ${scene.special ? "is-special" : ""}`}>
@@ -65,10 +67,10 @@ function ScenesList({ data, labels }: { data: ChoiceForgeProject; labels: I18nLa
   );
 }
 
-function VariablesList({ data, labels }: { data: ChoiceForgeProject; labels: I18nLabels }) {
+function VariablesList({ data, labels, onAddVariable }: { data: ChoiceForgeProject; labels: I18nLabels; onAddVariable: () => void }) {
   return (
     <div className="vars-list">
-      <div className="section-title"><span>*create</span><button className="ghost-btn">+ {labels.addVar}</button></div>
+      <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
         <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>usos</th></tr></thead>
         <tbody>
