@@ -53,7 +53,10 @@ export default function App() {
         setActiveTab={setActiveTab}
         labels={i18n[lang]}
         onAddScene={actions.addScene}
-        onSelectScene={actions.selectScene}
+        onSelectScene={(id) => {
+          actions.selectScene(id);
+          setSelectedId("n1");
+        }}
         onUpdateScene={actions.updateScene}
         onDuplicateScene={actions.duplicateScene}
         onDeleteScene={actions.deleteScene}
