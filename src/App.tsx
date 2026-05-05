@@ -7,7 +7,7 @@ import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage } from "./domain/choicescript";
-import type { ChoiceForgeProject, Density, EditorView, Language, Theme } from "./domain/types";
+import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 
 export default function App() {
@@ -65,6 +65,7 @@ export default function App() {
       <GraphCanvas
         data={lintedProject}
         density={density}
+        labels={i18n[lang]}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         pan={pan}
@@ -72,6 +73,15 @@ export default function App() {
         zoom={zoom}
         setZoom={setZoom}
         onMoveNode={actions.moveNode}
+        onAddNode={(type, position) => {
+          const id = nextNodeId(lintedProject.nodes);
+          actions.addNode(type, id, position);
+          setSelectedId(id);
+        }}
+        onDeleteNode={(id) => {
+          actions.deleteNode(id);
+          setSelectedId(null);
+        }}
       />
       <RightPanel
         node={selectedNode}
@@ -94,4 +104,12 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   anchor.download = `${project.title}.choiceforge-export.json`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function nextNodeId(nodes: StoryNode[]): string {
+  const max = nodes.reduce((currentMax, node) => {
+    const match = /^n(\d+)$/.exec(node.id);
+    return match ? Math.max(currentMax, Number(match[1])) : currentMax;
+  }, 0);
+  return `n${max + 1}`;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
-import type { AchievementSummary, ChoiceForgeProject, Language, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v1";
 
@@ -25,6 +25,8 @@ export interface ProjectActions {
   resetProject: (language: Language) => ChoiceForgeProject;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
+  addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
+  deleteNode: (id: string) => void;
   addScene: () => void;
   updateScene: (id: string, patch: Partial<SceneSummary>) => void;
   duplicateScene: (id: string) => void;
@@ -71,6 +73,39 @@ export function useProjectStore() {
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, x, y } : node)),
       }));
+    },
+    addNode: (type, id, position) => {
+      setProjectState((current) => {
+        if (current.nodes.some((node) => node.id === id)) return current;
+        const node = createStoryNode(type, id, position, current);
+        return {
+          ...current,
+          nodes: [...current.nodes, node],
+          scenes: current.scenes.map((scene) => (
+            scene.name === current.sceneTitle ? { ...scene, nodes: scene.nodes + 1 } : scene
+          )),
+        };
+      });
+    },
+    deleteNode: (id) => {
+      setProjectState((current) => {
+        if (current.nodes.length <= 1) return current;
+        const nodes = current.nodes.filter((node) => node.id !== id);
+        if (nodes.length === current.nodes.length) return current;
+
+        return {
+          ...current,
+          nodes: nodes.map((node) => ({
+            ...node,
+            options: node.options?.filter((option) => option.to !== id),
+            branches: node.branches?.filter((branch) => branch.to !== id),
+          })),
+          edges: current.edges.filter((edge) => edge.from !== id && edge.to !== id),
+          scenes: current.scenes.map((scene) => (
+            scene.name === current.sceneTitle ? { ...scene, nodes: Math.max(0, scene.nodes - 1) } : scene
+          )),
+        };
+      });
     },
     addScene: () => {
       setProjectState((current) => {
@@ -198,6 +233,52 @@ function nextAvailableName(base: string, existing: Set<string>): string {
   let index = 2;
   while (existing.has(`${base}_${index}`)) index += 1;
   return `${base}_${index}`;
+}
+
+function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {
+  const title = nextAvailableName(defaultNodeTitle(type), new Set(project.nodes.map((node) => node.title)));
+  const base = { id, type, x: position.x, y: position.y, w: defaultNodeWidth(type), title };
+
+  if (type === "passage") return { ...base, body: "Novo trecho narrativo." };
+  if (type === "choice") return { ...base, prompt: "O que acontece agora?", options: [] };
+  if (type === "if") return { ...base, branches: [{ kind: "if", expr: "true", to: project.nodes[0]?.id ?? id }] };
+  if (type === "set") return { ...base, sets: [{ var: project.variables[0]?.name ?? "variavel", op: "=", val: "0" }] };
+  if (type === "label") return { ...base, title: `*label ${title}` };
+  if (type === "goto") return { ...base, title: `*goto ${firstLabel(project) || "label"}` };
+  if (type === "goto_scene") return { ...base, title: `*goto_scene ${firstScene(project)}`, target: firstScene(project) };
+  if (type === "gosub") return { ...base, title: "*gosub subrotina" };
+  if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
+  return { ...base, title: "*ending" };
+}
+
+function defaultNodeTitle(type: NodeType): string {
+  const titles: Record<NodeType, string> = {
+    passage: "novo_trecho",
+    choice: "nova_escolha",
+    if: "nova_condicao",
+    set: "*set",
+    label: "novo_label",
+    goto: "*goto",
+    goto_scene: "*goto_scene",
+    gosub: "*gosub",
+    ending: "*ending",
+    checkpoint: "novo_checkpoint",
+  };
+  return titles[type];
+}
+
+function defaultNodeWidth(type: NodeType): number {
+  if (type === "choice") return 340;
+  if (type === "passage") return 300;
+  return 240;
+}
+
+function firstLabel(project: ChoiceForgeProject): string {
+  return project.nodes.find((node) => node.type === "label")?.title.replace("*label", "").trim() ?? "";
+}
+
+function firstScene(project: ChoiceForgeProject): string {
+  return project.scenes.find((scene) => !scene.isStart && !scene.special)?.name ?? project.sceneTitle;
 }
 
 function normalizeIdentifier(value: string): string {
