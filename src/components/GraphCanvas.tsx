@@ -9,6 +9,7 @@ interface GraphCanvasProps {
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   onMoveNode: (id: string, x: number, y: number) => void;
+  onLayoutNodes: () => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDeleteNode: (id: string) => void;
   pan: { x: number; y: number };
@@ -19,7 +20,7 @@ interface GraphCanvasProps {
 
 const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "set", "label", "goto", "goto_scene", "gosub", "checkpoint", "ending"];
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -133,6 +134,9 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
           title="excluir no selecionado"
         >
           excluir
+        </button>
+        <button className="canvas-tool" onClick={onLayoutNodes} title="reorganizar grafo">
+          reorganizar
         </button>
       </div>
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>

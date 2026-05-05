@@ -25,6 +25,7 @@ export interface ProjectActions {
   resetProject: (language: Language) => ChoiceForgeProject;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
+  layoutNodes: () => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
   deleteNode: (id: string) => void;
   addFlowEdge: (from: string, to: string) => void;
@@ -75,6 +76,12 @@ export function useProjectStore() {
       setProjectState((current) => ({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, x, y } : node)),
+      }));
+    },
+    layoutNodes: () => {
+      setProjectState((current) => ({
+        ...current,
+        nodes: layoutStoryNodes(current),
       }));
     },
     addNode: (type, id, position) => {
@@ -302,6 +309,57 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
 
 function stripCommandPrefix(value: string, command: string): string {
   return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function layoutStoryNodes(project: ChoiceForgeProject): StoryNode[] {
+  const nodes = project.nodes;
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const incoming = new Map(nodes.map((node) => [node.id, 0]));
+  const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
+
+  project.edges.forEach((edge) => {
+    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return;
+    outgoing.get(edge.from)?.push(edge.to);
+    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
+  });
+
+  const roots = nodes.filter((node) => node.id === "n1" || (incoming.get(node.id) ?? 0) === 0);
+  const queue = roots.length ? roots.map((node) => node.id) : nodes.slice(0, 1).map((node) => node.id);
+  const depth = new Map<string, number>(queue.map((id) => [id, 0]));
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const id = queue[index];
+    const currentDepth = depth.get(id) ?? 0;
+    outgoing.get(id)?.forEach((target) => {
+      const nextDepth = currentDepth + 1;
+      if (!depth.has(target) || nextDepth > (depth.get(target) ?? 0)) {
+        depth.set(target, nextDepth);
+        queue.push(target);
+      }
+    });
+  }
+
+  const maxDepth = Math.max(0, ...depth.values());
+  nodes.forEach((node) => {
+    if (!depth.has(node.id)) depth.set(node.id, maxDepth + 1);
+  });
+
+  const columns = new Map<number, StoryNode[]>();
+  nodes.forEach((node) => {
+    const column = depth.get(node.id) ?? 0;
+    columns.set(column, [...(columns.get(column) ?? []), node]);
+  });
+
+  const orderedColumns = [...columns.entries()].sort(([a], [b]) => a - b);
+  const positions = new Map<string, { x: number; y: number }>();
+  orderedColumns.forEach(([column, columnNodes]) => {
+    const sortedNodes = [...columnNodes].sort((a, b) => a.y - b.y || a.x - b.x);
+    sortedNodes.forEach((node, row) => {
+      positions.set(node.id, { x: 70 + column * 360, y: 70 + row * 210 });
+    });
+  });
+
+  return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
 }
 
 function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {

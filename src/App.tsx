@@ -74,6 +74,7 @@ export default function App() {
         zoom={zoom}
         setZoom={setZoom}
         onMoveNode={actions.moveNode}
+        onLayoutNodes={actions.layoutNodes}
         onAddNode={(type, position) => {
           const id = nextNodeId(lintedProject.nodes);
           actions.addNode(type, id, position);
