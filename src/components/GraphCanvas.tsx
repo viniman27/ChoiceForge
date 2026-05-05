@@ -75,7 +75,12 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         setConnecting((current) => current ? { ...current, ...clientPointToWorld(event.clientX, event.clientY, canvasRef.current, pan, zoom) } : current);
       }
     };
-    const up = () => {
+    const up = (event: PointerEvent) => {
+      if (connecting) {
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        const targetId = target instanceof HTMLElement ? target.closest<HTMLElement>(".anchor-in")?.dataset.nodeId : undefined;
+        if (targetId) onAddFlowEdge(connecting.from, targetId);
+      }
       setDrag(null);
       setPanning(null);
       setConnecting(null);
@@ -88,7 +93,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
-  }, [connecting, drag, onMoveNode, onPan, pan, panning, zoom]);
+  }, [connecting, drag, onAddFlowEdge, onMoveNode, onPan, pan, panning, zoom]);
 
   return (
     <div

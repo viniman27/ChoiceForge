@@ -3,7 +3,7 @@ import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
-const STORAGE_KEY = "choiceforge.project.v1";
+const STORAGE_KEY = "choiceforge.project.v2";
 
 function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
   return structuredClone(project);

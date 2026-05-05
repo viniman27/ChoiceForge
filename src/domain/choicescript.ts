@@ -142,7 +142,10 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
 export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   const issues: LintIssue[] = [];
   const nodeIds = new Set(project.nodes.map((node) => node.id));
-  const labels = new Set(project.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")));
+  const labels = new Set([
+    ...project.nodes.map((node) => generatedNodeLabel(node.id)),
+    ...project.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
+  ]);
   const variables = new Set(project.variables.map((variable) => variable.name));
   const scenes = new Set(project.scenes.map((scene) => scene.name));
   const outgoing = new Map(project.nodes.map((node) => [node.id, 0]));

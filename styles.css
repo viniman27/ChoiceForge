@@ -447,7 +447,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   transform-origin: 0 0;
   will-change: transform;
 }
-.edges { position: absolute; left: -200px; top: -200px; pointer-events: none; overflow: visible; }
+.edges { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .edge-label {
   font-family: var(--ff-mono); font-size: 10px;
   text-align: center; padding: 1px 6px;
