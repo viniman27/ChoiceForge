@@ -28,6 +28,13 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
       if (event.code === "Space" && !event.repeat) setSpace(true);
+      if (isTypingTarget(event.target)) return;
+      if (event.key === "Escape") setSelectedId(null);
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
+        event.preventDefault();
+        onDeleteNode(selectedId);
+        setSelectedId(null);
+      }
     };
     const keyUp = (event: KeyboardEvent) => {
       if (event.code === "Space") setSpace(false);
@@ -38,7 +45,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
     };
-  }, []);
+  }, [onDeleteNode, selectedId, setSelectedId]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -162,6 +169,11 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       <Minimap data={data} />
     </div>
   );
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
 
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
