@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
-import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v1";
 
@@ -11,12 +11,12 @@ function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
 
 function loadInitialProject(): ChoiceForgeProject {
   const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (!saved) return cloneProject(sampleProjects.pt);
+  if (!saved) return syncDerivedEdges(cloneProject(sampleProjects.pt));
 
   try {
-    return JSON.parse(saved) as ChoiceForgeProject;
+    return syncDerivedEdges(JSON.parse(saved) as ChoiceForgeProject);
   } catch {
-    return cloneProject(sampleProjects.pt);
+    return syncDerivedEdges(cloneProject(sampleProjects.pt));
   }
 }
 
@@ -53,17 +53,18 @@ export function useProjectStore() {
 
   const actions = useMemo<ProjectActions>(() => ({
     setProject: (nextProject) => {
-      setProjectState(nextProject);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextProject));
+      const syncedProject = syncDerivedEdges(nextProject);
+      setProjectState(syncedProject);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedProject));
     },
     resetProject: (language) => {
-      const fresh = cloneProject(sampleProjects[language]);
+      const fresh = syncDerivedEdges(cloneProject(sampleProjects[language]));
       setProjectState(fresh);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
     },
     updateNode: (id, patch) => {
-      setProjectState((current) => ({
+      setProjectState((current) => syncDerivedEdges({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
       }));
@@ -78,13 +79,13 @@ export function useProjectStore() {
       setProjectState((current) => {
         if (current.nodes.some((node) => node.id === id)) return current;
         const node = createStoryNode(type, id, position, current);
-        return {
+        return syncDerivedEdges({
           ...current,
           nodes: [...current.nodes, node],
           scenes: current.scenes.map((scene) => (
             scene.name === current.sceneTitle ? { ...scene, nodes: scene.nodes + 1 } : scene
           )),
-        };
+        });
       });
     },
     deleteNode: (id) => {
@@ -93,7 +94,7 @@ export function useProjectStore() {
         const nodes = current.nodes.filter((node) => node.id !== id);
         if (nodes.length === current.nodes.length) return current;
 
-        return {
+        return syncDerivedEdges({
           ...current,
           nodes: nodes.map((node) => ({
             ...node,
@@ -104,7 +105,7 @@ export function useProjectStore() {
           scenes: current.scenes.map((scene) => (
             scene.name === current.sceneTitle ? { ...scene, nodes: Math.max(0, scene.nodes - 1) } : scene
           )),
-        };
+        });
       });
     },
     addScene: () => {
@@ -161,7 +162,7 @@ export function useProjectStore() {
         const nextName = patch.name?.trim();
         const shouldRename = Boolean(nextName && nextName !== name);
 
-        return {
+        return syncDerivedEdges({
           ...current,
           variables: current.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
           nodes: shouldRename ? current.nodes.map((node) => ({
@@ -177,7 +178,7 @@ export function useProjectStore() {
               expr: branch.expr ? renameExpressionName(branch.expr, name, nextName!) : branch.expr,
             })),
           })) : current.nodes,
-        };
+        });
       });
     },
     addAchievement: () => {
@@ -233,6 +234,60 @@ function nextAvailableName(base: string, existing: Set<string>): string {
   let index = 2;
   while (existing.has(`${base}_${index}`)) index += 1;
   return `${base}_${index}`;
+}
+
+function syncDerivedEdges(project: ChoiceForgeProject): ChoiceForgeProject {
+  const manualEdges = project.edges.filter((edge) => edge.kind === "flow");
+  return { ...project, edges: [...manualEdges, ...deriveNodeEdges(project.nodes)] };
+}
+
+function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const labels = new Map(
+    nodes
+      .filter((node) => node.type === "label")
+      .map((node) => [stripCommandPrefix(node.title, "*label"), node.id]),
+  );
+
+  return nodes.flatMap((node): StoryEdge[] => {
+    if (node.type === "choice") {
+      return (node.options ?? [])
+        .filter((option) => nodeIds.has(option.to))
+        .map((option, index) => ({
+          from: node.id,
+          to: option.to,
+          kind: "choice",
+          label: `#${index + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
+        }));
+    }
+
+    if (node.type === "if") {
+      return (node.branches ?? [])
+        .filter((branch) => nodeIds.has(branch.to))
+        .map((branch) => ({
+          from: node.id,
+          to: branch.to,
+          kind: branch.kind,
+          label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
+        }));
+    }
+
+    if (node.type === "goto") {
+      const target = labels.get(stripCommandPrefix(node.title, "*goto"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*goto" }] : [];
+    }
+
+    if (node.type === "gosub") {
+      const target = labels.get(stripCommandPrefix(node.title, "*gosub"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*gosub" }] : [];
+    }
+
+    return [];
+  });
+}
+
+function stripCommandPrefix(value: string, command: string): string {
+  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
 }
 
 function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {
