@@ -63,7 +63,7 @@ export function LeftPanel({
       </div>
       <div className="left-content">
         {search.trim() ? (
-          <SearchResults results={searchResults} onSelectNode={onSelectNode} />
+          <SearchResults results={searchResults} onSelectNode={onSelectNode} onSelectScene={onSelectScene} />
         ) : activeTab === "scenes" && (
           <ScenesList
             data={data}
@@ -97,9 +97,10 @@ interface SearchResult {
   title: string;
   detail: string;
   nodeId?: string;
+  sceneId?: string;
 }
 
-function SearchResults({ results, onSelectNode }: { results: SearchResult[]; onSelectNode: (id: string) => void }) {
+function SearchResults({ results, onSelectNode, onSelectScene }: { results: SearchResult[]; onSelectNode: (id: string) => void; onSelectScene: (id: string) => void }) {
   return (
     <div className="search-results">
       <div className="section-title"><span>resultados</span><span>{results.length}</span></div>
@@ -109,7 +110,13 @@ function SearchResults({ results, onSelectNode }: { results: SearchResult[]; onS
         <ul>
           {results.map((result) => (
             <li key={result.id}>
-              <button className={`search-result ${result.nodeId ? "is-clickable" : ""}`} onClick={() => result.nodeId && onSelectNode(result.nodeId)}>
+              <button
+                className={`search-result ${result.nodeId || result.sceneId ? "is-clickable" : ""}`}
+                onClick={() => {
+                  if (result.sceneId) onSelectScene(result.sceneId);
+                  if (result.nodeId) onSelectNode(result.nodeId);
+                }}
+              >
                 <span className={`result-kind result-${result.kind}`}>{result.kind}</span>
                 <span className="result-main">
                   <span className="result-title">{result.title}</span>
@@ -153,14 +160,18 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
       detail: `${achievement.id} ${achievement.desc} ${achievement.preDesc ?? ""} ${achievement.postDesc ?? ""}`,
     });
   });
-  data.nodes.forEach((node) => {
-    nodeSearchTargets(node).forEach((target, index) => {
-      addResult(results, normalized, {
-        id: `node-${node.id}-${index}`,
-        kind: "node",
-        title: `${node.id} - ${node.title}`,
-        detail: target,
-        nodeId: node.id,
+  Object.entries(data.sceneData ?? { [data.sceneTitle]: { nodes: data.nodes, edges: data.edges } }).forEach(([sceneName, graph]) => {
+    const scene = data.scenes.find((candidate) => candidate.name === sceneName);
+    graph.nodes.forEach((node) => {
+      nodeSearchTargets(node).forEach((target, index) => {
+        addResult(results, normalized, {
+          id: `node-${sceneName}-${node.id}-${index}`,
+          kind: "node",
+          title: `${sceneName}.txt / ${node.id} - ${node.title}`,
+          detail: target,
+          nodeId: node.id,
+          sceneId: scene?.id,
+        });
       });
     });
   });

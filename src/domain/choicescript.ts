@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, LintIssue, StoryNode, VariableSet } from "./types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
 
 const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "goto", "goto_scene"]);
 
@@ -18,9 +18,11 @@ export interface ChoiceForgeExportPackage {
   files: ChoiceForgeExportFile[];
 }
 
-export function generateNodeChoiceScript(node: StoryNode): string {
+export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = []): string {
   const lines: string[] = [];
+  const nodeLabel = generatedNodeLabel(node.id);
 
+  lines.push(`*label ${nodeLabel}`);
   if (node.type === "label") lines.push(`*label ${stripCommandPrefix(node.title, "*label")}`);
   if (node.body?.trim()) lines.push(node.body);
   node.sets?.forEach((set) => lines.push(generateSet(set)));
@@ -29,14 +31,14 @@ export function generateNodeChoiceScript(node: StoryNode): string {
     lines.push("*choice");
     node.options?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
-      lines.push(`    *goto ${option.to}`);
+      lines.push(`    *goto ${generatedNodeLabel(option.to)}`);
     });
   }
 
   if (node.type === "if") {
     node.branches?.forEach((branch) => {
       lines.push(branch.expr ? `*${branch.kind} (${branch.expr})` : `*${branch.kind}`);
-      lines.push(`  *goto ${branch.to}`);
+      lines.push(`  *goto ${generatedNodeLabel(branch.to)}`);
     });
   }
 
@@ -46,21 +48,27 @@ export function generateNodeChoiceScript(node: StoryNode): string {
   if (node.type === "ending") lines.push("*ending");
   if (node.type === "checkpoint") lines.push(`*save_checkpoint ${stripCommandPrefix(node.title, "*save_checkpoint")}`);
 
+  const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+  if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
+    lines.push(`*goto ${generatedNodeLabel(flowTarget)}`);
+  }
+
   return lines.join("\n") || "# empty";
 }
 
-export function generateSceneChoiceScript(project: ChoiceForgeProject): string {
-  const incoming = new Map(project.nodes.map((node) => [node.id, 0]));
-  project.edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));
+export function generateSceneChoiceScript(project: ChoiceForgeProject, sceneName = project.sceneTitle): string {
+  const graph = getSceneGraph(project, sceneName);
+  const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
+  graph.edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));
 
-  return [...project.nodes]
+  return [...graph.nodes]
     .sort((a, b) => {
       if (a.id === "n1") return -1;
       if (b.id === "n1") return 1;
       return a.y - b.y || a.x - b.x;
     })
     .map((node) => {
-      const section = generateNodeChoiceScript(node);
+      const section = generateNodeChoiceScript(node, graph.edges);
       const hasIncoming = (incoming.get(node.id) ?? 0) > 0 || node.id === "n1";
       return `${hasIncoming ? "" : "*comment ChoiceForge: orphan visual node\n"}${section}`;
     })
@@ -100,6 +108,14 @@ export function generateProjectJson(project: ChoiceForgeProject): string {
 }
 
 export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExportPackage {
+  const sceneFiles = project.scenes
+    .filter((scene) => !scene.special && !scene.isStart && scene.name !== "startup")
+    .map((scene) => ({
+      path: `mygame/${scene.name}.txt`,
+      encoding: "utf-8" as const,
+      content: `${generateSceneChoiceScript(project, scene.name)}\n`,
+    }));
+
   return {
     format: "choiceforge.export",
     version: 1,
@@ -118,11 +134,7 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
         encoding: "utf-8",
         content: generateStartupChoiceScript(project),
       },
-      {
-        path: `mygame/${project.sceneTitle}.txt`,
-        encoding: "utf-8",
-        content: `${generateSceneChoiceScript(project)}\n`,
-      },
+      ...sceneFiles,
     ],
   };
 }
@@ -193,6 +205,14 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
 function generateSet(set: VariableSet): string {
   return `*set ${set.var} ${set.op === "=" ? set.val : `${set.op} ${set.val}`}`;
+}
+
+function generatedNodeLabel(id: string): string {
+  return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+}
+
+function getSceneGraph(project: ChoiceForgeProject, sceneName: string): SceneGraph {
+  return project.sceneData?.[sceneName] ?? { nodes: project.nodes, edges: project.edges };
 }
 
 function generateOptionHeader(option: ChoiceOption): string {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
-import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v1";
 
@@ -11,12 +11,12 @@ function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
 
 function loadInitialProject(): ChoiceForgeProject {
   const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (!saved) return syncDerivedEdges(cloneProject(sampleProjects.pt));
+  if (!saved) return commitProject(hydrateProject(cloneProject(sampleProjects.pt)));
 
   try {
-    return syncDerivedEdges(JSON.parse(saved) as ChoiceForgeProject);
+    return commitProject(hydrateProject(JSON.parse(saved) as ChoiceForgeProject));
   } catch {
-    return syncDerivedEdges(cloneProject(sampleProjects.pt));
+    return commitProject(hydrateProject(cloneProject(sampleProjects.pt)));
   }
 }
 
@@ -57,42 +57,46 @@ export function useProjectStore() {
 
   const actions = useMemo<ProjectActions>(() => ({
     setProject: (nextProject) => {
-      const syncedProject = syncDerivedEdges(nextProject);
+      const syncedProject = commitProject(hydrateProject(nextProject));
       setProjectState(syncedProject);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedProject));
     },
     resetProject: (language) => {
-      const fresh = syncDerivedEdges(cloneProject(sampleProjects[language]));
+      const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
       setProjectState(fresh);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
     },
     selectScene: (id) => {
       setProjectState((current) => {
+        const saved = commitProject(current);
         const scene = current.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special) return current;
-        return {
-          ...current,
+        const graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
+        return commitProject({
+          ...saved,
           sceneTitle: scene.name,
           sceneSubtitle: `${scene.name}.txt - ${scene.words.toLocaleString()} palavras`,
-          scenes: current.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
-        };
+          scenes: saved.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
+          nodes: graph.nodes,
+          edges: graph.edges,
+        });
       });
     },
     updateNode: (id, patch) => {
-      setProjectState((current) => syncDerivedEdges({
+      setProjectState((current) => commitProject({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
       }));
     },
     moveNode: (id, x, y) => {
-      setProjectState((current) => ({
+      setProjectState((current) => commitProject({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, x, y } : node)),
       }));
     },
     layoutNodes: () => {
-      setProjectState((current) => ({
+      setProjectState((current) => commitProject({
         ...current,
         nodes: layoutStoryNodes(current),
       }));
@@ -101,7 +105,7 @@ export function useProjectStore() {
       setProjectState((current) => {
         if (current.nodes.some((node) => node.id === id)) return current;
         const node = createStoryNode(type, id, position, current);
-        return syncDerivedEdges({
+        return commitProject({
           ...current,
           nodes: [...current.nodes, node],
           scenes: current.scenes.map((scene) => (
@@ -116,7 +120,7 @@ export function useProjectStore() {
         const nodes = current.nodes.filter((node) => node.id !== id);
         if (nodes.length === current.nodes.length) return current;
 
-        return syncDerivedEdges({
+        return commitProject({
           ...current,
           nodes: nodes.map((node) => ({
             ...node,
@@ -136,55 +140,78 @@ export function useProjectStore() {
         const target = current.nodes.find((node) => node.id === to);
         const sourceCanFlow = source && !["ending", "goto", "goto_scene"].includes(source.type);
         if (!sourceCanFlow || !target || from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
-        return { ...current, edges: [...current.edges, { from, to, kind: "flow" }] };
+        return commitProject({ ...current, edges: [...current.edges, { from, to, kind: "flow" }] });
       });
     },
     deleteFlowEdge: (from, to) => {
-      setProjectState((current) => ({
+      setProjectState((current) => commitProject({
         ...current,
         edges: current.edges.filter((edge) => !(edge.from === from && edge.to === to && edge.kind === "flow")),
       }));
     },
     addScene: () => {
       setProjectState((current) => {
+        const saved = commitProject(current);
         const name = nextAvailableName("new_scene", new Set(current.scenes.map((scene) => scene.name)));
-        const scene: SceneSummary = { id: name, name, words: 0, nodes: 0 };
-        return { ...current, scenes: [...current.scenes, scene] };
+        const scene: SceneSummary = { id: name, name, words: 1, nodes: 1 };
+        return {
+          ...saved,
+          scenes: [...saved.scenes, scene],
+          sceneData: { ...(saved.sceneData ?? {}), [name]: createEmptySceneGraph(name) },
+        };
       });
     },
     updateScene: (id, patch) => {
       setProjectState((current) => {
+        const saved = commitProject(current);
         const currentScene = current.scenes.find((scene) => scene.id === id);
         if (!currentScene || currentScene.isStart || currentScene.special) return current;
 
         const nextName = patch.name ? normalizeIdentifier(patch.name) : undefined;
         const shouldRename = Boolean(nextName && nextName !== currentScene.name);
+        const nextSceneData = shouldRename ? renameSceneGraphKey(saved.sceneData ?? {}, currentScene.name, nextName!) : saved.sceneData;
+        const nodes = shouldRename ? saved.nodes.map((node) => (node.type === "goto_scene" && node.target === currentScene.name ? { ...node, target: nextName } : node)) : saved.nodes;
 
-        return {
-          ...current,
+        return commitProject({
+          ...saved,
           sceneTitle: current.sceneTitle === currentScene.name && nextName ? nextName : current.sceneTitle,
-          scenes: current.scenes.map((scene) => (scene.id === id ? { ...scene, ...patch, id: nextName || scene.id, name: nextName || scene.name } : scene)),
-          nodes: shouldRename ? current.nodes.map((node) => (node.type === "goto_scene" && node.target === currentScene.name ? { ...node, target: nextName } : node)) : current.nodes,
-        };
+          scenes: saved.scenes.map((scene) => (scene.id === id ? { ...scene, ...patch, id: nextName || scene.id, name: nextName || scene.name } : scene)),
+          sceneData: nextSceneData,
+          nodes,
+        });
       });
     },
     duplicateScene: (id) => {
       setProjectState((current) => {
-        const scene = current.scenes.find((candidate) => candidate.id === id);
+        const saved = commitProject(current);
+        const scene = saved.scenes.find((candidate) => candidate.id === id);
         if (!scene) return current;
-        const name = nextAvailableName(`${scene.name}_copy`, new Set(current.scenes.map((candidate) => candidate.name)));
-        return { ...current, scenes: [...current.scenes, { ...scene, id: name, name, current: false, isStart: false, special: false }] };
+        const name = nextAvailableName(`${scene.name}_copy`, new Set(saved.scenes.map((candidate) => candidate.name)));
+        return {
+          ...saved,
+          scenes: [...saved.scenes, { ...scene, id: name, name, current: false, isStart: false, special: false }],
+          sceneData: { ...(saved.sceneData ?? {}), [name]: structuredClone(saved.sceneData?.[scene.name] ?? createEmptySceneGraph(name)) },
+        };
       });
     },
     deleteScene: (id) => {
       setProjectState((current) => {
-        const scene = current.scenes.find((candidate) => candidate.id === id);
-        if (!scene || scene.isStart || scene.special || current.scenes.filter((candidate) => !candidate.special).length <= 2) return current;
-        return {
-          ...current,
-          scenes: current.scenes.filter((candidate) => candidate.id !== id),
-          nodes: current.nodes.map((node) => (node.type === "goto_scene" && node.target === scene.name ? { ...node, target: undefined } : node)),
-        };
+        const saved = commitProject(current);
+        const scene = saved.scenes.find((candidate) => candidate.id === id);
+        if (!scene || scene.isStart || scene.special || saved.scenes.filter((candidate) => !candidate.special).length <= 2) return current;
+        const sceneData = { ...(saved.sceneData ?? {}) };
+        delete sceneData[scene.name];
+        const scenes = saved.scenes.filter((candidate) => candidate.id !== id);
+        const fallback = scenes.find((candidate) => !candidate.isStart && !candidate.special);
+        const graph = fallback ? sceneData[fallback.name] ?? createEmptySceneGraph(fallback.name) : { nodes: saved.nodes, edges: saved.edges };
+        return commitProject({
+          ...saved,
+          scenes: scenes.map((candidate) => ({ ...candidate, current: fallback?.id === candidate.id })),
+          sceneData,
+          sceneTitle: fallback?.name ?? saved.sceneTitle,
+          nodes: saved.sceneTitle === scene.name ? graph.nodes : saved.nodes,
+          edges: saved.sceneTitle === scene.name ? graph.edges : saved.edges,
+        });
       });
     },
     addVariable: () => {
@@ -199,7 +226,7 @@ export function useProjectStore() {
         const nextName = patch.name?.trim();
         const shouldRename = Boolean(nextName && nextName !== name);
 
-        return syncDerivedEdges({
+        return commitProject({
           ...current,
           variables: current.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
           nodes: shouldRename ? current.nodes.map((node) => ({
@@ -271,6 +298,86 @@ function nextAvailableName(base: string, existing: Set<string>): string {
   let index = 2;
   while (existing.has(`${base}_${index}`)) index += 1;
   return `${base}_${index}`;
+}
+
+function hydrateProject(project: ChoiceForgeProject): ChoiceForgeProject {
+  const activeSceneName = project.sceneTitle || project.scenes.find((scene) => !scene.isStart && !scene.special)?.name || "startup";
+  const sceneData: Record<string, SceneGraph> = { ...(project.sceneData ?? {}) };
+  if (!sceneData[activeSceneName]) {
+    sceneData[activeSceneName] = { nodes: project.nodes ?? [], edges: project.edges ?? [] };
+  }
+
+  project.scenes
+    .filter((scene) => !scene.isStart && !scene.special)
+    .forEach((scene) => {
+      if (!sceneData[scene.name]) sceneData[scene.name] = createEmptySceneGraph(scene.name);
+    });
+
+  const activeGraph = sceneData[activeSceneName] ?? createEmptySceneGraph(activeSceneName);
+  return {
+    ...project,
+    sceneTitle: activeSceneName,
+    sceneData,
+    nodes: activeGraph.nodes,
+    edges: activeGraph.edges,
+    scenes: project.scenes.map((scene) => ({ ...scene, current: scene.name === activeSceneName })),
+  };
+}
+
+function commitProject(project: ChoiceForgeProject): ChoiceForgeProject {
+  return persistActiveScene(updateSceneCounts(syncDerivedEdges(project)));
+}
+
+function persistActiveScene(project: ChoiceForgeProject): ChoiceForgeProject {
+  return {
+    ...project,
+    sceneData: {
+      ...(project.sceneData ?? {}),
+      [project.sceneTitle]: {
+        nodes: project.nodes,
+        edges: project.edges,
+      },
+    },
+  };
+}
+
+function updateSceneCounts(project: ChoiceForgeProject): ChoiceForgeProject {
+  return {
+    ...project,
+    scenes: project.scenes.map((scene) => (
+      scene.name === project.sceneTitle ? { ...scene, nodes: project.nodes.length, words: countSceneWords(project.nodes) } : scene
+    )),
+  };
+}
+
+function createEmptySceneGraph(sceneName: string): SceneGraph {
+  return {
+    nodes: [
+      {
+        id: "n1",
+        type: "passage",
+        x: 70,
+        y: 70,
+        w: 300,
+        title: `${sceneName}_inicio`,
+        body: "",
+      },
+    ],
+    edges: [],
+  };
+}
+
+function renameSceneGraphKey(sceneData: Record<string, SceneGraph>, from: string, to: string): Record<string, SceneGraph> {
+  const next = { ...sceneData };
+  next[to] = next[from] ?? createEmptySceneGraph(to);
+  delete next[from];
+  return Object.fromEntries(Object.entries(next).map(([sceneName, graph]) => [
+    sceneName,
+    {
+      nodes: graph.nodes.map((node) => (node.type === "goto_scene" && node.target === from ? { ...node, target: to, title: `*goto_scene ${to}` } : node)),
+      edges: graph.edges,
+    },
+  ]));
 }
 
 function syncDerivedEdges(project: ChoiceForgeProject): ChoiceForgeProject {
@@ -422,6 +529,21 @@ function firstLabel(project: ChoiceForgeProject): string {
 
 function firstScene(project: ChoiceForgeProject): string {
   return project.scenes.find((scene) => !scene.isStart && !scene.special)?.name ?? project.sceneTitle;
+}
+
+function countSceneWords(nodes: StoryNode[]): number {
+  return nodes
+    .flatMap((node) => [
+      node.title,
+      node.body ?? "",
+      node.prompt ?? "",
+      ...(node.options?.map((option) => option.text) ?? []),
+    ])
+    .join(" ")
+    .replace(/\$\{[^}]+\}/g, " ")
+    .replace(/@\{[^}]+\}/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
 function normalizeIdentifier(value: string): string {

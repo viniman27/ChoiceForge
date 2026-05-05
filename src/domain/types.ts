@@ -92,6 +92,11 @@ export interface StoryEdge {
   label?: string;
 }
 
+export interface SceneGraph {
+  nodes: StoryNode[];
+  edges: StoryEdge[];
+}
+
 export interface LintIssue {
   level: "error" | "warning" | "info";
   msg: string;
@@ -110,6 +115,7 @@ export interface ChoiceForgeProject {
   achievements: AchievementSummary[];
   nodes: StoryNode[];
   edges: StoryEdge[];
+  sceneData?: Record<string, SceneGraph>;
   lints: LintIssue[];
 }
 
