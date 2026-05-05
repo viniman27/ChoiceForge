@@ -1,4 +1,5 @@
-import type { AchievementSummary, ChoiceForgeProject, I18nLabels, SceneSummary, VariableSummary } from "../domain/types";
+import { useMemo, useState } from "react";
+import type { AchievementSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -14,6 +15,7 @@ interface LeftPanelProps {
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
+  onSelectNode: (id: string) => void;
 }
 
 export function LeftPanel({
@@ -30,7 +32,10 @@ export function LeftPanel({
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
+  onSelectNode,
 }: LeftPanelProps) {
+  const [search, setSearch] = useState("");
+  const searchResults = useMemo(() => searchProject(data, search), [data, search]);
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
     { id: "variables", label: labels.leftTabs[1] },
@@ -44,7 +49,7 @@ export function LeftPanel({
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
           <circle cx="6" cy="6" r="4" /><path d="M9 9l3 3" />
         </svg>
-        <input type="text" placeholder={labels.search} />
+        <input type="text" placeholder={labels.search} value={search} onChange={(event) => setSearch(event.target.value)} />
         <kbd>Cmd F</kbd>
       </div>
       <div className="left-tabs">
@@ -55,7 +60,9 @@ export function LeftPanel({
         ))}
       </div>
       <div className="left-content">
-        {activeTab === "scenes" && (
+        {search.trim() ? (
+          <SearchResults results={searchResults} onSelectNode={onSelectNode} />
+        ) : activeTab === "scenes" && (
           <ScenesList
             data={data}
             labels={labels}
@@ -65,8 +72,8 @@ export function LeftPanel({
             onDeleteScene={onDeleteScene}
           />
         )}
-        {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
-        {activeTab === "achievements" && (
+        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
+        {!search.trim() && activeTab === "achievements" && (
           <AchievementsList
             data={data}
             labels={labels}
@@ -75,10 +82,102 @@ export function LeftPanel({
             onDeleteAchievement={onDeleteAchievement}
           />
         )}
-        {activeTab === "assets" && <AssetsList />}
+        {!search.trim() && activeTab === "assets" && <AssetsList />}
       </div>
     </aside>
   );
+}
+
+interface SearchResult {
+  id: string;
+  kind: "node" | "scene" | "variable" | "achievement";
+  title: string;
+  detail: string;
+  nodeId?: string;
+}
+
+function SearchResults({ results, onSelectNode }: { results: SearchResult[]; onSelectNode: (id: string) => void }) {
+  return (
+    <div className="search-results">
+      <div className="section-title"><span>resultados</span><span>{results.length}</span></div>
+      {results.length === 0 ? (
+        <p className="empty-search">nenhum resultado</p>
+      ) : (
+        <ul>
+          {results.map((result) => (
+            <li key={result.id}>
+              <button className={`search-result ${result.nodeId ? "is-clickable" : ""}`} onClick={() => result.nodeId && onSelectNode(result.nodeId)}>
+                <span className={`result-kind result-${result.kind}`}>{result.kind}</span>
+                <span className="result-main">
+                  <span className="result-title">{result.title}</span>
+                  <span className="result-detail">{result.detail}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [];
+
+  const results: SearchResult[] = [];
+  data.scenes.forEach((scene) => {
+    addResult(results, normalized, {
+      id: `scene-${scene.id}`,
+      kind: "scene",
+      title: `${scene.name}.txt`,
+      detail: `${scene.words.toLocaleString()} palavras - ${scene.nodes} nos`,
+    });
+  });
+  data.variables.forEach((variable) => {
+    addResult(results, normalized, {
+      id: `var-${variable.name}`,
+      kind: "variable",
+      title: variable.name,
+      detail: `${variable.type} = ${variable.initial} ${variable.desc}`,
+    });
+  });
+  data.achievements.forEach((achievement) => {
+    addResult(results, normalized, {
+      id: `ach-${achievement.id}`,
+      kind: "achievement",
+      title: achievement.title,
+      detail: `${achievement.id} ${achievement.desc} ${achievement.preDesc ?? ""} ${achievement.postDesc ?? ""}`,
+    });
+  });
+  data.nodes.forEach((node) => {
+    nodeSearchTargets(node).forEach((target, index) => {
+      addResult(results, normalized, {
+        id: `node-${node.id}-${index}`,
+        kind: "node",
+        title: `${node.id} - ${node.title}`,
+        detail: target,
+        nodeId: node.id,
+      });
+    });
+  });
+
+  return results.slice(0, 40);
+}
+
+function addResult(results: SearchResult[], query: string, result: SearchResult) {
+  if (`${result.title} ${result.detail}`.toLowerCase().includes(query)) results.push(result);
+}
+
+function nodeSearchTargets(node: StoryNode): string[] {
+  return [
+    node.body ?? "",
+    node.prompt ?? "",
+    ...(node.options?.map((option) => `${option.text} ${option.cond?.expr ?? ""}`) ?? []),
+    ...(node.branches?.map((branch) => `${branch.kind} ${branch.expr ?? ""}`) ?? []),
+    ...(node.sets?.map((set) => `${set.var} ${set.op} ${set.val}`) ?? []),
+    node.target ?? "",
+  ].filter(Boolean);
 }
 
 function ScenesList({

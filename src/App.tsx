@@ -61,6 +61,7 @@ export default function App() {
         onAddAchievement={actions.addAchievement}
         onUpdateAchievement={actions.updateAchievement}
         onDeleteAchievement={actions.deleteAchievement}
+        onSelectNode={setSelectedId}
       />
       <GraphCanvas
         data={lintedProject}
