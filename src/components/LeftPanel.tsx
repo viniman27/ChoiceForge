@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, I18nLabels, SceneSummary, VariableSummary } from "../domain/types";
+import type { AchievementSummary, ChoiceForgeProject, I18nLabels, SceneSummary, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -11,6 +11,9 @@ interface LeftPanelProps {
   onDeleteScene: (id: string) => void;
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+  onAddAchievement: () => void;
+  onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
+  onDeleteAchievement: (id: string) => void;
 }
 
 export function LeftPanel({
@@ -24,6 +27,9 @@ export function LeftPanel({
   onDeleteScene,
   onAddVariable,
   onUpdateVariable,
+  onAddAchievement,
+  onUpdateAchievement,
+  onDeleteAchievement,
 }: LeftPanelProps) {
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
@@ -60,7 +66,15 @@ export function LeftPanel({
           />
         )}
         {activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
-        {activeTab === "achievements" && <AchievementsList data={data} labels={labels} />}
+        {activeTab === "achievements" && (
+          <AchievementsList
+            data={data}
+            labels={labels}
+            onAddAchievement={onAddAchievement}
+            onUpdateAchievement={onUpdateAchievement}
+            onDeleteAchievement={onDeleteAchievement}
+          />
+        )}
         {activeTab === "assets" && <AssetsList />}
       </div>
     </aside>
@@ -164,17 +178,74 @@ function normalizeIdentifier(value: string): string {
     .replace(/_+/g, "_");
 }
 
-function AchievementsList({ data, labels }: { data: ChoiceForgeProject; labels: I18nLabels }) {
+function AchievementsList({
+  data,
+  labels,
+  onAddAchievement,
+  onUpdateAchievement,
+  onDeleteAchievement,
+}: {
+  data: ChoiceForgeProject;
+  labels: I18nLabels;
+  onAddAchievement: () => void;
+  onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
+  onDeleteAchievement: (id: string) => void;
+}) {
   return (
     <div className="ach-list">
-      <div className="section-title"><span>*achievement</span><button className="ghost-btn">+ {labels.addAch}</button></div>
+      <div className="section-title"><span>*achievement</span><button className="ghost-btn" onClick={onAddAchievement}>+ {labels.addAch}</button></div>
       <ul>
         {data.achievements.map((achievement) => (
           <li key={achievement.id} className={`ach-item ${achievement.hidden ? "is-hidden" : ""}`}>
-            <div className="ach-medal">{achievement.points}</div>
+            <input
+              className="ach-medal ach-points"
+              type="number"
+              min="0"
+              value={achievement.points}
+              onChange={(event) => onUpdateAchievement(achievement.id, { points: Number(event.target.value) || 0 })}
+              aria-label="achievement points"
+            />
             <div className="ach-meta">
-              <div className="ach-title">{achievement.title} {achievement.hidden && <span className="ach-hidden">*</span>}</div>
-              <div className="ach-desc">{achievement.desc}</div>
+              <div className="ach-row">
+                <input
+                  className="ach-title-edit"
+                  value={achievement.title}
+                  onChange={(event) => onUpdateAchievement(achievement.id, { title: event.target.value })}
+                  aria-label="achievement title"
+                />
+                <label className="ach-hidden-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(achievement.hidden)}
+                    onChange={(event) => onUpdateAchievement(achievement.id, { hidden: event.target.checked })}
+                  />
+                  hidden
+                </label>
+                <button className="mini-action danger" onClick={() => onDeleteAchievement(achievement.id)}>del</button>
+              </div>
+              <div className="ach-code-row">
+                <code>*achievement</code>
+                <input
+                  className="ach-id-edit"
+                  value={achievement.id}
+                  onChange={(event) => onUpdateAchievement(achievement.id, { id: normalizeIdentifier(event.target.value) })}
+                  aria-label="achievement id"
+                />
+              </div>
+              <input
+                className="ach-desc-edit"
+                value={achievement.preDesc ?? achievement.desc}
+                onChange={(event) => onUpdateAchievement(achievement.id, { preDesc: event.target.value, desc: event.target.value })}
+                aria-label="achievement pre description"
+                placeholder="descricao antes de desbloquear"
+              />
+              <input
+                className="ach-desc-edit"
+                value={achievement.postDesc ?? achievement.desc}
+                onChange={(event) => onUpdateAchievement(achievement.id, { postDesc: event.target.value })}
+                aria-label="achievement post description"
+                placeholder="descricao depois de desbloquear"
+              />
               <code className="ach-id">*achieve {achievement.id}</code>
             </div>
           </li>

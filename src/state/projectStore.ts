@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
-import type { ChoiceForgeProject, Language, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, ChoiceForgeProject, Language, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v1";
 
@@ -31,6 +31,9 @@ export interface ProjectActions {
   deleteScene: (id: string) => void;
   addVariable: () => void;
   updateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+  addAchievement: () => void;
+  updateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
+  deleteAchievement: (id: string) => void;
 }
 
 export function useProjectStore() {
@@ -141,6 +144,37 @@ export function useProjectStore() {
           })) : current.nodes,
         };
       });
+    },
+    addAchievement: () => {
+      setProjectState((current) => {
+        const id = nextAvailableName("new_achievement", new Set(current.achievements.map((achievement) => achievement.id)));
+        const achievement: AchievementSummary = {
+          id,
+          title: "Nova conquista",
+          points: 5,
+          desc: "Descricao da conquista.",
+          preDesc: "Conquista bloqueada.",
+          postDesc: "Conquista desbloqueada.",
+        };
+        return { ...current, achievements: [...current.achievements, achievement] };
+      });
+    },
+    updateAchievement: (id, patch) => {
+      setProjectState((current) => {
+        const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
+        return {
+          ...current,
+          achievements: current.achievements.map((achievement) => (
+            achievement.id === id ? { ...achievement, ...patch, id: nextId || achievement.id } : achievement
+          )),
+        };
+      });
+    },
+    deleteAchievement: (id) => {
+      setProjectState((current) => ({
+        ...current,
+        achievements: current.achievements.filter((achievement) => achievement.id !== id),
+      }));
     },
   }), []);
 

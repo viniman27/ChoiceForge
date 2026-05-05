@@ -58,6 +58,9 @@ export default function App() {
         onDeleteScene={actions.deleteScene}
         onAddVariable={actions.addVariable}
         onUpdateVariable={actions.updateVariable}
+        onAddAchievement={actions.addAchievement}
+        onUpdateAchievement={actions.updateAchievement}
+        onDeleteAchievement={actions.deleteAchievement}
       />
       <GraphCanvas
         data={lintedProject}

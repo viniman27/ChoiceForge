@@ -40,6 +40,8 @@ export interface AchievementSummary {
   title: string;
   points: number;
   desc: string;
+  preDesc?: string;
+  postDesc?: string;
   hidden?: boolean;
 }
 

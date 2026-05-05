@@ -85,8 +85,8 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
   project.achievements.forEach((achievement) => {
     const visibility = achievement.hidden ? "hidden" : "visible";
     lines.push(`*achievement ${achievement.id} ${visibility} ${achievement.points} ${achievement.title}`);
-    lines.push(`  ${achievement.desc}`);
-    lines.push(`  ${achievement.desc}`);
+    lines.push(`  ${achievement.preDesc || achievement.desc}`);
+    lines.push(`  ${achievement.postDesc || achievement.desc}`);
   });
 
   lines.push("");
