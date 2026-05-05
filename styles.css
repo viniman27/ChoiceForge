@@ -479,7 +479,14 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-radius: var(--r-2); box-shadow: var(--shadow-1);
 }
 .minimap-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); margin-bottom: 4px; text-transform: lowercase; letter-spacing: 0.04em; }
-.minimap svg { display: block; width: 100%; }
+.minimap svg { display: block; width: 100%; cursor: crosshair; }
+.minimap-viewport {
+  fill: color-mix(in oklch, var(--accent-2) 10%, transparent);
+  stroke: var(--accent-2);
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
 
 /* Sticky note */
 .sticky-note {

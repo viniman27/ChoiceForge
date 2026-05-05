@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChoiceForgeProject, Density, I18nLabels, NodeType } from "../domain/types";
 import { NodeCard, NodeIcon, typeColors } from "./NodeCard";
 
@@ -20,10 +20,23 @@ interface GraphCanvasProps {
 const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "set", "label", "goto", "goto_scene", "gosub", "checkpoint", "ending"];
 
 export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [viewport, setViewport] = useState({ width: 1000, height: 700 });
   const [space, setSpace] = useState(false);
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
+
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element) return;
+
+    const updateViewport = () => setViewport({ width: element.clientWidth, height: element.clientHeight });
+    updateViewport();
+    const observer = new ResizeObserver(updateViewport);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
@@ -72,18 +85,32 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
 
   return (
     <div
+      ref={canvasRef}
       className="canvas-wrap"
       onWheel={(event) => {
-        if (!event.ctrlKey && !event.metaKey) return;
         event.preventDefault();
-        setZoom((current) => Math.max(0.4, Math.min(1.6, current - event.deltaY * 0.0015)));
+        if (event.ctrlKey || event.metaKey) {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+          setZoom((current) => {
+            const next = Math.max(0.25, Math.min(2.5, current - event.deltaY * 0.0015));
+            const worldX = (pointer.x - pan.x) / current;
+            const worldY = (pointer.y - pan.y) / current;
+            onPan({ x: pointer.x - worldX * next, y: pointer.y - worldY * next });
+            return next;
+          });
+          return;
+        }
+        onPan({ x: pan.x - event.deltaX, y: pan.y - event.deltaY });
       }}
       onPointerDown={(event) => {
-        if (event.target !== event.currentTarget && !(event.target as HTMLElement).classList.contains("canvas-grid")) return;
+        if (!isCanvasPanTarget(event.target)) return;
         setSelectedId(null);
-        if (space || event.button === 1) setPanning({ startX: event.clientX, startY: event.clientY, origX: pan.x, origY: pan.y });
+        if (event.button === 0 || event.button === 1 || space) {
+          setPanning({ startX: event.clientX, startY: event.clientY, origX: pan.x, origY: pan.y });
+        }
       }}
-      style={{ cursor: space ? (panning ? "grabbing" : "grab") : "default" }}
+      style={{ cursor: panning ? "grabbing" : "grab" }}
     >
       <div className="canvas-grid" />
       <div className="canvas-toolbar">
@@ -161,12 +188,12 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       </div>
 
       <div className="zoom-controls">
-        <button onClick={() => setZoom((current) => Math.max(0.4, current - 0.1))}>-</button>
+        <button onClick={() => setZoom((current) => Math.max(0.25, current - 0.1))}>-</button>
         <span>{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((current) => Math.min(1.6, current + 0.1))}>+</button>
+        <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
         <button onClick={() => setZoom(1)} className="zoom-reset">home</button>
       </div>
-      <Minimap data={data} />
+      <Minimap data={data} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
   );
 }
@@ -174,6 +201,11 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function isCanvasPanTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, .sticky-note, .region, button, input, textarea, select");
 }
 
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
@@ -205,15 +237,48 @@ function edgePath(project: ChoiceForgeProject, from: string, to: string, density
   return { d: `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`, x1, y1, x2, y2 };
 }
 
-function Minimap({ data }: { data: ChoiceForgeProject }) {
-  const minX = Math.min(...data.nodes.map((node) => node.x)) - 40;
-  const minY = Math.min(...data.nodes.map((node) => node.y)) - 40;
-  const maxX = Math.max(...data.nodes.map((node) => node.x + node.w)) + 40;
-  const maxY = Math.max(...data.nodes.map((node) => node.y + 200)) + 40;
+function Minimap({
+  data,
+  pan,
+  zoom,
+  viewport,
+  onPan,
+}: {
+  data: ChoiceForgeProject;
+  pan: { x: number; y: number };
+  zoom: number;
+  viewport: { width: number; height: number };
+  onPan: (pan: { x: number; y: number }) => void;
+}) {
+  const visibleRect = {
+    x: -pan.x / zoom,
+    y: -pan.y / zoom,
+    width: viewport.width / zoom,
+    height: viewport.height / zoom,
+  };
+  const minX = Math.min(...data.nodes.map((node) => node.x), visibleRect.x) - 40;
+  const minY = Math.min(...data.nodes.map((node) => node.y), visibleRect.y) - 40;
+  const maxX = Math.max(...data.nodes.map((node) => node.x + node.w), visibleRect.x + visibleRect.width) + 40;
+  const maxY = Math.max(...data.nodes.map((node) => node.y + 200), visibleRect.y + visibleRect.height) + 40;
+  const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+
+  const centerOnPointer = (event: React.PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.width;
+    const y = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.height;
+    onPan({ x: viewport.width / 2 - x * zoom, y: viewport.height / 2 - y * zoom });
+  };
+
   return (
     <div className="minimap">
       <div className="minimap-label">minimapa</div>
-      <svg viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} preserveAspectRatio="xMidYMid meet" width="180" height="120">
+      <svg
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+        preserveAspectRatio="xMidYMid meet"
+        width="180"
+        height="120"
+        onPointerDown={centerOnPointer}
+      >
         {data.edges.map((edge, index) => {
           const from = data.nodes.find((node) => node.id === edge.from);
           const to = data.nodes.find((node) => node.id === edge.to);
@@ -224,6 +289,14 @@ function Minimap({ data }: { data: ChoiceForgeProject }) {
           const color = typeColors[node.type];
           return <rect key={node.id} x={node.x} y={node.y} width={node.w} height="60" rx="8" fill={color.tint} stroke={color.dot} strokeWidth="2" />;
         })}
+        <rect
+          className="minimap-viewport"
+          x={visibleRect.x}
+          y={visibleRect.y}
+          width={visibleRect.width}
+          height={visibleRect.height}
+          rx="10"
+        />
       </svg>
     </div>
   );
