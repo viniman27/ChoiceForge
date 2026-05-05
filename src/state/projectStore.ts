@@ -23,6 +23,7 @@ function loadInitialProject(): ChoiceForgeProject {
 export interface ProjectActions {
   setProject: (project: ChoiceForgeProject) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
+  selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
   layoutNodes: () => void;
@@ -65,6 +66,18 @@ export function useProjectStore() {
       setProjectState(fresh);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
+    },
+    selectScene: (id) => {
+      setProjectState((current) => {
+        const scene = current.scenes.find((candidate) => candidate.id === id);
+        if (!scene || scene.isStart || scene.special) return current;
+        return {
+          ...current,
+          sceneTitle: scene.name,
+          sceneSubtitle: `${scene.name}.txt - ${scene.words.toLocaleString()} palavras`,
+          scenes: current.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
+        };
+      });
     },
     updateNode: (id, patch) => {
       setProjectState((current) => syncDerivedEdges({
@@ -119,7 +132,10 @@ export function useProjectStore() {
     },
     addFlowEdge: (from, to) => {
       setProjectState((current) => {
-        if (from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
+        const source = current.nodes.find((node) => node.id === from);
+        const target = current.nodes.find((node) => node.id === to);
+        const sourceCanFlow = source && !["ending", "goto", "goto_scene"].includes(source.type);
+        if (!sourceCanFlow || !target || from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
         return { ...current, edges: [...current.edges, { from, to, kind: "flow" }] };
       });
     },

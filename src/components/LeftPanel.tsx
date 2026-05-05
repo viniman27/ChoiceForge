@@ -7,6 +7,7 @@ interface LeftPanelProps {
   setActiveTab: (tab: string) => void;
   labels: I18nLabels;
   onAddScene: () => void;
+  onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
@@ -24,6 +25,7 @@ export function LeftPanel({
   setActiveTab,
   labels,
   onAddScene,
+  onSelectScene,
   onUpdateScene,
   onDuplicateScene,
   onDeleteScene,
@@ -67,6 +69,7 @@ export function LeftPanel({
             data={data}
             labels={labels}
             onAddScene={onAddScene}
+            onSelectScene={onSelectScene}
             onUpdateScene={onUpdateScene}
             onDuplicateScene={onDuplicateScene}
             onDeleteScene={onDeleteScene}
@@ -184,6 +187,7 @@ function ScenesList({
   data,
   labels,
   onAddScene,
+  onSelectScene,
   onUpdateScene,
   onDuplicateScene,
   onDeleteScene,
@@ -191,6 +195,7 @@ function ScenesList({
   data: ChoiceForgeProject;
   labels: I18nLabels;
   onAddScene: () => void;
+  onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
@@ -200,14 +205,14 @@ function ScenesList({
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
         {data.scenes.map((scene) => (
-          <li key={scene.id} className={`scene-item ${scene.current ? "is-current" : ""} ${scene.special ? "is-special" : ""}`}>
+          <li key={scene.id} className={`scene-item ${scene.current ? "is-current" : ""} ${scene.special ? "is-special" : ""}`} onClick={() => onSelectScene(scene.id)}>
             <span className="scene-handle">::</span>
             <div className="scene-meta">
               <div className="scene-name">
                 {scene.isStart || scene.special ? (
                   <code>{scene.name}.txt</code>
                 ) : (
-                  <input className="scene-edit" value={scene.name} onChange={(event) => onUpdateScene(scene.id, { name: normalizeIdentifier(event.target.value) })} />
+                  <input className="scene-edit" value={scene.name} onClick={(event) => event.stopPropagation()} onChange={(event) => onUpdateScene(scene.id, { name: normalizeIdentifier(event.target.value) })} />
                 )}
                 {scene.isStart && <span className="scene-tag">start</span>}
                 {scene.special && <span className="scene-tag">stats</span>}
@@ -216,8 +221,8 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
-                  <button className="mini-action" onClick={() => onDuplicateScene(scene.id)}>dup</button>
-                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={() => onDeleteScene(scene.id)}>del</button>}
+                  <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>dup</button>
+                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>del</button>}
                 </span>
               </div>
             </div>

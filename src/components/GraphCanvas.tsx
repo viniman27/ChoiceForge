@@ -10,6 +10,7 @@ interface GraphCanvasProps {
   setSelectedId: (id: string | null) => void;
   onMoveNode: (id: string, x: number, y: number) => void;
   onLayoutNodes: () => void;
+  onAddFlowEdge: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDeleteNode: (id: string) => void;
   pan: { x: number; y: number };
@@ -20,10 +21,11 @@ interface GraphCanvasProps {
 
 const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "set", "label", "goto", "goto_scene", "gosub", "checkpoint", "ending"];
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onAddFlowEdge, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [connecting, setConnecting] = useState<{ from: string; x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 700 });
   const [space, setSpace] = useState(false);
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
@@ -69,12 +71,16 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       if (panning) {
         onPan({ x: panning.origX + event.clientX - panning.startX, y: panning.origY + event.clientY - panning.startY });
       }
+      if (connecting) {
+        setConnecting((current) => current ? { ...current, ...clientPointToWorld(event.clientX, event.clientY, canvasRef.current, pan, zoom) } : current);
+      }
     };
     const up = () => {
       setDrag(null);
       setPanning(null);
+      setConnecting(null);
     };
-    if (drag || panning) {
+    if (drag || panning || connecting) {
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     }
@@ -82,7 +88,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
-  }, [drag, onMoveNode, onPan, panning, zoom]);
+  }, [connecting, drag, onMoveNode, onPan, pan, panning, zoom]);
 
   return (
     <div
@@ -164,6 +170,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
               </g>
             );
           })}
+          {connecting && <path d={`M ${connecting.x1} ${connecting.y1} C ${(connecting.x1 + connecting.x2) / 2} ${connecting.y1}, ${(connecting.x1 + connecting.x2) / 2} ${connecting.y2}, ${connecting.x2} ${connecting.y2}`} className="edge-preview" />}
         </svg>
 
         {data.nodes.map((node) => (
@@ -177,6 +184,18 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             onDragStart={(event, id) => {
               const current = data.nodes.find((node) => node.id === id);
               if (current) setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origX: current.x, origY: current.y });
+            }}
+            onConnectStart={(event, id) => {
+              const current = data.nodes.find((node) => node.id === id);
+              if (!current || ["ending", "goto", "goto_scene"].includes(current.type)) return;
+              event.stopPropagation();
+              const start = { x2: current.x + current.w, y2: current.y + estimateNodeHeight(data, current.id, density) / 2 };
+              setConnecting({ from: id, x1: start.x2, y1: start.y2, ...start });
+            }}
+            onConnectEnd={(id) => {
+              if (!connecting) return;
+              onAddFlowEdge(connecting.from, id);
+              setConnecting(null);
             }}
           />
         ))}
@@ -210,6 +229,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function isCanvasPanTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, .sticky-note, .region, button, input, textarea, select");
+}
+
+function clientPointToWorld(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
+  const rect = canvas?.getBoundingClientRect();
+  const canvasX = clientX - (rect?.left ?? 0);
+  const canvasY = clientY - (rect?.top ?? 0);
+  return { x2: (canvasX - pan.x) / zoom, y2: (canvasY - pan.y) / zoom };
 }
 
 function fitGraphToViewport(

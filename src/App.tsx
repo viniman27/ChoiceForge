@@ -53,6 +53,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         labels={i18n[lang]}
         onAddScene={actions.addScene}
+        onSelectScene={actions.selectScene}
         onUpdateScene={actions.updateScene}
         onDuplicateScene={actions.duplicateScene}
         onDeleteScene={actions.deleteScene}
@@ -75,6 +76,7 @@ export default function App() {
         setZoom={setZoom}
         onMoveNode={actions.moveNode}
         onLayoutNodes={actions.layoutNodes}
+        onAddFlowEdge={actions.addFlowEdge}
         onAddNode={(type, position) => {
           const id = nextNodeId(lintedProject.nodes);
           actions.addNode(type, id, position);

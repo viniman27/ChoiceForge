@@ -670,10 +670,43 @@ input, select, textarea { font-family: inherit; color: inherit; }
 
 .node-target { padding: 6px 12px 10px; font-family: var(--ff-mono); font-size: 11px; color: var(--ink-mute); border-top: 1px dashed var(--paper-edge); }
 
-.anchor { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); top: 24px; opacity: 0; }
-.anchor-in { left: -3px; }
-.anchor-out { right: -3px; }
-.node:hover .anchor { opacity: 1; }
+.anchor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper-1);
+  border: 2px solid var(--accent);
+  top: 20px;
+  opacity: 0.9;
+  box-shadow: var(--shadow-1);
+  z-index: 2;
+}
+.anchor-in { left: -8px; cursor: crosshair; }
+.anchor-out { right: -8px; cursor: grab; }
+.anchor-out::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  width: 5px;
+  height: 5px;
+  border-top: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  transform: rotate(45deg);
+}
+.anchor:hover {
+  opacity: 1;
+  transform: scale(1.12);
+}
+.edge-preview {
+  stroke: var(--accent-2);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  fill: none;
+  marker-end: url(#arrow-flow);
+  opacity: 0.9;
+}
 
 /* ─── Right inspector ─────────────────────────────── */
 .right-panel {

@@ -65,9 +65,11 @@ interface NodeCardProps {
   hasError: boolean;
   onSelect: (id: string) => void;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
+  onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
+  onConnectEnd: (id: string) => void;
 }
 
-export function NodeCard({ node, density, selected, hasError, onSelect, onDragStart }: NodeCardProps) {
+export function NodeCard({ node, density, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -120,8 +122,8 @@ export function NodeCard({ node, density, selected, hasError, onSelect, onDragSt
 
       {isRich && node.sets && <div className="node-sets">{node.sets.map((set, index) => <VarDelta key={`${set.var}-${index}`} set={set} />)}</div>}
       {isRich && node.target && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
-      <div className="anchor anchor-in" />
-      <div className="anchor anchor-out" />
+      <div className="anchor anchor-in no-drag" title="soltar conexao aqui" onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
+      <div className="anchor anchor-out no-drag" title="arrastar para conectar" onPointerDown={(event) => onConnectStart(event, node.id)} />
     </div>
   );
 }
