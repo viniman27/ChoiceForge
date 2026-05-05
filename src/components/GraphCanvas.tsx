@@ -195,7 +195,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         <button onClick={() => setZoom((current) => Math.max(0.25, current - 0.1))}>-</button>
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
-        <button onClick={() => setZoom(1)} className="zoom-reset">home</button>
+        <button onClick={() => fitGraphToViewport(data, viewport, setZoom, onPan)} className="zoom-reset">home</button>
       </div>
       <Minimap data={data} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
@@ -210,6 +210,29 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function isCanvasPanTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, .sticky-note, .region, button, input, textarea, select");
+}
+
+function fitGraphToViewport(
+  project: ChoiceForgeProject,
+  viewport: { width: number; height: number },
+  setZoom: React.Dispatch<React.SetStateAction<number>>,
+  onPan: (pan: { x: number; y: number }) => void,
+) {
+  if (!project.nodes.length) return;
+  const padding = 90;
+  const minX = Math.min(...project.nodes.map((node) => node.x));
+  const minY = Math.min(...project.nodes.map((node) => node.y));
+  const maxX = Math.max(...project.nodes.map((node) => node.x + node.w));
+  const maxY = Math.max(...project.nodes.map((node) => node.y + 200));
+  const width = Math.max(1, maxX - minX);
+  const height = Math.max(1, maxY - minY);
+  const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
+
+  setZoom(nextZoom);
+  onPan({
+    x: (viewport.width - width * nextZoom) / 2 - minX * nextZoom,
+    y: (viewport.height - height * nextZoom) / 2 - minY * nextZoom,
+  });
 }
 
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
