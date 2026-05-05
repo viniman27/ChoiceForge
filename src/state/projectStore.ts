@@ -153,12 +153,17 @@ export function useProjectStore() {
       setProjectState((current) => {
         const saved = commitProject(current);
         const name = nextAvailableName("new_scene", new Set(current.scenes.map((scene) => scene.name)));
-        const scene: SceneSummary = { id: name, name, words: 1, nodes: 1 };
-        return {
+        const graph = createEmptySceneGraph(name);
+        const scene: SceneSummary = { id: name, name, words: countSceneWords(graph.nodes), nodes: graph.nodes.length, current: true };
+        return commitProject({
           ...saved,
-          scenes: [...saved.scenes, scene],
-          sceneData: { ...(saved.sceneData ?? {}), [name]: createEmptySceneGraph(name) },
-        };
+          sceneTitle: name,
+          sceneSubtitle: `${name}.txt - ${scene.words.toLocaleString()} palavras`,
+          scenes: [...saved.scenes.map((candidate) => ({ ...candidate, current: false })), scene],
+          nodes: graph.nodes,
+          edges: graph.edges,
+          sceneData: { ...(saved.sceneData ?? {}), [name]: graph },
+        });
       });
     },
     updateScene: (id, patch) => {

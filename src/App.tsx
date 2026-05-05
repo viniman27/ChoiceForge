@@ -52,7 +52,10 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         labels={i18n[lang]}
-        onAddScene={actions.addScene}
+        onAddScene={() => {
+          actions.addScene();
+          setSelectedId("n1");
+        }}
         onSelectScene={(id) => {
           actions.selectScene(id);
           setSelectedId("n1");
