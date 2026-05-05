@@ -1,6 +1,6 @@
 import type { ChoiceForgeProject, I18nLabels } from "../domain/types";
 
-export function BottomBar({ data, labels }: { data: ChoiceForgeProject; labels: I18nLabels }) {
+export function BottomBar({ data, labels, onSelectNode }: { data: ChoiceForgeProject; labels: I18nLabels; onSelectNode: (id: string) => void }) {
   const errors = data.lints.filter((lint) => lint.level === "error").length;
   const warnings = data.lints.filter((lint) => lint.level === "warning").length;
   return (
@@ -15,10 +15,14 @@ export function BottomBar({ data, labels }: { data: ChoiceForgeProject; labels: 
           </summary>
           <ul className="con-list">
             {data.lints.map((lint, index) => (
-              <li key={index} className={`con-row con-${lint.level}`}>
+              <li
+                key={index}
+                className={`con-row con-${lint.level} ${lint.node ? "is-clickable" : ""}`}
+                onClick={() => lint.node && onSelectNode(lint.node)}
+              >
                 <span className={`con-dot dot-${lint.level}`} />
                 <span className="con-msg">{lint.msg}</span>
-                <span className="con-loc dim">{lint.scene && <code>{lint.scene}</code>}{lint.line && <span> :{lint.line}</span>}</span>
+                <span className="con-loc dim">{lint.scene && <code>{lint.scene}</code>}{lint.node && <code>{lint.node}</code>}{lint.line && <span> :{lint.line}</span>}</span>
               </li>
             ))}
           </ul>

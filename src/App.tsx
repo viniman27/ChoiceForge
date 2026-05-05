@@ -91,7 +91,7 @@ export default function App() {
         onAddFlowEdge={actions.addFlowEdge}
         onDeleteFlowEdge={actions.deleteFlowEdge}
       />
-      <BottomBar data={lintedProject} labels={i18n[lang]} />
+      <BottomBar data={lintedProject} labels={i18n[lang]} onSelectNode={setSelectedId} />
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
     </div>
   );

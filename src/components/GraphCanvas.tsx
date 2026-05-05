@@ -23,6 +23,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [space, setSpace] = useState(false);
+  const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
@@ -133,7 +134,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             node={node}
             density={density}
             selected={selectedId === node.id}
-            hasError={node.id === "n8"}
+            hasError={errorNodeIds.has(node.id)}
             onSelect={setSelectedId}
             onDragStart={(event, id) => {
               const current = data.nodes.find((node) => node.id === id);

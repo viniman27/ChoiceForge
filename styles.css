@@ -813,6 +813,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .con-list { list-style: none; padding: 4px 0; margin: 0; flex: 1; overflow: auto; }
 .con-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; padding: 4px 16px; align-items: center; }
 .con-row:hover { background: var(--paper-3); }
+.con-row.is-clickable { cursor: pointer; }
+.con-row.is-clickable:hover .con-msg { color: var(--ink); }
 .con-dot { width: 7px; height: 7px; border-radius: 50%; }
 .dot-error { background: var(--err); }
 .dot-warning { background: var(--warn); }
