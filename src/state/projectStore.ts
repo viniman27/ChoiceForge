@@ -138,7 +138,7 @@ export function useProjectStore() {
       setProjectState((current) => {
         const source = current.nodes.find((node) => node.id === from);
         const target = current.nodes.find((node) => node.id === to);
-        const sourceCanFlow = source && !["ending", "goto", "goto_scene"].includes(source.type);
+        const sourceCanFlow = source && !["choice", "if", "ending", "goto", "goto_scene"].includes(source.type);
         if (!sourceCanFlow || !target || from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
         return commitProject({ ...current, edges: [...current.edges, { from, to, kind: "flow" }] });
       });

@@ -187,7 +187,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             }}
             onConnectStart={(event, id) => {
               const current = data.nodes.find((node) => node.id === id);
-              if (!current || ["ending", "goto", "goto_scene"].includes(current.type)) return;
+              if (!current || ["choice", "if", "ending", "goto", "goto_scene"].includes(current.type)) return;
               event.stopPropagation();
               const start = { x2: current.x + current.w, y2: current.y + estimateNodeHeight(data, current.id, density) / 2 };
               setConnecting({ from: id, x1: start.x2, y1: start.y2, ...start });
