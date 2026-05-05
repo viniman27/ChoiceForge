@@ -88,6 +88,8 @@ export default function App() {
         project={lintedProject}
         labels={i18n[lang]}
         onUpdateNode={actions.updateNode}
+        onAddFlowEdge={actions.addFlowEdge}
+        onDeleteFlowEdge={actions.deleteFlowEdge}
       />
       <BottomBar data={lintedProject} labels={i18n[lang]} />
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}

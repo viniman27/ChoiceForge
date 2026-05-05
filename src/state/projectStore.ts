@@ -27,6 +27,8 @@ export interface ProjectActions {
   moveNode: (id: string, x: number, y: number) => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
   deleteNode: (id: string) => void;
+  addFlowEdge: (from: string, to: string) => void;
+  deleteFlowEdge: (from: string, to: string) => void;
   addScene: () => void;
   updateScene: (id: string, patch: Partial<SceneSummary>) => void;
   duplicateScene: (id: string) => void;
@@ -107,6 +109,18 @@ export function useProjectStore() {
           )),
         });
       });
+    },
+    addFlowEdge: (from, to) => {
+      setProjectState((current) => {
+        if (from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
+        return { ...current, edges: [...current.edges, { from, to, kind: "flow" }] };
+      });
+    },
+    deleteFlowEdge: (from, to) => {
+      setProjectState((current) => ({
+        ...current,
+        edges: current.edges.filter((edge) => !(edge.from === from && edge.to === to && edge.kind === "flow")),
+      }));
     },
     addScene: () => {
       setProjectState((current) => {

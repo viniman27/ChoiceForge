@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, I18nLabels, StoryNode, VariableSet } from "../domain/types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, I18nLabels, StoryEdge, StoryNode, VariableSet } from "../domain/types";
 import { NodeIcon, typeColors } from "./NodeCard";
 
 interface RightPanelProps {
@@ -8,9 +8,11 @@ interface RightPanelProps {
   project: ChoiceForgeProject;
   labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+  onAddFlowEdge: (from: string, to: string) => void;
+  onDeleteFlowEdge: (from: string, to: string) => void;
 }
 
-export function RightPanel({ node, project, labels, onUpdateNode }: RightPanelProps) {
+export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge }: RightPanelProps) {
   const [tab, setTab] = useState<"content" | "logic" | "raw">("content");
 
   if (!node) {
@@ -43,7 +45,15 @@ export function RightPanel({ node, project, labels, onUpdateNode }: RightPanelPr
 
       <div className="ip-body">
         {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
-        {tab === "logic" && <LogicTab node={node} project={project} onUpdateNode={onUpdateNode} />}
+        {tab === "logic" && (
+          <LogicTab
+            node={node}
+            project={project}
+            onUpdateNode={onUpdateNode}
+            onAddFlowEdge={onAddFlowEdge}
+            onDeleteFlowEdge={onDeleteFlowEdge}
+          />
+        )}
         {tab === "raw" && <RawTab node={node} />}
       </div>
 
@@ -52,7 +62,17 @@ export function RightPanel({ node, project, labels, onUpdateNode }: RightPanelPr
   );
 }
 
-function ContentTab({ node, project, labels, onUpdateNode }: RightPanelProps & { node: StoryNode }) {
+function ContentTab({
+  node,
+  project,
+  labels,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  labels: I18nLabels;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
   if (node.type === "passage") {
     return (
       <div className="ip-content">
@@ -121,7 +141,23 @@ function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: C
   );
 }
 
-function LogicTab({ node, project, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
+function LogicTab({
+  node,
+  project,
+  onUpdateNode,
+  onAddFlowEdge,
+  onDeleteFlowEdge,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+  onAddFlowEdge: (from: string, to: string) => void;
+  onDeleteFlowEdge: (from: string, to: string) => void;
+}) {
+  const fallbackTarget = project.nodes.find((target) => target.id !== node.id)?.id ?? node.id;
+  const [flowTarget, setFlowTarget] = useState(fallbackTarget);
+  const selectedFlowTarget = project.nodes.some((target) => target.id === flowTarget && target.id !== node.id) ? flowTarget : fallbackTarget;
+
   if (node.type === "if") {
     return (
       <div className="ip-logic">
@@ -137,6 +173,7 @@ function LogicTab({ node, project, onUpdateNode }: { node: StoryNode; project: C
             </li>
           ))}
         </ul>
+        <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} />
       </div>
     );
   }
@@ -145,8 +182,47 @@ function LogicTab({ node, project, onUpdateNode }: { node: StoryNode; project: C
     <div className="ip-logic">
       <label className="ip-label">estrutura logica</label>
       <pre className="cond-final"><code>{node.branches?.map((branch) => `*${branch.kind}${branch.expr ? ` (${branch.expr})` : ""} -> ${branch.to}`).join("\n") || "sem branches"}</code></pre>
+      <label className="ip-label">fluxo visual</label>
+      <div className="flow-editor">
+        <select value={selectedFlowTarget} onChange={(event) => setFlowTarget(event.target.value)}>
+          {project.nodes.filter((target) => target.id !== node.id).map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
+        </select>
+        <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ conectar</button>
+      </div>
+      <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} />
     </div>
   );
+}
+
+function OutgoingEdges({
+  node,
+  project,
+  onDeleteFlowEdge,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onDeleteFlowEdge: (from: string, to: string) => void;
+}) {
+  const outgoing = project.edges.filter((edge) => edge.from === node.id);
+  if (!outgoing.length) return <p className="dim">sem conexoes de saida</p>;
+
+  return (
+    <ul className="flow-list">
+      {outgoing.map((edge, index) => (
+        <li key={`${edge.from}-${edge.to}-${edge.kind}-${index}`} className="flow-row">
+          <span className={`flow-kind flow-${edge.kind}`}>{edge.kind}</span>
+          <code>{targetLabel(project, edge)}</code>
+          {edge.label && <span className="dim">{edge.label}</span>}
+          {edge.kind === "flow" && <button className="mini-action danger" onClick={() => onDeleteFlowEdge(edge.from, edge.to)}>del</button>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function targetLabel(project: ChoiceForgeProject, edge: StoryEdge): string {
+  const target = project.nodes.find((node) => node.id === edge.to);
+  return target ? `${target.id} - ${target.title}` : edge.to;
 }
 
 function RawTab({ node }: { node: StoryNode }) {
