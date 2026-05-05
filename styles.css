@@ -676,6 +676,21 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-radius: var(--r-2); outline: none;
 }
 .ip-prompt:focus { border-color: var(--accent-1); }
+.command-input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-1);
+  color: var(--ink);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+}
+.command-input:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-1) 18%, transparent);
+}
 
 .ip-set-row, .ip-opt-row { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--paper-1); border: 1px solid var(--paper-edge); border-radius: var(--r-2); margin-bottom: 6px; }
 .ip-set-row { flex-direction: row; align-items: center; }

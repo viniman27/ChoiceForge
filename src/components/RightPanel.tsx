@@ -83,6 +83,14 @@ function ContentTab({
     );
   }
 
+  if (node.type === "set") {
+    return (
+      <div className="ip-content">
+        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
+      </div>
+    );
+  }
+
   if (node.type === "choice") {
     return (
       <div className="ip-content">
@@ -117,7 +125,75 @@ function ContentTab({
     );
   }
 
+  if (["label", "goto", "goto_scene", "gosub", "checkpoint", "ending"].includes(node.type)) {
+    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
+  }
+
   return <div className="ip-content"><p className="dim">No simples - sem campos de conteudo.</p></div>;
+}
+
+function CommandNodeFields({
+  node,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  const labels = project.nodes.filter((candidate) => candidate.type === "label");
+  const currentLabel = stripCommandPrefix(node.title, node.type === "gosub" ? "*gosub" : node.type === "goto" ? "*goto" : "*label");
+
+  if (node.type === "label") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">label</label>
+        <input className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `*label ${normalizeIdentifier(event.target.value)}` })} />
+      </div>
+    );
+  }
+
+  if (node.type === "goto" || node.type === "gosub") {
+    const command = node.type === "goto" ? "*goto" : "*gosub";
+    const labelNames = labels.map((label) => stripCommandPrefix(label.title, "*label"));
+    return (
+      <div className="ip-content">
+        <label className="ip-label">{command} destino</label>
+        <select className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `${command} ${event.target.value}` })}>
+          {currentLabel && !labelNames.includes(currentLabel) && <option value={currentLabel}>{currentLabel}</option>}
+          {!currentLabel && <option value="">label</option>}
+          {labelNames.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      </div>
+    );
+  }
+
+  if (node.type === "goto_scene") {
+    const currentScene = node.target ?? stripCommandPrefix(node.title, "*goto_scene");
+    return (
+      <div className="ip-content">
+        <label className="ip-label">cena destino</label>
+        <select
+          className="command-input"
+          value={currentScene}
+          onChange={(event) => onUpdateNode(node.id, { title: `*goto_scene ${event.target.value}`, target: event.target.value })}
+        >
+          {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
+        </select>
+      </div>
+    );
+  }
+
+  if (node.type === "checkpoint") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">checkpoint</label>
+        <input className="command-input" value={stripCommandPrefix(node.title, "*save_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*save_checkpoint ${normalizeIdentifier(event.target.value)}` })} />
+      </div>
+    );
+  }
+
+  return <div className="ip-content"><p className="dim">Este no encerra a historia com *ending.</p></div>;
 }
 
 function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
@@ -266,4 +342,17 @@ function removeSet(node: StoryNode, index: number, onUpdateNode: (id: string, pa
 
 function updateBranch(node: StoryNode, index: number, patch: Partial<NonNullable<StoryNode["branches"]>[number]>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, { branches: node.branches?.map((branch, branchIndex) => (branchIndex === index ? { ...branch, ...patch } : branch)) });
+}
+
+function stripCommandPrefix(value: string, command: string): string {
+  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function normalizeIdentifier(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/^[^a-z_]+/, "")
+    .replace(/_+/g, "_");
 }
