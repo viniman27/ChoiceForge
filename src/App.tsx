@@ -272,14 +272,115 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
 }
 
 function downloadGeneratedProject(project: ChoiceForgeProject) {
-  const payload = JSON.stringify(createExportPackage(project), null, 2);
-  const blob = new Blob([`${payload}\n`], { type: "application/json;charset=utf-8" });
+  const zipBytes = createZipArchive(createExportPackage(project).files);
+  const blob = new Blob([toArrayBuffer(zipBytes)], { type: "application/zip" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${project.title}.choiceforge-export.json`;
+  anchor.download = `${project.title}.zip`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]): Uint8Array {
+  const encoder = new TextEncoder();
+  const localParts: Uint8Array[] = [];
+  const centralParts: Uint8Array[] = [];
+  let offset = 0;
+
+  files.forEach((file) => {
+    const name = encoder.encode(file.path);
+    const content = encoder.encode(file.content);
+    const crc = crc32(content);
+    const localHeader = concatBytes(
+      u32(0x04034b50),
+      u16(20),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(crc),
+      u32(content.length),
+      u32(content.length),
+      u16(name.length),
+      u16(0),
+      name,
+    );
+    localParts.push(localHeader, content);
+
+    centralParts.push(concatBytes(
+      u32(0x02014b50),
+      u16(20),
+      u16(20),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(crc),
+      u32(content.length),
+      u32(content.length),
+      u16(name.length),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(0),
+      u32(offset),
+      name,
+    ));
+
+    offset += localHeader.length + content.length;
+  });
+
+  const centralDirectory = concatBytes(...centralParts);
+  const localFiles = concatBytes(...localParts);
+  const end = concatBytes(
+    u32(0x06054b50),
+    u16(0),
+    u16(0),
+    u16(files.length),
+    u16(files.length),
+    u32(centralDirectory.length),
+    u32(localFiles.length),
+    u16(0),
+  );
+
+  return concatBytes(localFiles, centralDirectory, end);
+}
+
+function u16(value: number): Uint8Array {
+  return new Uint8Array([value & 0xff, (value >>> 8) & 0xff]);
+}
+
+function u32(value: number): Uint8Array {
+  return new Uint8Array([value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]);
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let offset = 0;
+  parts.forEach((part) => {
+    result.set(part, offset);
+    offset += part.length;
+  });
+  return result;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
+}
+
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff;
+  bytes.forEach((byte) => {
+    crc ^= byte;
+    for (let index = 0; index < 8; index += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  });
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 function nextNodeId(nodes: StoryNode[]): string {
