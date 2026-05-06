@@ -29,6 +29,7 @@ export interface ProjectActions {
   layoutNodes: () => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
   deleteNode: (id: string) => void;
+  connectNodes: (from: string, to: string) => void;
   addFlowEdge: (from: string, to: string) => void;
   deleteFlowEdge: (from: string, to: string) => void;
   addScene: () => void;
@@ -134,14 +135,51 @@ export function useProjectStore() {
         });
       });
     },
-    addFlowEdge: (from, to) => {
+    connectNodes: (from, to) => {
       setProjectState((current) => {
         const source = current.nodes.find((node) => node.id === from);
         const target = current.nodes.find((node) => node.id === to);
-        const sourceCanFlow = source && !["choice", "if", "ending", "goto", "goto_scene"].includes(source.type);
-        if (!sourceCanFlow || !target || from === to || current.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return current;
-        return commitProject({ ...current, edges: [...current.edges, { from, to, kind: "flow" }] });
+        if (!source || !target || from === to) return current;
+
+        if (source.type === "choice") {
+          if (source.options?.some((option) => option.to === to)) return current;
+          return commitProject({
+            ...current,
+            nodes: current.nodes.map((node) => (
+              node.id === from
+                ? { ...node, options: [...(node.options ?? []), { text: `Ir para ${target.title}`, to, cond: null }] }
+                : node
+            )),
+          });
+        }
+
+        if (source.type === "if") {
+          if (source.branches?.some((branch) => branch.to === to)) return current;
+          const branches = source.branches ?? [];
+          const elseIndex = branches.findIndex((branch) => branch.kind === "else");
+          const nextBranch = branches.length === 0
+            ? { kind: "if" as const, expr: "true", to }
+            : elseIndex >= 0
+              ? { kind: "elseif" as const, expr: "true", to }
+              : { kind: "else" as const, to };
+          const nextBranches = elseIndex >= 0
+            ? [...branches.slice(0, elseIndex), nextBranch, ...branches.slice(elseIndex)]
+            : [...branches, nextBranch];
+          return commitProject({
+            ...current,
+            nodes: current.nodes.map((node) => (
+              node.id === from
+                ? { ...node, branches: nextBranches }
+                : node
+            )),
+          });
+        }
+
+        return addFlowEdgeToProject(current, from, to);
       });
+    },
+    addFlowEdge: (from, to) => {
+      setProjectState((current) => addFlowEdgeToProject(current, from, to));
     },
     deleteFlowEdge: (from, to) => {
       setProjectState((current) => commitProject({
@@ -388,6 +426,14 @@ function renameSceneGraphKey(sceneData: Record<string, SceneGraph>, from: string
 function syncDerivedEdges(project: ChoiceForgeProject): ChoiceForgeProject {
   const manualEdges = project.edges.filter((edge) => edge.kind === "flow");
   return { ...project, edges: [...manualEdges, ...deriveNodeEdges(project.nodes)] };
+}
+
+function addFlowEdgeToProject(project: ChoiceForgeProject, from: string, to: string): ChoiceForgeProject {
+  const source = project.nodes.find((node) => node.id === from);
+  const target = project.nodes.find((node) => node.id === to);
+  const sourceCanFlow = source && !["choice", "if", "ending", "goto", "goto_scene"].includes(source.type);
+  if (!sourceCanFlow || !target || from === to || project.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return project;
+  return commitProject({ ...project, edges: [...project.edges, { from, to, kind: "flow" }] });
 }
 
 function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {

@@ -488,46 +488,6 @@ input, select, textarea { font-family: inherit; color: inherit; }
   pointer-events: none;
 }
 
-/* Sticky note */
-.sticky-note {
-  position: absolute;
-  width: 200px; padding: 10px 12px 12px;
-  background: oklch(95% 0.06 95);
-  color: oklch(28% 0.04 80);
-  font-family: var(--ff-narr);
-  font-size: 13px; line-height: 1.4;
-  box-shadow: 2px 4px 0 oklch(20% 0.02 280 / 0.08);
-  transform: rotate(-1.2deg);
-  border-radius: 2px;
-}
-[data-theme="dark"] .sticky-note { background: oklch(38% 0.08 90); color: oklch(94% 0.04 90); }
-.sticky-pin {
-  position: absolute; left: 50%; top: -6px;
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--accent-1);
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.3);
-  transform: translateX(-50%);
-}
-.sticky-note p { margin: 4px 0 0; }
-.sticky-author { margin-top: 6px; font-size: 10px; opacity: 0.7; font-style: italic; }
-
-/* Region group */
-.region {
-  position: absolute;
-  border: 1.5px dashed var(--c-if);
-  border-radius: var(--r-3);
-  background: oklch(95% 0.05 85 / 0.25);
-  pointer-events: none;
-}
-.region-label {
-  position: absolute; top: -10px; left: 16px;
-  font-family: var(--ff-mono); font-size: 10px;
-  background: var(--paper-1); padding: 2px 8px;
-  color: var(--c-if);
-  border-radius: var(--r-1);
-  text-transform: lowercase; letter-spacing: 0.04em;
-}
-
 /* ─── Node card ─────────────────────────────── */
 .node {
   position: absolute;

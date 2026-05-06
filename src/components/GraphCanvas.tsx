@@ -10,7 +10,7 @@ interface GraphCanvasProps {
   setSelectedId: (id: string | null) => void;
   onMoveNode: (id: string, x: number, y: number) => void;
   onLayoutNodes: () => void;
-  onAddFlowEdge: (from: string, to: string) => void;
+  onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDeleteNode: (id: string) => void;
   pan: { x: number; y: number };
@@ -21,7 +21,7 @@ interface GraphCanvasProps {
 
 const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "set", "label", "goto", "goto_scene", "gosub", "checkpoint", "ending"];
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onAddFlowEdge, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -79,7 +79,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       if (connecting) {
         const target = document.elementFromPoint(event.clientX, event.clientY);
         const targetId = target instanceof HTMLElement ? target.closest<HTMLElement>(".anchor-in")?.dataset.nodeId : undefined;
-        if (targetId) onAddFlowEdge(connecting.from, targetId);
+        if (targetId) onConnectNodes(connecting.from, targetId);
       }
       setDrag(null);
       setPanning(null);
@@ -93,7 +93,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
-  }, [connecting, drag, onAddFlowEdge, onMoveNode, onPan, pan, panning, zoom]);
+  }, [connecting, drag, onConnectNodes, onMoveNode, onPan, pan, panning, zoom]);
 
   return (
     <div
@@ -192,27 +192,18 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             }}
             onConnectStart={(event, id) => {
               const current = data.nodes.find((node) => node.id === id);
-              if (!current || ["choice", "if", "ending", "goto", "goto_scene"].includes(current.type)) return;
+              if (!current || ["ending", "goto", "goto_scene"].includes(current.type)) return;
               event.stopPropagation();
               const start = { x2: current.x + current.w, y2: current.y + estimateNodeHeight(data, current.id, density) / 2 };
               setConnecting({ from: id, x1: start.x2, y1: start.y2, ...start });
             }}
             onConnectEnd={(id) => {
               if (!connecting) return;
-              onAddFlowEdge(connecting.from, id);
+              onConnectNodes(connecting.from, id);
               setConnecting(null);
             }}
           />
         ))}
-
-        <div className="sticky-note" style={{ left: 460, top: 220 }}>
-          <div className="sticky-pin" />
-          <p>checar tom aqui - Kana precisa ter mais peso emocional</p>
-          <div className="sticky-author">- Kira, 14:32</div>
-        </div>
-        <div className="region" style={{ left: 740, top: 30, width: 580, height: 420 }}>
-          <div className="region-label">ramificacao tecnica</div>
-        </div>
       </div>
 
       <div className="zoom-controls">
@@ -233,7 +224,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function isCanvasPanTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, .sticky-note, .region, button, input, textarea, select");
+  return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, button, input, textarea, select");
 }
 
 function clientPointToWorld(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
