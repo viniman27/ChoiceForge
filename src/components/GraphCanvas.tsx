@@ -264,7 +264,7 @@ function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density
   if (node.body) height += density === "rich" ? 90 : 50;
   if (node.prompt) height += 28;
   if (node.options) height += node.options.length * (density === "rich" ? 38 : 26) + 8;
-  if (node.branches) height += node.branches.length * 24 + 8;
+  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (density === "rich" ? (branch.sets?.length ?? 0) * 22 : 0), 8);
   if (density === "rich" && node.sets?.length) height += 30;
   if (density === "rich" && node.target) height += 22;
   return height;

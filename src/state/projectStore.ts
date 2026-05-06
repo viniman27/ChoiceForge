@@ -317,6 +317,7 @@ export function useProjectStore() {
             branches: node.branches?.map((branch) => ({
               ...branch,
               expr: branch.expr ? renameExpressionName(branch.expr, name, nextName!) : branch.expr,
+              sets: branch.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
             })),
           })) : current.nodes,
         });

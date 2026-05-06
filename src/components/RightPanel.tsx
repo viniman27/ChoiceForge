@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, I18nLabels, StoryEdge, StoryNode, VariableSet } from "../domain/types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, I18nLabels, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { NodeIcon, typeColors } from "./NodeCard";
 
 interface RightPanelProps {
@@ -84,15 +84,6 @@ function ContentTab({
         <label className="ip-label">{labels.bodyLabel}</label>
         <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
         <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
-        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
-      </div>
-    );
-  }
-
-  if (node.type === "if") {
-    return (
-      <div className="ip-content">
-        <p className="dim">Efeitos aplicados antes da avaliacao das branches.</p>
         <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
       </div>
     );
@@ -247,17 +238,74 @@ function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: C
       <ul className="ip-sets">
         {node.sets?.map((set, index) => (
           <li key={`${set.var}-${index}`} className="ip-set-row">
-            <select value={set.var} onChange={(event) => updateSet(node, index, { var: event.target.value }, onUpdateNode)}>
-              {project.variables.map((variable) => <option key={variable.name} value={variable.name}>{variable.name}</option>)}
-            </select>
-            <select value={set.op} onChange={(event) => updateSet(node, index, { op: event.target.value as VariableSet["op"] }, onUpdateNode)}><option>=</option><option>+</option><option>-</option><option>%+</option><option>%-</option></select>
-            <input value={set.val} onChange={(event) => updateSet(node, index, { val: event.target.value }, onUpdateNode)} />
+            <SetFields set={set} variables={project.variables} onChange={(patch) => updateSet(node, index, patch, project, onUpdateNode)} />
             <button className="x-btn" onClick={() => removeSet(node, index, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ *set</button></li>
+        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ efeito</button></li>
       </ul>
     </>
+  );
+}
+
+function SetFields({
+  set,
+  variables,
+  onChange,
+}: {
+  set: VariableSet;
+  variables: VariableSummary[];
+  onChange: (patch: Partial<VariableSet>) => void;
+}) {
+  const variable = variables.find((candidate) => candidate.name === set.var) ?? variables[0];
+  const ops = allowedOps(variable);
+
+  return (
+    <>
+      <select value={set.var} onChange={(event) => onChange(normalizeSetForVariable(event.target.value, variables))}>
+        {variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
+      </select>
+      <select value={ops.includes(set.op) ? set.op : "="} onChange={(event) => onChange({ op: event.target.value as VariableSet["op"] })}>
+        {ops.map((op) => <option key={op} value={op}>{op}</option>)}
+      </select>
+      {variable?.type === "boolean" ? (
+        <select value={set.val === "true" ? "true" : "false"} onChange={(event) => onChange({ val: event.target.value })}>
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      ) : (
+        <input value={set.val} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => onChange({ val: event.target.value })} />
+      )}
+    </>
+  );
+}
+
+function BranchSets({
+  node,
+  branch,
+  branchIndex,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  branch: ConditionalBranch;
+  branchIndex: number;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  return (
+    <div className="branch-effects">
+      <span className="branch-effects-title">efeitos se esta branch vencer</span>
+      <ul className="ip-sets">
+        {branch.sets?.map((set, setIndex) => (
+          <li key={`${set.var}-${setIndex}`} className="ip-set-row">
+            <SetFields set={set} variables={project.variables} onChange={(patch) => updateBranchSet(node, branchIndex, setIndex, patch, project, onUpdateNode)} />
+            <button className="x-btn" onClick={() => removeBranchSet(node, branchIndex, setIndex, onUpdateNode)}>x</button>
+          </li>
+        ))}
+        <li><button className="ghost-btn" onClick={() => addBranchSet(node, branchIndex, project, onUpdateNode)}>+ efeito</button></li>
+      </ul>
+    </div>
   );
 }
 
@@ -285,11 +333,14 @@ function LogicTab({
         <ul className="ip-branches">
           {node.branches?.map((branch, index) => (
             <li key={`${branch.kind}-${index}`} className={`ip-branch branch-${branch.kind}`}>
-              <span className="branch-key">*{branch.kind}</span>
-              {branch.kind !== "else" && <input className="cond-input wide" value={branch.expr ?? ""} onChange={(event) => updateBranch(node, index, { expr: event.target.value }, onUpdateNode)} />}
-              <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, onUpdateNode)}>
-                {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
-              </select>
+              <div className="branch-main">
+                <span className="branch-key">*{branch.kind}</span>
+                {branch.kind !== "else" && <input className="cond-input wide" value={branch.expr ?? ""} onChange={(event) => updateBranch(node, index, { expr: event.target.value }, onUpdateNode)} />}
+                <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, onUpdateNode)}>
+                  {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
+                </select>
+              </div>
+              <BranchSets node={node} branch={branch} branchIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
@@ -371,15 +422,14 @@ function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string,
   onUpdateNode(node.id, { options: node.options?.filter((_, optionIndex) => optionIndex !== index) });
 }
 
-function updateSet(node: StoryNode, index: number, patch: Partial<VariableSet>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  const nextSets = node.sets?.map((set, setIndex) => (setIndex === index ? { ...set, ...patch } : set));
+function updateSet(node: StoryNode, index: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const nextSets = node.sets?.map((set, setIndex) => (setIndex === index ? normalizeSetPatch({ ...set, ...patch }, project.variables) : set));
   const title = node.type === "set" && index === 0 && patch.var ? `*set ${patch.var}` : node.title;
   onUpdateNode(node.id, { sets: nextSets, title });
 }
 
 function addSet(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  const firstVariable = project.variables[0]?.name ?? "variavel";
-  onUpdateNode(node.id, { sets: [...(node.sets ?? []), { var: firstVariable, op: "=", val: "0" }] });
+  onUpdateNode(node.id, { sets: [...(node.sets ?? []), createDefaultSet(project.variables)] });
 }
 
 function removeSet(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
@@ -395,6 +445,67 @@ function appendAchievementCommand(node: StoryNode, achievementId: string, onUpda
 
 function updateBranch(node: StoryNode, index: number, patch: Partial<NonNullable<StoryNode["branches"]>[number]>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, { branches: node.branches?.map((branch, branchIndex) => (branchIndex === index ? { ...branch, ...patch } : branch)) });
+}
+
+function updateBranchSet(node: StoryNode, branchIndex: number, setIndex: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    branches: node.branches?.map((branch, currentBranchIndex) => (
+      currentBranchIndex === branchIndex
+        ? { ...branch, sets: branch.sets?.map((set, currentSetIndex) => (currentSetIndex === setIndex ? normalizeSetPatch({ ...set, ...patch }, project.variables) : set)) }
+        : branch
+    )),
+  });
+}
+
+function addBranchSet(node: StoryNode, branchIndex: number, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    branches: node.branches?.map((branch, currentBranchIndex) => (
+      currentBranchIndex === branchIndex ? { ...branch, sets: [...(branch.sets ?? []), createDefaultSet(project.variables)] } : branch
+    )),
+  });
+}
+
+function removeBranchSet(node: StoryNode, branchIndex: number, setIndex: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    branches: node.branches?.map((branch, currentBranchIndex) => (
+      currentBranchIndex === branchIndex ? { ...branch, sets: branch.sets?.filter((_, currentSetIndex) => currentSetIndex !== setIndex) } : branch
+    )),
+  });
+}
+
+function createDefaultSet(variables: VariableSummary[]): VariableSet {
+  return normalizeSetForVariable(variables[0]?.name ?? "variavel", variables) as VariableSet;
+}
+
+function normalizeSetForVariable(variableName: string, variables: VariableSummary[]): VariableSet {
+  const variable = variables.find((candidate) => candidate.name === variableName);
+  return { var: variableName, op: "=", val: defaultSetValue(variable) };
+}
+
+function normalizeSetPatch(set: VariableSet, variables: VariableSummary[]): VariableSet {
+  const variable = variables.find((candidate) => candidate.name === set.var);
+  const ops = allowedOps(variable);
+  return {
+    ...set,
+    op: ops.includes(set.op) ? set.op : "=",
+    val: normalizeSetValue(set.val, variable),
+  };
+}
+
+function allowedOps(variable: VariableSummary | undefined): VariableSet["op"][] {
+  if (variable?.type !== "number") return ["="];
+  return variable.fairmath ? ["=", "+", "-", "%+", "%-"] : ["=", "+", "-"];
+}
+
+function defaultSetValue(variable: VariableSummary | undefined): string {
+  if (variable?.type === "boolean") return "true";
+  if (variable?.type === "string") return "\"\"";
+  return "0";
+}
+
+function normalizeSetValue(value: string, variable: VariableSummary | undefined): string {
+  if (variable?.type === "boolean") return value === "true" ? "true" : "false";
+  return value;
 }
 
 function stripCommandPrefix(value: string, command: string): string {

@@ -115,6 +115,7 @@ export function NodeCard({ node, density, selected, hasError, onSelect, onDragSt
             <li key={`${branch.kind}-${index}`} className={`branch branch-${branch.kind}`}>
               <span className="branch-key">*{branch.kind}</span>
               {branch.expr && <code className="branch-expr">{branch.expr}</code>}
+              {isRich && branch.sets?.map((set, setIndex) => <VarDelta key={`${set.var}-${setIndex}`} set={set} />)}
             </li>
           ))}
         </ul>

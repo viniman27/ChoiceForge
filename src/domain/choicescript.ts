@@ -38,6 +38,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (node.type === "if") {
     node.branches?.forEach((branch) => {
       lines.push(branch.expr ? `*${branch.kind} (${branch.expr})` : `*${branch.kind}`);
+      branch.sets?.forEach((set) => lines.push(`  ${generateSet(set)}`));
       lines.push(`  *goto ${generatedNodeLabel(branch.to)}`);
     });
   }
@@ -185,6 +186,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     ...project.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
   ]);
   const variables = new Set(project.variables.map((variable) => variable.name));
+  const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const scenes = new Set(project.scenes.map((scene) => scene.name));
   const outgoing = new Map(project.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(project.nodes.map((node) => [node.id, 0]));
@@ -209,11 +211,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
       issues.push({ level: "info", msg: `no "${node.title}" nao tem saida visual`, scene: project.sceneTitle, node: node.id });
     }
 
-    node.sets?.forEach((set) => {
-      if (!variables.has(set.var)) {
-        issues.push({ level: "error", msg: `*set usa variavel nao criada: ${set.var}`, scene: project.sceneTitle, node: node.id });
-      }
-    });
+    node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `texto usa variavel nao criada: ${name}`, scene: project.sceneTitle, node: node.id });
@@ -228,6 +226,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     node.branches?.forEach((branch) => {
       if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} aponta para no inexistente: ${branch.to}`, scene: project.sceneTitle, node: node.id });
       lintExpression(branch.expr, variables, issues, project.sceneTitle, node.id);
+      branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
     });
 
     if (node.type === "goto_scene" && node.target && !scenes.has(node.target)) {
@@ -277,6 +276,27 @@ function stripCommandPrefix(value: string, command: string): string {
 function lintCondition(condition: ChoiceCondition | null | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!condition) return;
   lintExpression(condition.expr, variables, issues, scene, node);
+}
+
+function lintSet(
+  set: VariableSet,
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  issues: LintIssue[],
+  scene: string,
+  node: string,
+) {
+  const variable = variableTypes.get(set.var);
+  if (!variables.has(set.var) || !variable) {
+    issues.push({ level: "error", msg: `*set usa variavel nao criada: ${set.var}`, scene, node });
+    return;
+  }
+  if (variable.type !== "number" && set.op !== "=") {
+    issues.push({ level: "error", msg: `*set ${set.var} usa operador invalido para ${variable.type}: ${set.op}`, scene, node });
+  }
+  if (variable.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
+    issues.push({ level: "warning", msg: `*set ${set.var} usa fairmath sem stat marcado como percent`, scene, node });
+  }
 }
 
 function lintExpression(expression: string | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {

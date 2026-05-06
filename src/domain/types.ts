@@ -78,6 +78,7 @@ export interface ConditionalBranch {
   kind: "if" | "elseif" | "else";
   expr?: string;
   to: string;
+  sets?: VariableSet[];
 }
 
 export interface StoryNode {

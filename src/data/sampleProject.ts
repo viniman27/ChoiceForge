@@ -85,8 +85,8 @@ const salaMaquinas: SceneGraph = {
       w: 300,
       title: "*if pistas",
       branches: [
-        { kind: "if", expr: "pistas >= 2", to: "n3" },
-        { kind: "else", to: "n4" },
+        { kind: "if", expr: "pistas >= 2", to: "n3", sets: [{ var: "final_bom", op: "=", val: "true" }] },
+        { kind: "else", to: "n4", sets: [{ var: "coragem", op: "%-", val: "15" }] },
       ],
     },
     {
@@ -97,7 +97,6 @@ const salaMaquinas: SceneGraph = {
       w: 320,
       title: "padrao_revelado",
       body: "Com as pistas reunidas, voce percebe que o relogio nao mede horas: ele marca a proxima janela de neblina.",
-      sets: [{ var: "final_bom", op: "=", val: "true" }],
     },
     {
       id: "n4",
@@ -107,7 +106,6 @@ const salaMaquinas: SceneGraph = {
       w: 320,
       title: "tentativa_as_cegas",
       body: "Sem informacao suficiente, voce gira a chave principal. O farol acende, mas alguma coisa responde do mar.",
-      sets: [{ var: "coragem", op: "%-", val: "15" }],
     },
     { id: "n5", type: "goto_scene", x: 1240, y: 170, w: 260, title: "*goto_scene final", target: "final" },
   ],

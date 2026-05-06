@@ -775,7 +775,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 
 .branches { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
 .branch {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   font-size: 11px;
   padding: 4px 8px;
   border-radius: var(--r-1);
@@ -962,7 +962,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-set-row { flex-direction: row; align-items: center; }
 .ip-set-row .var-pill { background: var(--c-set-tint); color: var(--c-set); padding: 2px 6px; border-radius: var(--r-1); font-family: var(--ff-mono); font-size: 11px; flex: 0 0 auto; }
 .ip-set-row select, .ip-set-row input { padding: 3px 6px; border: 1px solid var(--paper-edge); border-radius: var(--r-1); background: var(--paper-2); font-size: 11px; }
-.ip-set-row select { width: 50px; }
+.ip-set-row select { min-width: 64px; }
 .ip-set-row input { flex: 1; }
 .x-btn { background: transparent; border: none; color: var(--ink-faint); font-size: 14px; padding: 0 4px; }
 .x-btn:hover { color: var(--err); }
@@ -977,10 +977,25 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .cond-input { flex: 1; min-width: 80px; }
 .cond-input.wide { width: 100%; }
 
-.ip-branch { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--paper-1); border: 1px solid var(--paper-edge); border-left-width: 3px; border-radius: var(--r-2); margin-bottom: 4px; }
+.ip-branch { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 10px; background: var(--paper-1); border: 1px solid var(--paper-edge); border-left-width: 3px; border-radius: var(--r-2); margin-bottom: 6px; }
 .ip-branch.branch-if { border-left-color: var(--c-if); }
 .ip-branch.branch-elseif { border-left-color: var(--c-goto); }
 .ip-branch.branch-else { border-left-color: var(--ink-faint); }
+.branch-main { display: flex; align-items: center; gap: 8px; }
+.branch-main select { min-width: 120px; }
+.branch-effects {
+  padding: 7px;
+  background: var(--paper-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+}
+.branch-effects-title {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+}
 
 .cond-builder { background: var(--paper-1); border: 1px solid var(--paper-edge); border-radius: var(--r-2); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 .cb-row { display: flex; gap: 4px; align-items: center; }
