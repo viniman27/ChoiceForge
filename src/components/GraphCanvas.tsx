@@ -19,7 +19,7 @@ interface GraphCanvasProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "label", "goto", "goto_scene", "gosub", "page_break", "checkpoint", "comment", "ending"];
+const creatableNodeTypes: NodeType[] = ["passage", "choice", "if", "label", "goto", "goto_scene", "gosub", "input_text", "input_number", "page_break", "checkpoint", "comment", "ending"];
 
 export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);

@@ -15,7 +15,9 @@ export type NodeType =
   | "ending"
   | "checkpoint"
   | "page_break"
-  | "comment";
+  | "comment"
+  | "input_text"
+  | "input_number";
 
 export interface SceneSummary {
   id: string;
@@ -97,6 +99,9 @@ export interface StoryNode {
   options?: ChoiceOption[];
   branches?: ConditionalBranch[];
   target?: string;
+  inputVar?: string;
+  inputMin?: string;
+  inputMax?: string;
   warning?: string;
 }
 

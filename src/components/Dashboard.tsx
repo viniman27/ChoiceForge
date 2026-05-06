@@ -95,6 +95,8 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
     checkpoint: "var(--c-check)",
     page_break: "var(--c-check)",
     comment: "var(--ink-mute)",
+    input_text: "var(--c-set)",
+    input_number: "var(--c-set)",
   };
   const counts = nodes.reduce((map, node) => map.set(node.type, (map.get(node.type) ?? 0) + 1), new Map<NodeType, number>());
   return [...counts.entries()].map(([type, count]) => ({ type, count, color: colors[type] }));

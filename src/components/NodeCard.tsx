@@ -13,6 +13,8 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   checkpoint: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*checkpoint" },
   page_break: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*page_break" },
   comment: { dot: "var(--ink-mute)", tint: "var(--paper-3)", label: "*comment" },
+  input_text: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_text" },
+  input_number: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_number" },
 };
 
 export function NodeIcon({ type }: { type: NodeType }) {
@@ -37,6 +39,8 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "checkpoint") return <svg {...common}><path d="M3 2v8M3 3h6l-1 2 1 2H3" /></svg>;
   if (type === "page_break") return <svg {...common}><path d="M3 2h5l1 1v7H3z" /><path d="M7 2v2h2M4 7h4" /></svg>;
   if (type === "comment") return <svg {...common}><path d="M2 3h8v5H5l-3 2z" /></svg>;
+  if (type === "input_text") return <svg {...common}><path d="M2 3h8M4 3v6M2 9h4" /></svg>;
+  if (type === "input_number") return <svg {...common}><path d="M3 3h6M5 3v6M3 9h6M8 5v4" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
 }
 
@@ -128,6 +132,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
 
       {isRich && node.sets && <div className="node-sets">{node.sets.map((set, index) => <VarDelta key={`${set.var}-${index}`} set={set} />)}</div>}
       {isRich && node.target && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
+      {isRich && node.inputVar && <div className="node-target">-&gt; <code>{node.inputVar}</code></div>}
       <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
       <div className="anchor anchor-out no-drag" title={labels.dragToConnect} onPointerDown={(event) => onConnectStart(event, node.id)} />
     </div>

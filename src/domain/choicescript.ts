@@ -54,6 +54,8 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     const comments = (node.body?.trim() || stripCommandPrefix(node.title, "*comment") || "ChoiceForge comment").split("\n");
     comments.forEach((comment) => lines.push(`*comment ${comment.trim()}`));
   }
+  if (node.type === "input_text") lines.push(`*input_text ${node.inputVar ?? stripCommandPrefix(node.title, "*input_text")}`);
+  if (node.type === "input_number") lines.push(`*input_number ${node.inputVar ?? stripCommandPrefix(node.title, "*input_number")} ${node.inputMin ?? "0"} ${node.inputMax ?? "100"}`);
 
   const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
   if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
@@ -244,6 +246,10 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
       const label = stripCommandPrefix(node.title, "*goto");
       if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: project.sceneTitle, node: node.id });
     }
+
+    if (node.type === "input_text" || node.type === "input_number") {
+      lintInputNode(node, variables, variableTypes, issues, project.sceneTitle);
+    }
   });
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
@@ -303,6 +309,32 @@ function lintSet(
   }
   if (variable.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
     issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, scene, node });
+  }
+}
+
+function lintInputNode(
+  node: StoryNode,
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  issues: LintIssue[],
+  scene: string,
+) {
+  const variableName = node.inputVar ?? stripCommandPrefix(node.title, node.type === "input_text" ? "*input_text" : "*input_number");
+  const variable = variableTypes.get(variableName);
+  if (!variables.has(variableName) || !variable) {
+    issues.push({ level: "error", msg: `${node.type === "input_text" ? "*input_text" : "*input_number"} uses an undeclared variable: ${variableName}`, scene, node: node.id });
+    return;
+  }
+  if (node.type === "input_text" && variable.type !== "string") {
+    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variableName}`, scene, node: node.id });
+  }
+  if (node.type === "input_number") {
+    if (variable.type !== "number") issues.push({ level: "error", msg: `*input_number requires a number variable: ${variableName}`, scene, node: node.id });
+    const min = Number(node.inputMin ?? "0");
+    const max = Number(node.inputMax ?? "100");
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) {
+      issues.push({ level: "error", msg: `*input_number has invalid bounds: ${node.inputMin ?? "0"} ${node.inputMax ?? "100"}`, scene, node: node.id });
+    }
   }
 }
 

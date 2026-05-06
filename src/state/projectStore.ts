@@ -309,6 +309,7 @@ export function useProjectStore() {
           nodes: shouldRename ? current.nodes.map((node) => ({
             ...node,
             body: node.body ? renameVariableReferences(node.body, name, nextName!) : node.body,
+            inputVar: node.inputVar === name ? nextName! : node.inputVar,
             sets: node.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
             options: node.options?.map((option) => ({
               ...option,
@@ -616,6 +617,14 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
   if (type === "page_break") return { ...base, title: "*page_break Continue" };
   if (type === "comment") return { ...base, title: "*comment", body: "Author note." };
+  if (type === "input_text") {
+    const variable = firstVariable(project, "string") ?? project.variables[0]?.name ?? "text";
+    return { ...base, title: `*input_text ${variable}`, inputVar: variable, body: "Enter a response." };
+  }
+  if (type === "input_number") {
+    const variable = firstVariable(project, "number") ?? project.variables[0]?.name ?? "number";
+    return { ...base, title: `*input_number ${variable}`, inputVar: variable, inputMin: "0", inputMax: "100", body: "Enter a number." };
+  }
   return { ...base, title: "*ending" };
 }
 
@@ -633,6 +642,8 @@ function defaultNodeTitle(type: NodeType): string {
     checkpoint: "new_checkpoint",
     page_break: "*page_break",
     comment: "new_comment",
+    input_text: "*input_text",
+    input_number: "*input_number",
   };
   return titles[type];
 }
@@ -640,8 +651,12 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice") return 340;
   if (type === "passage") return 300;
-  if (type === "checkpoint" || type === "goto_scene" || type === "page_break" || type === "comment") return 280;
+  if (["checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number"].includes(type)) return 280;
   return 240;
+}
+
+function firstVariable(project: ChoiceForgeProject, type: VariableSummary["type"]): string | undefined {
+  return project.variables.find((variable) => variable.type === type)?.name;
 }
 
 function firstLabel(project: ChoiceForgeProject): string {
