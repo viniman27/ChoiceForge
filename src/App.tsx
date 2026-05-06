@@ -7,11 +7,11 @@ import { LeftPanel } from "./components/LeftPanel";
 import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
-import { createExportPackage, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
+import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 
-type GeneratedDocumentId = "startup" | "stats";
+type GeneratedDocumentId = "startup" | "stats" | "scene";
 type ResizeTarget = "left" | "right";
 
 const LAYOUT_STORAGE_KEY = "choiceforge.layout.v1";
@@ -113,6 +113,10 @@ export default function App() {
           actions.undo();
           setSelectedId(null);
           setGeneratedDocumentId(null);
+        }}
+        onTextMode={() => {
+          setGeneratedDocumentId("scene");
+          setSelectedId(null);
         }}
         onExport={() => downloadGeneratedProject(lintedProject)}
         onResetProject={() => {
@@ -248,11 +252,20 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
     };
   }
 
+  if (id === "stats") {
+    return {
+      title: "choicescript_stats.txt",
+      path: "mygame/choicescript_stats.txt",
+      description: "Tela de status gerada a partir das variaveis e conquistas do projeto.",
+      content: generateStatsChoiceScript(project),
+    };
+  }
+
   return {
-    title: "choicescript_stats.txt",
-    path: "mygame/choicescript_stats.txt",
-    description: "Tela de status gerada a partir das variaveis e conquistas do projeto.",
-    content: generateStatsChoiceScript(project),
+    title: `${project.sceneTitle}.txt`,
+    path: `mygame/${project.sceneTitle}.txt`,
+    description: "ChoiceScript gerado a partir do grafo visual da cena atual.",
+    content: `${generateSceneChoiceScript(project)}\n`,
   };
 }
 
