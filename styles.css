@@ -691,8 +691,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 
 .node-head {
   display: grid;
-  grid-template-columns: 6px 14px auto 1fr auto;
-  align-items: center; gap: 6px;
+  grid-template-columns: 6px 14px minmax(48px, auto) minmax(0, 1fr) auto;
+  align-items: start; gap: 6px;
   padding: 8px 10px 6px;
   background: var(--accent-tint);
   border-bottom: 1px solid var(--paper-edge);
@@ -709,7 +709,11 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .node-title {
   font-family: var(--ff-mono); font-size: 11px;
   color: var(--ink); font-weight: 500;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
   text-align: right; justify-self: end;
 }
 .node-flag {

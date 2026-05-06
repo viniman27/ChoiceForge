@@ -56,7 +56,7 @@ const intro: SceneGraph = {
       body: "A voz no radio some no meio da frase: 'nao toque no relogio da sala de maquinas'.",
       sets: [{ var: "pistas", op: "+", val: "1" }],
     },
-    { id: "n7", type: "checkpoint", x: 1260, y: 230, w: 230, title: "*save_checkpoint antes_da_maquina" },
+    { id: "n7", type: "checkpoint", x: 1260, y: 230, w: 280, title: "*save_checkpoint antes_da_maquina" },
     { id: "n6", type: "goto_scene", x: 1550, y: 230, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
   ],
   edges: [

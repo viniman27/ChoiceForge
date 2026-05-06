@@ -260,7 +260,7 @@ function fitGraphToViewport(
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
   const node = project.nodes.find((candidate) => candidate.id === nodeId);
   if (!node || density === "minimal") return 44;
-  let height = 50;
+  let height = 50 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
   if (node.body) height += density === "rich" ? 90 : 50;
   if (node.prompt) height += 28;
   if (node.options) height += node.options.length * (density === "rich" ? 38 : 26) + 8;

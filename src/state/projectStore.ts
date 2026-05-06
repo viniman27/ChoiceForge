@@ -636,6 +636,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice") return 340;
   if (type === "passage") return 300;
+  if (type === "checkpoint" || type === "goto_scene") return 280;
   return 240;
 }
 
