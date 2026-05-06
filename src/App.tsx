@@ -129,6 +129,11 @@ export default function App() {
           setGeneratedDocumentId(null);
           setSelectedId(null);
         }}
+        onImport={(file) => importChoiceForgeProject(file, actions.setProject, () => {
+          setPlayOpen(false);
+          setGeneratedDocumentId(null);
+          setSelectedId("n1");
+        }, lang)}
         onExport={() => downloadGeneratedProject(lintedProject)}
         onResetProject={() => {
           actions.resetProject(lang);
@@ -295,6 +300,28 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   anchor.download = `${project.title}.zip`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      const parsed = JSON.parse(String(reader.result ?? "")) as ChoiceForgeProject;
+      assertChoiceForgeProject(parsed);
+      setProject(parsed);
+      onDone();
+    } catch {
+      window.alert(lang === "pt" ? "Nao foi possivel importar este project.json." : "Could not import this project.json.");
+    }
+  });
+  reader.readAsText(file);
+}
+
+function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {
+  if (!value || typeof value !== "object") throw new Error("invalid project");
+  const project = value as Partial<ChoiceForgeProject>;
+  if (typeof project.title !== "string" || typeof project.author !== "string" || typeof project.sceneTitle !== "string") throw new Error("invalid metadata");
+  if (!Array.isArray(project.scenes) || !Array.isArray(project.variables) || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) throw new Error("invalid collections");
 }
 
 function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]): Uint8Array {
