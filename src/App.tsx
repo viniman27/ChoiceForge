@@ -4,6 +4,7 @@ import { Dashboard } from "./components/Dashboard";
 import { GeneratedDocumentView } from "./components/GeneratedDocumentView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
+import { PlaytestView } from "./components/PlaytestView";
 import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
@@ -34,6 +35,7 @@ export default function App() {
   const [zoom, setZoom] = useState(0.85);
   const [view, setView] = useState<EditorView>("editor");
   const [generatedDocumentId, setGeneratedDocumentId] = useState<GeneratedDocumentId | null>(null);
+  const [playOpen, setPlayOpen] = useState(false);
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const { lintedProject, actions } = useProjectStore();
@@ -83,6 +85,7 @@ export default function App() {
       actions.undo();
       setSelectedId(null);
       setGeneratedDocumentId(null);
+      setPlayOpen(false);
     };
     window.addEventListener("keydown", keyDown);
     return () => window.removeEventListener("keydown", keyDown);
@@ -114,15 +117,23 @@ export default function App() {
           actions.undo();
           setSelectedId(null);
           setGeneratedDocumentId(null);
+          setPlayOpen(false);
         }}
         onTextMode={() => {
+          setPlayOpen(false);
           setGeneratedDocumentId((current) => (current === "scene" ? null : "scene"));
+          setSelectedId(null);
+        }}
+        onPlay={() => {
+          setPlayOpen(true);
+          setGeneratedDocumentId(null);
           setSelectedId(null);
         }}
         onExport={() => downloadGeneratedProject(lintedProject)}
         onResetProject={() => {
           actions.resetProject(lang);
           setGeneratedDocumentId(null);
+          setPlayOpen(false);
           setSelectedId("n3");
         }}
       />
@@ -134,12 +145,14 @@ export default function App() {
         labels={i18n[lang]}
         onAddScene={() => {
           setGeneratedDocumentId(null);
+          setPlayOpen(false);
           actions.addScene();
           setSelectedId("n1");
         }}
         onSelectScene={(id) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.id === id);
           const keepTextMode = generatedDocumentId === "scene";
+          setPlayOpen(false);
           if (scene?.isStart || scene?.special) {
             setGeneratedDocumentId(scene.isStart ? "startup" : "stats");
             setSelectedId(null);
@@ -171,7 +184,9 @@ export default function App() {
           setResizeTarget("left");
         }}
       />
-      {generatedDocument ? (
+      {playOpen ? (
+        <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} />
+      ) : generatedDocument ? (
         <GeneratedDocumentView {...generatedDocument} />
       ) : (
         <GraphCanvas

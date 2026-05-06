@@ -14,11 +14,12 @@ interface TopBarProps {
   textModeActive: boolean;
   onUndo: () => void;
   onTextMode: () => void;
+  onPlay: () => void;
   onExport: () => void;
   onResetProject: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onExport, onResetProject }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onExport, onResetProject }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -62,7 +63,7 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
         <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
-        <button className="play-btn" onClick={() => window.alert("Play-test ainda sera integrado ao runtime oficial.")}>
+        <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
           {lang === "pt" ? "Jogar" : "Play"}
         </button>
