@@ -63,7 +63,7 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
-        <button className="ghost-btn" onClick={() => openImportPicker(onImport)}>
+        <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
           {lang === "pt" ? "Importar" : "Import"}
         </button>
         <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
@@ -76,7 +76,51 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
   );
 }
 
-function openImportPicker(onImport: (file: File) => void) {
+interface FilePickerHandle {
+  getFile: () => Promise<File>;
+}
+
+interface WindowWithFilePicker extends Window {
+  showOpenFilePicker?: (options: {
+    multiple?: boolean;
+    excludeAcceptAllOption?: boolean;
+    types?: Array<{
+      description: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<FilePickerHandle[]>;
+}
+
+async function openImportPicker(onImport: (file: File) => void) {
+  const showOpenFilePicker = (window as WindowWithFilePicker).showOpenFilePicker;
+  if (showOpenFilePicker) {
+    try {
+      const [handle] = await showOpenFilePicker({
+        multiple: false,
+        excludeAcceptAllOption: false,
+        types: [
+          {
+            description: "ChoiceForge project",
+            accept: {
+              "application/json": [".json"],
+              "application/zip": [".zip"],
+            },
+          },
+        ],
+      });
+      const file = await handle?.getFile();
+      if (file) onImport(file);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      window.setTimeout(() => openImportInputFallback(onImport), 0);
+    }
+    return;
+  }
+
+  openImportInputFallback(onImport);
+}
+
+function openImportInputFallback(onImport: (file: File) => void) {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "application/json,application/zip,.json,.zip";
@@ -103,4 +147,8 @@ function openImportPicker(onImport: (file: File) => void) {
 
   document.body.appendChild(input);
   input.click();
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
 }
