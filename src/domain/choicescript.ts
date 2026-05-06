@@ -103,6 +103,31 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
   return `${lines.join("\n")}\n`;
 }
 
+export function generateStatsChoiceScript(project: ChoiceForgeProject): string {
+  const lines: string[] = [];
+
+  if (!project.variables.length && !project.achievements.length) {
+    lines.push("*comment ChoiceForge: no stats configured yet");
+    lines.push("No stats configured yet.");
+    return `${lines.join("\n")}\n`;
+  }
+
+  if (project.variables.length) {
+    lines.push("*stat_chart");
+    project.variables.forEach((variable) => {
+      const chartType = variable.type === "number" && variable.fairmath ? "percent" : "text";
+      lines.push(`  ${chartType} ${variable.name} ${formatStatsLabel(variable.desc || variable.name)}`);
+    });
+  }
+
+  if (project.achievements.length) {
+    if (lines.length) lines.push("");
+    lines.push("*achievements");
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
 export function generateProjectJson(project: ChoiceForgeProject): string {
   return `${JSON.stringify(project, null, 2)}\n`;
 }
@@ -133,6 +158,11 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
         path: "mygame/startup.txt",
         encoding: "utf-8",
         content: generateStartupChoiceScript(project),
+      },
+      {
+        path: "mygame/choicescript_stats.txt",
+        encoding: "utf-8",
+        content: generateStatsChoiceScript(project),
       },
       ...sceneFiles,
     ],
@@ -222,6 +252,14 @@ function generateOptionHeader(option: ChoiceOption): string {
   const reuse = option.hideReuse ? "*hide_reuse " : "";
   const condition = option.cond ? `*${option.cond.type} (${option.cond.expr}) ` : "";
   return `${reuse}${condition}#${option.text}`;
+}
+
+function formatStatsLabel(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function stripCommandPrefix(value: string, command: string): string {

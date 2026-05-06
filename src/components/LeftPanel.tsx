@@ -5,6 +5,7 @@ interface LeftPanelProps {
   data: ChoiceForgeProject;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  activeSceneId: string;
   labels: I18nLabels;
   onAddScene: () => void;
   onSelectScene: (id: string) => void;
@@ -23,6 +24,7 @@ export function LeftPanel({
   data,
   activeTab,
   setActiveTab,
+  activeSceneId,
   labels,
   onAddScene,
   onSelectScene,
@@ -68,6 +70,7 @@ export function LeftPanel({
           <ScenesList
             data={data}
             labels={labels}
+            activeSceneId={activeSceneId}
             onAddScene={onAddScene}
             onSelectScene={onSelectScene}
             onUpdateScene={onUpdateScene}
@@ -197,6 +200,7 @@ function nodeSearchTargets(node: StoryNode): string[] {
 function ScenesList({
   data,
   labels,
+  activeSceneId,
   onAddScene,
   onSelectScene,
   onUpdateScene,
@@ -205,6 +209,7 @@ function ScenesList({
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
+  activeSceneId: string;
   onAddScene: () => void;
   onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
@@ -216,7 +221,7 @@ function ScenesList({
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
         {data.scenes.map((scene) => (
-          <li key={scene.id} className={`scene-item ${scene.current ? "is-current" : ""} ${scene.special ? "is-special" : ""}`} onClick={() => onSelectScene(scene.id)}>
+          <li key={scene.id} className={`scene-item ${activeSceneId === scene.id ? "is-current" : ""} ${scene.special ? "is-special" : ""}`} onClick={() => onSelectScene(scene.id)}>
             <span className="scene-handle">::</span>
             <div className="scene-meta">
               <div className="scene-name">
@@ -232,7 +237,7 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
-                  <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>dup</button>
+                  {!scene.isStart && !scene.special && <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>dup</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>del</button>}
                 </span>
               </div>
