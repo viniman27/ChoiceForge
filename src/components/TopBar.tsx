@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import type { ChoiceForgeProject, Density, EditorView, Language, Theme } from "../domain/types";
 
 interface TopBarProps {
@@ -22,8 +21,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
-  const importInputRef = useRef<HTMLInputElement | null>(null);
-
   return (
     <header className="top-bar">
       <div className="brand">
@@ -66,22 +63,9 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
-        <button className="ghost-btn" onClick={() => importInputRef.current?.click()}>
+        <button className="ghost-btn" onClick={() => openImportPicker(onImport)}>
           {lang === "pt" ? "Importar" : "Import"}
         </button>
-        <input
-          ref={importInputRef}
-          className="hidden-file-input"
-          type="file"
-          accept="application/json,application/zip,.json,.zip"
-          onClick={(event) => {
-            event.currentTarget.value = "";
-          }}
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) onImport(file);
-          }}
-        />
         <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
@@ -90,4 +74,33 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
       </div>
     </header>
   );
+}
+
+function openImportPicker(onImport: (file: File) => void) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json,application/zip,.json,.zip";
+  input.style.position = "fixed";
+  input.style.left = "-10000px";
+  input.style.top = "0";
+  input.style.opacity = "0";
+
+  let cleaned = false;
+  const handleFocus = () => window.setTimeout(cleanup, 500);
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    window.removeEventListener("focus", handleFocus);
+    input.remove();
+  };
+
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    cleanup();
+    if (file) onImport(file);
+  }, { once: true });
+  window.addEventListener("focus", handleFocus, { once: true });
+
+  document.body.appendChild(input);
+  input.click();
 }
