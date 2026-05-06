@@ -603,7 +603,10 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "passage") return { ...base, body: "Novo trecho narrativo." };
   if (type === "choice") return { ...base, prompt: "O que acontece agora?", options: [] };
   if (type === "if") return { ...base, branches: [{ kind: "if", expr: "true", to: project.nodes[0]?.id ?? id }] };
-  if (type === "set") return { ...base, sets: [{ var: project.variables[0]?.name ?? "variavel", op: "=", val: "0" }] };
+  if (type === "set") {
+    const firstVariable = project.variables[0]?.name ?? "variavel";
+    return { ...base, title: `*set ${firstVariable}`, sets: [{ var: firstVariable, op: "=", val: "0" }] };
+  }
   if (type === "label") return { ...base, title: `*label ${title}` };
   if (type === "goto") return { ...base, title: `*goto ${firstLabel(project) || "label"}` };
   if (type === "goto_scene") return { ...base, title: `*goto_scene ${firstScene(project)}`, target: firstScene(project) };
@@ -617,7 +620,7 @@ function defaultNodeTitle(type: NodeType): string {
     passage: "novo_trecho",
     choice: "nova_escolha",
     if: "nova_condicao",
-    set: "*set",
+    set: "*set stats",
     label: "novo_label",
     goto: "*goto",
     goto_scene: "*goto_scene",

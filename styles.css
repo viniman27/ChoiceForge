@@ -892,6 +892,19 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-body { flex: 1; overflow: auto; padding: 14px 16px; }
 .ip-content, .ip-logic, .ip-raw { display: flex; flex-direction: column; gap: 10px; }
 .ip-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.05em; }
+.stat-node-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 8px;
+  background: var(--c-set-tint);
+  border: 1px solid color-mix(in oklch, var(--c-set) 35%, var(--paper-edge));
+  border-radius: var(--r-1);
+  color: var(--c-set);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+}
 .achieve-insert {
   padding: 8px;
   background: var(--paper-1);

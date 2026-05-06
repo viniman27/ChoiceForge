@@ -92,6 +92,10 @@ function ContentTab({
   if (node.type === "set") {
     return (
       <div className="ip-content">
+        <div className="stat-node-note">
+          <span className="node-icon"><NodeIcon type="set" /></span>
+          <span>stat step</span>
+        </div>
         <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
       </div>
     );
@@ -230,7 +234,7 @@ function CommandNodeFields({
 function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
   return (
     <>
-      <label className="ip-label">*set</label>
+      <label className="ip-label">efeitos de stats</label>
       <ul className="ip-sets">
         {node.sets?.map((set, index) => (
           <li key={`${set.var}-${index}`} className="ip-set-row">
@@ -359,7 +363,9 @@ function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string,
 }
 
 function updateSet(node: StoryNode, index: number, patch: Partial<VariableSet>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  onUpdateNode(node.id, { sets: node.sets?.map((set, setIndex) => (setIndex === index ? { ...set, ...patch } : set)) });
+  const nextSets = node.sets?.map((set, setIndex) => (setIndex === index ? { ...set, ...patch } : set));
+  const title = node.type === "set" && index === 0 && patch.var ? `*set ${patch.var}` : node.title;
+  onUpdateNode(node.id, { sets: nextSets, title });
 }
 
 function addSet(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
