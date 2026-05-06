@@ -1,4 +1,4 @@
-import type { Density, NodeType, StoryNode, VariableSet } from "../domain/types";
+import type { Density, I18nLabels, NodeType, StoryNode, VariableSet } from "../domain/types";
 
 export const typeColors: Record<NodeType, { dot: string; tint: string; label: string }> = {
   passage: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "passage" },
@@ -61,6 +61,7 @@ function VarDelta({ set }: { set: VariableSet }) {
 interface NodeCardProps {
   node: StoryNode;
   density: Density;
+  labels: I18nLabels;
   selected: boolean;
   hasError: boolean;
   onSelect: (id: string) => void;
@@ -69,7 +70,7 @@ interface NodeCardProps {
   onConnectEnd: (id: string) => void;
 }
 
-export function NodeCard({ node, density, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -123,8 +124,8 @@ export function NodeCard({ node, density, selected, hasError, onSelect, onDragSt
 
       {isRich && node.sets && <div className="node-sets">{node.sets.map((set, index) => <VarDelta key={`${set.var}-${index}`} set={set} />)}</div>}
       {isRich && node.target && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
-      <div className="anchor anchor-in no-drag" title="soltar conexao aqui" data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
-      <div className="anchor anchor-out no-drag" title="arrastar para conectar" onPointerDown={(event) => onConnectStart(event, node.id)} />
+      <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
+      <div className="anchor anchor-out no-drag" title={labels.dragToConnect} onPointerDown={(event) => onConnectStart(event, node.id)} />
     </div>
   );
 }

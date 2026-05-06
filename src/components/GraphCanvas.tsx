@@ -126,7 +126,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
     >
       <div className="canvas-grid" />
       <div className="canvas-toolbar">
-        <span className="canvas-toolbar-label">novo no</span>
+        <span className="canvas-toolbar-label">{labels.addNode}</span>
         {creatableNodeTypes.map((type) => (
           <button
             key={type}
@@ -142,12 +142,12 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
           className="canvas-tool danger"
           disabled={!selectedId}
           onClick={() => selectedId && onDeleteNode(selectedId)}
-          title="excluir no selecionado"
+          title={labels.deleteSelected}
         >
-          excluir
+          {labels.deleteSelected}
         </button>
-        <button className="canvas-tool" onClick={onLayoutNodes} title="reorganizar grafo">
-          reorganizar
+        <button className="canvas-tool" onClick={onLayoutNodes} title={labels.autoLayout}>
+          {labels.autoLayout}
         </button>
       </div>
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
@@ -183,6 +183,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             key={node.id}
             node={node}
             density={density}
+            labels={labels}
             selected={selectedId === node.id}
             hasError={errorNodeIds.has(node.id)}
             onSelect={setSelectedId}
@@ -210,9 +211,9 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         <button onClick={() => setZoom((current) => Math.max(0.25, current - 0.1))}>-</button>
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
-        <button onClick={() => fitGraphToViewport(data, viewport, setZoom, onPan)} className="zoom-reset">home</button>
+        <button onClick={() => fitGraphToViewport(data, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
       </div>
-      <Minimap data={data} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
+      <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
   );
 }
@@ -288,12 +289,14 @@ function edgePath(project: ChoiceForgeProject, from: string, to: string, density
 
 function Minimap({
   data,
+  labels,
   pan,
   zoom,
   viewport,
   onPan,
 }: {
   data: ChoiceForgeProject;
+  labels: I18nLabels;
   pan: { x: number; y: number };
   zoom: number;
   viewport: { width: number; height: number };
@@ -320,7 +323,7 @@ function Minimap({
 
   return (
     <div className="minimap">
-      <div className="minimap-label">minimapa</div>
+      <div className="minimap-label">{labels.minimap}</div>
       <svg
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"

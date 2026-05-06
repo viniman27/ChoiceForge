@@ -146,6 +146,12 @@ export interface I18nLabels {
   addScene: string;
   addVar: string;
   addAch: string;
+  addNode: string;
+  deleteSelected: string;
+  autoLayout: string;
+  connectHere: string;
+  dragToConnect: string;
+  fitView: string;
   minimap: string;
   textMode: string;
   nodes: string;
