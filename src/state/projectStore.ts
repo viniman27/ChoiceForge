@@ -614,6 +614,8 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "goto_scene") return { ...base, title: `*goto_scene ${firstScene(project)}`, target: firstScene(project) };
   if (type === "gosub") return { ...base, title: "*gosub subroutine" };
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
+  if (type === "page_break") return { ...base, title: "*page_break Continue" };
+  if (type === "comment") return { ...base, title: "*comment", body: "Author note." };
   return { ...base, title: "*ending" };
 }
 
@@ -629,6 +631,8 @@ function defaultNodeTitle(type: NodeType): string {
     gosub: "*gosub",
     ending: "*ending",
     checkpoint: "new_checkpoint",
+    page_break: "*page_break",
+    comment: "new_comment",
   };
   return titles[type];
 }
@@ -636,7 +640,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice") return 340;
   if (type === "passage") return 300;
-  if (type === "checkpoint" || type === "goto_scene") return 280;
+  if (type === "checkpoint" || type === "goto_scene" || type === "page_break" || type === "comment") return 280;
   return 240;
 }
 

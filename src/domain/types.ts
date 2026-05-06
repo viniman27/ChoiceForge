@@ -13,7 +13,9 @@ export type NodeType =
   | "goto_scene"
   | "gosub"
   | "ending"
-  | "checkpoint";
+  | "checkpoint"
+  | "page_break"
+  | "comment";
 
 export interface SceneSummary {
   id: string;

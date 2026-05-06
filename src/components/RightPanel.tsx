@@ -136,7 +136,16 @@ function ContentTab({
     );
   }
 
-  if (["label", "goto", "goto_scene", "gosub", "checkpoint", "ending"].includes(node.type)) {
+  if (node.type === "comment") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">comment</label>
+        <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+      </div>
+    );
+  }
+
+  if (["label", "goto", "goto_scene", "gosub", "checkpoint", "page_break", "ending"].includes(node.type)) {
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
@@ -234,6 +243,15 @@ function CommandNodeFields({
       <div className="ip-content">
         <label className="ip-label">checkpoint</label>
         <input className="command-input" value={stripCommandPrefix(node.title, "*save_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*save_checkpoint ${normalizeIdentifier(event.target.value)}` })} />
+      </div>
+    );
+  }
+
+  if (node.type === "page_break") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">page break label</label>
+        <input className="command-input" value={stripCommandPrefix(node.title, "*page_break")} onChange={(event) => onUpdateNode(node.id, { title: `*page_break ${event.target.value}` })} />
       </div>
     );
   }

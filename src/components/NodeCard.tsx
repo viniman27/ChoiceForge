@@ -11,6 +11,8 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   gosub: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*gosub" },
   ending: { dot: "var(--c-ending)", tint: "var(--c-ending-tint)", label: "*ending" },
   checkpoint: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*checkpoint" },
+  page_break: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*page_break" },
+  comment: { dot: "var(--ink-mute)", tint: "var(--paper-3)", label: "*comment" },
 };
 
 export function NodeIcon({ type }: { type: NodeType }) {
@@ -33,6 +35,8 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "gosub") return <svg {...common}><path d="M3 3v6a1 1 0 0 0 1 1h5M9 8l2-2-2-2" /></svg>;
   if (type === "ending") return <svg {...common}><circle cx="6" cy="6" r="4" /><path d="M4 4l4 4M8 4l-4 4" /></svg>;
   if (type === "checkpoint") return <svg {...common}><path d="M3 2v8M3 3h6l-1 2 1 2H3" /></svg>;
+  if (type === "page_break") return <svg {...common}><path d="M3 2h5l1 1v7H3z" /><path d="M7 2v2h2M4 7h4" /></svg>;
+  if (type === "comment") return <svg {...common}><path d="M2 3h8v5H5l-3 2z" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
 }
 

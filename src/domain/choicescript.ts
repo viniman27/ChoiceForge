@@ -49,6 +49,11 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (node.type === "gosub") lines.push(stripCommandPrefix(node.title, "*gosub").startsWith("*") ? node.title : `*gosub ${stripCommandPrefix(node.title, "*gosub")}`);
   if (node.type === "ending") lines.push("*ending");
   if (node.type === "checkpoint") lines.push(`*save_checkpoint ${stripCommandPrefix(node.title, "*save_checkpoint")}`);
+  if (node.type === "page_break") lines.push(`*page_break ${stripCommandPrefix(node.title, "*page_break") || "Continue"}`);
+  if (node.type === "comment") {
+    const comments = (node.body?.trim() || stripCommandPrefix(node.title, "*comment") || "ChoiceForge comment").split("\n");
+    comments.forEach((comment) => lines.push(`*comment ${comment.trim()}`));
+  }
 
   const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
   if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
@@ -194,10 +199,10 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   project.edges.forEach((edge) => {
     if (!nodeIds.has(edge.from)) {
-      issues.push({ level: "error", msg: `aresta sai de no inexistente: ${edge.from}`, scene: project.sceneTitle });
+      issues.push({ level: "error", msg: `edge starts from a missing node: ${edge.from}`, scene: project.sceneTitle });
     }
     if (!nodeIds.has(edge.to)) {
-      issues.push({ level: "error", msg: `aresta aponta para no inexistente: ${edge.to}`, scene: project.sceneTitle });
+      issues.push({ level: "error", msg: `edge points to a missing node: ${edge.to}`, scene: project.sceneTitle });
     }
     outgoing.set(edge.from, (outgoing.get(edge.from) ?? 0) + 1);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
@@ -209,7 +214,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     }
 
     if (!TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if" && (outgoing.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "info", msg: `no "${node.title}" nao tem saida visual`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "info", msg: `node "${node.title}" has no visual output`, scene: project.sceneTitle, node: node.id });
     }
 
     node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
@@ -226,7 +231,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     });
 
     node.branches?.forEach((branch) => {
-      if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} aponta para no inexistente: ${branch.to}`, scene: project.sceneTitle, node: node.id });
+      if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: project.sceneTitle, node: node.id });
       lintExpression(branch.expr, variables, issues, project.sceneTitle, node.id);
       branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
     });
@@ -237,11 +242,11 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
     if (node.type === "goto") {
       const label = stripCommandPrefix(node.title, "*goto");
-      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto aponta para label inexistente: ${label}`, scene: project.sceneTitle, node: node.id });
+      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: project.sceneTitle, node: node.id });
     }
   });
 
-  issues.push({ level: "info", msg: "indentacao configurada: 2 espacos; encoding UTF-8", scene: null });
+  issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
   return issues;
 }
 
@@ -294,10 +299,10 @@ function lintSet(
     return;
   }
   if (variable.type !== "number" && set.op !== "=") {
-    issues.push({ level: "error", msg: `*set ${set.var} usa operador invalido para ${variable.type}: ${set.op}`, scene, node });
+    issues.push({ level: "error", msg: `*set ${set.var} uses an invalid operator for ${variable.type}: ${set.op}`, scene, node });
   }
   if (variable.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
-    issues.push({ level: "warning", msg: `*set ${set.var} usa fairmath sem stat marcado como percent`, scene, node });
+    issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, scene, node });
   }
 }
 
