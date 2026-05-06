@@ -11,13 +11,14 @@ interface TopBarProps {
   onDensityChange: (density: Density) => void;
   onViewChange: (view: EditorView) => void;
   canUndo: boolean;
+  textModeActive: boolean;
   onUndo: () => void;
   onTextMode: () => void;
   onExport: () => void;
   onResetProject: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, onUndo, onTextMode, onExport, onResetProject }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onExport, onResetProject }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -57,7 +58,7 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
           <option value="medium">medium</option>
           <option value="rich">rich</option>
         </select>
-        <button className="ghost-btn" onClick={onTextMode}>Modo texto</button>
+        <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
         <button className="ghost-btn" onClick={onExport}>Exportar</button>

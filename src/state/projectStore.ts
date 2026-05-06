@@ -12,12 +12,12 @@ function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
 
 function loadInitialProject(): ChoiceForgeProject {
   const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (!saved) return commitProject(hydrateProject(cloneProject(sampleProjects.pt)));
+  if (!saved) return commitProject(hydrateProject(cloneProject(sampleProjects.en)));
 
   try {
     return commitProject(hydrateProject(JSON.parse(saved) as ChoiceForgeProject));
   } catch {
-    return commitProject(hydrateProject(cloneProject(sampleProjects.pt)));
+    return commitProject(hydrateProject(cloneProject(sampleProjects.en)));
   }
 }
 

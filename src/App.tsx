@@ -25,7 +25,7 @@ const BOARD_MIN = 460;
 const RESIZE_GUTTERS = 12;
 
 export default function App() {
-  const [lang, setLang] = useState<Language>("pt");
+  const [lang, setLang] = useState<Language>("en");
   const [theme, setTheme] = useState<Theme>("light");
   const [density, setDensity] = useState<Density>("rich");
   const [selectedId, setSelectedId] = useState<string | null>("n3");
@@ -109,13 +109,14 @@ export default function App() {
         onDensityChange={setDensity}
         onViewChange={setView}
         canUndo={actions.canUndo}
+        textModeActive={generatedDocumentId === "scene"}
         onUndo={() => {
           actions.undo();
           setSelectedId(null);
           setGeneratedDocumentId(null);
         }}
         onTextMode={() => {
-          setGeneratedDocumentId("scene");
+          setGeneratedDocumentId((current) => (current === "scene" ? null : "scene"));
           setSelectedId(null);
         }}
         onExport={() => downloadGeneratedProject(lintedProject)}
@@ -138,12 +139,13 @@ export default function App() {
         }}
         onSelectScene={(id) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.id === id);
+          const keepTextMode = generatedDocumentId === "scene";
           if (scene?.isStart || scene?.special) {
             setGeneratedDocumentId(scene.isStart ? "startup" : "stats");
             setSelectedId(null);
             return;
           }
-          setGeneratedDocumentId(null);
+          setGeneratedDocumentId(keepTextMode ? "scene" : null);
           actions.selectScene(id);
           setSelectedId("n1");
         }}
