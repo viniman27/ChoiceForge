@@ -20,7 +20,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       <aside className="right-panel">
         <div className="empty-inspector">
           <h3>{labels.inspector}</h3>
-          <p>Selecione um no no canvas para inspecionar e editar.</p>
+          <p>Select a node on the canvas to inspect and edit it.</p>
         </div>
       </aside>
     );
@@ -120,7 +120,7 @@ function ContentTab({
                   value={option.cond?.type ?? "none"}
                   onChange={(event) => updateOptionCondition(node, index, event.target.value, onUpdateNode)}
                 >
-                  <option value="none">sem condicao</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
+                  <option value="none">no condition</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
                 </select>
                 <select value={option.to} onChange={(event) => updateOption(node, index, { to: event.target.value }, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
@@ -140,7 +140,7 @@ function ContentTab({
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
-  return <div className="ip-content"><p className="dim">No simples - sem campos de conteudo.</p></div>;
+  return <div className="ip-content"><p className="dim">Simple node - no content fields.</p></div>;
 }
 
 function AchievementInsert({
@@ -157,7 +157,7 @@ function AchievementInsert({
 
   return (
     <div className="achieve-insert">
-      <label className="ip-label">atribuir conquista</label>
+      <label className="ip-label">assign achievement</label>
       <div className="achieve-actions">
         {project.achievements.map((achievement) => (
           <button
@@ -169,7 +169,7 @@ function AchievementInsert({
                 : appendAchievementCommand(node, achievement.id, onUpdateNode)
             )}
           >
-            {assigned.has(achievement.id) ? "remover" : "*achieve"} {achievement.id}
+            {assigned.has(achievement.id) ? "remove" : "*achieve"} {achievement.id}
           </button>
         ))}
       </div>
@@ -203,7 +203,7 @@ function CommandNodeFields({
     const labelNames = labels.map((label) => stripCommandPrefix(label.title, "*label"));
     return (
       <div className="ip-content">
-        <label className="ip-label">{command} destino</label>
+        <label className="ip-label">{command} destination</label>
         <select className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `${command} ${event.target.value}` })}>
           {currentLabel && !labelNames.includes(currentLabel) && <option value={currentLabel}>{currentLabel}</option>}
           {!currentLabel && <option value="">label</option>}
@@ -217,7 +217,7 @@ function CommandNodeFields({
     const currentScene = node.target ?? stripCommandPrefix(node.title, "*goto_scene");
     return (
       <div className="ip-content">
-        <label className="ip-label">cena destino</label>
+        <label className="ip-label">target scene</label>
         <select
           className="command-input"
           value={currentScene}
@@ -238,13 +238,13 @@ function CommandNodeFields({
     );
   }
 
-  return <div className="ip-content"><p className="dim">Este no encerra a historia com *ending.</p></div>;
+  return <div className="ip-content"><p className="dim">This node ends the story with *ending.</p></div>;
 }
 
 function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
   return (
     <>
-      <label className="ip-label">efeitos de stats</label>
+      <label className="ip-label">stat effects</label>
       <ul className="ip-sets">
         {node.sets?.map((set, index) => (
           <li key={`${set.var}-${index}`} className="ip-set-row">
@@ -252,7 +252,7 @@ function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: C
             <button className="x-btn" onClick={() => removeSet(node, index, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ efeito</button></li>
+        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ effect</button></li>
       </ul>
     </>
   );
@@ -305,7 +305,7 @@ function BranchSets({
 }) {
   return (
     <div className="branch-effects">
-      <span className="branch-effects-title">efeitos se esta branch vencer</span>
+      <span className="branch-effects-title">effects when this branch wins</span>
       <ul className="ip-sets">
         {branch.sets?.map((set, setIndex) => (
           <li key={`${set.var}-${setIndex}`} className="ip-set-row">
@@ -313,7 +313,7 @@ function BranchSets({
             <button className="x-btn" onClick={() => removeBranchSet(node, branchIndex, setIndex, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addBranchSet(node, branchIndex, project, onUpdateNode)}>+ efeito</button></li>
+        <li><button className="ghost-btn" onClick={() => addBranchSet(node, branchIndex, project, onUpdateNode)}>+ effect</button></li>
       </ul>
     </div>
   );
@@ -334,7 +334,7 @@ function OptionSets({
 }) {
   return (
     <div className="branch-effects">
-      <span className="branch-effects-title">efeitos ao escolher esta opcao</span>
+      <span className="branch-effects-title">effects when this option is chosen</span>
       <ul className="ip-sets">
         {option.sets?.map((set, setIndex) => (
           <li key={`${set.var}-${setIndex}`} className="ip-set-row">
@@ -342,7 +342,7 @@ function OptionSets({
             <button className="x-btn" onClick={() => removeOptionSet(node, optionIndex, setIndex, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addOptionSet(node, optionIndex, project, onUpdateNode)}>+ efeito</button></li>
+        <li><button className="ghost-btn" onClick={() => addOptionSet(node, optionIndex, project, onUpdateNode)}>+ effect</button></li>
       </ul>
     </div>
   );
@@ -369,7 +369,7 @@ function ChoiceConditionBuilder({
 
   return (
     <div className="cond-builder">
-      <span className="branch-effects-title">condicao da opcao</span>
+      <span className="branch-effects-title">option condition</span>
       <div className="cb-row">
         <select value={variable?.name ?? ""} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { variable: event.target.value }, project.variables, onUpdateNode)}>
           {project.variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
@@ -386,7 +386,7 @@ function ChoiceConditionBuilder({
           <input value={value} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)} />
         )}
       </div>
-      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="condicao avancada" />}
+      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="advanced condition" />}
     </div>
   );
 }
@@ -433,14 +433,14 @@ function LogicTab({
 
   return (
     <div className="ip-logic">
-      <label className="ip-label">estrutura logica</label>
-      <pre className="cond-final"><code>{node.branches?.map((branch) => `*${branch.kind}${branch.expr ? ` (${branch.expr})` : ""} -> ${branch.to}`).join("\n") || "sem branches"}</code></pre>
-      <label className="ip-label">fluxo visual</label>
+      <label className="ip-label">logic structure</label>
+      <pre className="cond-final"><code>{node.branches?.map((branch) => `*${branch.kind}${branch.expr ? ` (${branch.expr})` : ""} -> ${branch.to}`).join("\n") || "no branches"}</code></pre>
+      <label className="ip-label">visual flow</label>
       <div className="flow-editor">
         <select value={selectedFlowTarget} onChange={(event) => setFlowTarget(event.target.value)}>
           {project.nodes.filter((target) => target.id !== node.id).map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
         </select>
-        <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ conectar</button>
+        <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ connect</button>
       </div>
       <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} />
     </div>
@@ -457,7 +457,7 @@ function OutgoingEdges({
   onDeleteFlowEdge: (from: string, to: string) => void;
 }) {
   const outgoing = project.edges.filter((edge) => edge.from === node.id);
-  if (!outgoing.length) return <p className="dim">sem conexoes de saida</p>;
+  if (!outgoing.length) return <p className="dim">no outgoing connections</p>;
 
   return (
     <ul className="flow-list">
@@ -514,7 +514,7 @@ function updateChoiceCondition(
 
 function addOption(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   const fallbackTarget = project.nodes.find((target) => target.id !== node.id)?.id ?? node.id;
-  onUpdateNode(node.id, { options: [...(node.options ?? []), { text: "Nova opcao", to: fallbackTarget, cond: null }] });
+  onUpdateNode(node.id, { options: [...(node.options ?? []), { text: "New option", to: fallbackTarget, cond: null }] });
 }
 
 function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
@@ -609,7 +609,7 @@ function removeBranchSet(node: StoryNode, branchIndex: number, setIndex: number,
 }
 
 function createDefaultSet(variables: VariableSummary[]): VariableSet {
-  return normalizeSetForVariable(variables[0]?.name ?? "variavel", variables) as VariableSet;
+  return normalizeSetForVariable(variables[0]?.name ?? "variable", variables) as VariableSet;
 }
 
 function normalizeSetForVariable(variableName: string, variables: VariableSummary[]): VariableSet {

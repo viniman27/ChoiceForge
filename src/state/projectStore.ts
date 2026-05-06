@@ -111,7 +111,7 @@ export function useProjectStore() {
         return commitProject({
           ...saved,
           sceneTitle: scene.name,
-          sceneSubtitle: `${scene.name}.txt - ${scene.words.toLocaleString()} palavras`,
+          sceneSubtitle: `${scene.name}.txt - ${scene.words.toLocaleString()} words`,
           scenes: saved.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
           nodes: graph.nodes,
           edges: graph.edges,
@@ -181,7 +181,7 @@ export function useProjectStore() {
             ...current,
             nodes: current.nodes.map((node) => (
               node.id === from
-                ? { ...node, options: [...(node.options ?? []), { text: `Ir para ${target.title}`, to, cond: null }] }
+                ? { ...node, options: [...(node.options ?? []), { text: `Go to ${target.title}`, to, cond: null }] }
                 : node
             )),
           });
@@ -230,7 +230,7 @@ export function useProjectStore() {
         return commitProject({
           ...saved,
           sceneTitle: name,
-          sceneSubtitle: `${name}.txt - ${scene.words.toLocaleString()} palavras`,
+          sceneSubtitle: `${name}.txt - ${scene.words.toLocaleString()} words`,
           scenes: [...saved.scenes.map((candidate) => ({ ...candidate, current: false })), scene],
           nodes: graph.nodes,
           edges: graph.edges,
@@ -329,11 +329,11 @@ export function useProjectStore() {
         const id = nextAvailableName("new_achievement", new Set(current.achievements.map((achievement) => achievement.id)));
         const achievement: AchievementSummary = {
           id,
-          title: "Nova conquista",
+          title: "New achievement",
           points: 5,
-          desc: "Descricao da conquista.",
-          preDesc: "Conquista bloqueada.",
-          postDesc: "Conquista desbloqueada.",
+          desc: "Achievement description.",
+          preDesc: "Achievement locked.",
+          postDesc: "Achievement unlocked.",
         };
         return commitProject({ ...current, achievements: [...current.achievements, achievement] });
       });
@@ -464,7 +464,7 @@ function createEmptySceneGraph(sceneName: string): SceneGraph {
         x: 70,
         y: 70,
         w: 300,
-        title: `${sceneName}_inicio`,
+        title: `${sceneName}_start`,
         body: "",
       },
     ],
@@ -602,33 +602,33 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   const title = nextAvailableName(defaultNodeTitle(type), new Set(project.nodes.map((node) => node.title)));
   const base = { id, type, x: position.x, y: position.y, w: defaultNodeWidth(type), title };
 
-  if (type === "passage") return { ...base, body: "Novo trecho narrativo." };
-  if (type === "choice") return { ...base, prompt: "O que acontece agora?", options: [] };
+  if (type === "passage") return { ...base, body: "New narrative passage." };
+  if (type === "choice") return { ...base, prompt: "What happens next?", options: [] };
   if (type === "if") return { ...base, branches: [{ kind: "if", expr: "true", to: project.nodes[0]?.id ?? id }] };
   if (type === "set") {
-    const firstVariable = project.variables[0]?.name ?? "variavel";
+    const firstVariable = project.variables[0]?.name ?? "variable";
     return { ...base, title: `*set ${firstVariable}`, sets: [{ var: firstVariable, op: "=", val: "0" }] };
   }
   if (type === "label") return { ...base, title: `*label ${title}` };
   if (type === "goto") return { ...base, title: `*goto ${firstLabel(project) || "label"}` };
   if (type === "goto_scene") return { ...base, title: `*goto_scene ${firstScene(project)}`, target: firstScene(project) };
-  if (type === "gosub") return { ...base, title: "*gosub subrotina" };
+  if (type === "gosub") return { ...base, title: "*gosub subroutine" };
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
   return { ...base, title: "*ending" };
 }
 
 function defaultNodeTitle(type: NodeType): string {
   const titles: Record<NodeType, string> = {
-    passage: "novo_trecho",
-    choice: "nova_escolha",
-    if: "nova_condicao",
+    passage: "new_passage",
+    choice: "new_choice",
+    if: "new_condition",
     set: "*set stats",
-    label: "novo_label",
+    label: "new_label",
     goto: "*goto",
     goto_scene: "*goto_scene",
     gosub: "*gosub",
     ending: "*ending",
-    checkpoint: "novo_checkpoint",
+    checkpoint: "new_checkpoint",
   };
   return titles[type];
 }

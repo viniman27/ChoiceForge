@@ -12,7 +12,7 @@ export function GeneratedDocumentView({ title, path, description, content }: Gen
     <section className="generated-doc">
       <div className="generated-doc-header">
         <div>
-          <div className="generated-doc-kicker">arquivo gerado</div>
+          <div className="generated-doc-kicker">generated file</div>
           <h1>{title}</h1>
           <p>{description}</p>
         </div>

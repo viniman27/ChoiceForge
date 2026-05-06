@@ -205,7 +205,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   project.nodes.forEach((node) => {
     if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "warning", msg: `no "${node.title}" nao recebe nenhuma conexao`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, scene: project.sceneTitle, node: node.id });
     }
 
     if (!TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if" && (outgoing.get(node.id) ?? 0) === 0) {
@@ -215,12 +215,12 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
-      if (!variables.has(name)) issues.push({ level: "warning", msg: `texto usa variavel nao criada: ${name}`, scene: project.sceneTitle, node: node.id });
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: project.sceneTitle, node: node.id });
     });
 
     node.options?.forEach((option, index) => {
-      if (!option.text.trim()) issues.push({ level: "error", msg: `opcao #${index + 1} vazia em "${node.title}"`, scene: project.sceneTitle, node: node.id });
-      if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `opcao #${index + 1} aponta para no inexistente: ${option.to}`, scene: project.sceneTitle, node: node.id });
+      if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: project.sceneTitle, node: node.id });
+      if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: project.sceneTitle, node: node.id });
       lintCondition(option.cond, variables, issues, project.sceneTitle, node.id);
       option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
     });
@@ -232,7 +232,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     });
 
     if (node.type === "goto_scene" && node.target && !scenes.has(node.target)) {
-      issues.push({ level: "error", msg: `*goto_scene aponta para cena inexistente: ${node.target}`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${node.target}`, scene: project.sceneTitle, node: node.id });
     }
 
     if (node.type === "goto") {
@@ -290,7 +290,7 @@ function lintSet(
 ) {
   const variable = variableTypes.get(set.var);
   if (!variables.has(set.var) || !variable) {
-    issues.push({ level: "error", msg: `*set usa variavel nao criada: ${set.var}`, scene, node });
+    issues.push({ level: "error", msg: `*set uses an undeclared variable: ${set.var}`, scene, node });
     return;
   }
   if (variable.type !== "number" && set.op !== "=") {
@@ -304,7 +304,7 @@ function lintSet(
 function lintExpression(expression: string | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!expression) return;
   extractExpressionNames(expression).forEach((name) => {
-    if (!variables.has(name)) issues.push({ level: "warning", msg: `condicao usa variavel nao criada: ${name}`, scene, node });
+    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, scene, node });
   });
 }
 

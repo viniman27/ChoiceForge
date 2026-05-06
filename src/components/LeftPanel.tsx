@@ -71,7 +71,7 @@ export function LeftPanel({
       </div>
       <div className="left-content">
         {search.trim() ? (
-          <SearchResults results={searchResults} onSelectNode={onSelectNode} onSelectScene={onSelectScene} />
+          <SearchResults results={searchResults} labels={labels} onSelectNode={onSelectNode} onSelectScene={onSelectScene} />
         ) : activeTab === "scenes" && (
           <ScenesList
             data={data}
@@ -94,7 +94,7 @@ export function LeftPanel({
             onDeleteAchievement={onDeleteAchievement}
           />
         )}
-        {!search.trim() && activeTab === "assets" && <AssetsList data={data} onAddAsset={onAddAsset} onUpdateAsset={onUpdateAsset} onDeleteAsset={onDeleteAsset} />}
+        {!search.trim() && activeTab === "assets" && <AssetsList data={data} labels={labels} onAddAsset={onAddAsset} onUpdateAsset={onUpdateAsset} onDeleteAsset={onDeleteAsset} />}
       </div>
     </aside>
   );
@@ -109,12 +109,12 @@ interface SearchResult {
   sceneId?: string;
 }
 
-function SearchResults({ results, onSelectNode, onSelectScene }: { results: SearchResult[]; onSelectNode: (id: string) => void; onSelectScene: (id: string) => void }) {
+function SearchResults({ results, labels, onSelectNode, onSelectScene }: { results: SearchResult[]; labels: I18nLabels; onSelectNode: (id: string) => void; onSelectScene: (id: string) => void }) {
   return (
     <div className="search-results">
-      <div className="section-title"><span>resultados</span><span>{results.length}</span></div>
+      <div className="section-title"><span>{labels.words === "words" ? "results" : "resultados"}</span><span>{results.length}</span></div>
       {results.length === 0 ? (
-        <p className="empty-search">nenhum resultado</p>
+        <p className="empty-search">{labels.words === "words" ? "no results" : "nenhum resultado"}</p>
       ) : (
         <ul>
           {results.map((result) => (
@@ -150,7 +150,7 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
       id: `scene-${scene.id}`,
       kind: "scene",
       title: `${scene.name}.txt`,
-      detail: `${scene.words.toLocaleString()} palavras - ${scene.nodes} nos`,
+      detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes`,
     });
   });
   data.variables.forEach((variable) => {
@@ -278,7 +278,7 @@ function VariablesList({
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>stats</th><th>desc</th></tr></thead>
+        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th></tr></thead>
         <tbody>
           {data.variables.map((variable) => (
             <tr key={variable.name}>
@@ -381,14 +381,14 @@ function AchievementsList({
                 value={achievement.preDesc ?? achievement.desc}
                 onChange={(event) => onUpdateAchievement(achievement.id, { preDesc: event.target.value, desc: event.target.value })}
                 aria-label="achievement pre description"
-                placeholder="descricao antes de desbloquear"
+                placeholder="description before unlock"
               />
               <input
                 className="ach-desc-edit"
                 value={achievement.postDesc ?? achievement.desc}
                 onChange={(event) => onUpdateAchievement(achievement.id, { postDesc: event.target.value })}
                 aria-label="achievement post description"
-                placeholder="descricao depois de desbloquear"
+                placeholder="description after unlock"
               />
               <code className="ach-id">*achieve {achievement.id}</code>
             </div>
@@ -401,11 +401,13 @@ function AchievementsList({
 
 function AssetsList({
   data,
+  labels,
   onAddAsset,
   onUpdateAsset,
   onDeleteAsset,
 }: {
   data: ChoiceForgeProject;
+  labels: I18nLabels;
   onAddAsset: () => void;
   onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   onDeleteAsset: (id: string) => void;
@@ -415,7 +417,7 @@ function AssetsList({
     <div className="assets-list">
       <div className="section-title"><span>assets</span><button className="ghost-btn" onClick={onAddAsset}>+ asset</button></div>
       {assets.length === 0 ? (
-        <p className="empty-search">nenhum asset cadastrado</p>
+        <p className="empty-search">{labels.words === "words" ? "no assets yet" : "nenhum asset cadastrado"}</p>
       ) : (
         <ul className="asset-list">
           {assets.map((asset) => (
@@ -433,7 +435,7 @@ function AssetsList({
                   <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>del</button>
                 </div>
                 <label className="asset-file-btn">
-                  arquivo
+                  {labels.words === "words" ? "file" : "arquivo"}
                   <input
                     type="file"
                     onChange={(event) => {
@@ -443,7 +445,7 @@ function AssetsList({
                   />
                 </label>
                 <input className="asset-path-edit" value={asset.path} onChange={(event) => onUpdateAsset(asset.id, { path: event.target.value })} aria-label="asset path" />
-                <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder="uso ou observacao" />
+                <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder={labels.words === "words" ? "usage or note" : "uso ou observacao"} />
                 {asset.fileName && (
                   <div className="asset-file-meta">
                     <span>{asset.fileName}</span>

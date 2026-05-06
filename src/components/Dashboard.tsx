@@ -19,19 +19,19 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
     <div className="dashboard-overlay">
       <div className="dash-head">
         <div>
-          <h1 className="dash-title">Estatisticas do projeto</h1>
-          <div className="dash-subtitle">{data.title} - {data.scenes.length} cenas</div>
+          <h1 className="dash-title">Project stats</h1>
+          <div className="dash-subtitle">{data.title} - {data.scenes.length} scenes</div>
         </div>
-        <button className="dash-close" onClick={onClose}>voltar ao editor</button>
+        <button className="dash-close" onClick={onClose}>back to editor</button>
       </div>
       <div className="dash-grid">
-        <div className="kpi-card" data-accent="1"><span className="kpi-label">palavras totais</span><span className="kpi-value">{totalWords.toLocaleString()}</span></div>
+        <div className="kpi-card" data-accent="1"><span className="kpi-label">total words</span><span className="kpi-value">{totalWords.toLocaleString()}</span></div>
         <div className="kpi-card" data-accent="2"><span className="kpi-label">{labels.nodes}</span><span className="kpi-value">{totalNodes}</span></div>
-        <div className="kpi-card" data-accent="3"><span className="kpi-label">escolhas / opcoes</span><span className="kpi-value">{choiceCount}/{optionCount}</span></div>
-        <div className="kpi-card" data-accent="4"><span className="kpi-label">finais nesta cena</span><span className="kpi-value">{endingCount}</span></div>
+        <div className="kpi-card" data-accent="3"><span className="kpi-label">choices / options</span><span className="kpi-value">{choiceCount}/{optionCount}</span></div>
+        <div className="kpi-card" data-accent="4"><span className="kpi-label">endings in this scene</span><span className="kpi-value">{endingCount}</span></div>
 
         <div className="dash-card wide">
-          <div className="dash-card-head"><span className="dash-card-title">palavras por cena</span></div>
+          <div className="dash-card-head"><span className="dash-card-title">words by scene</span></div>
           {sceneRows.map((scene) => (
             <div className="bar-row" key={scene.id}>
               <span className="bar-name">{scene.name}.txt</span>
@@ -42,15 +42,15 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-head"><span className="dash-card-title">cena atual</span><span className="dash-card-meta">{data.sceneTitle}.txt</span></div>
-          <div className="bar-row"><span className="bar-name">palavras</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--accent-2)" }} /></span><span className="bar-val">{currentSceneWords.toLocaleString()}</span></div>
-          <div className="bar-row"><span className="bar-name">conexoes</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--c-goto)" }} /></span><span className="bar-val">{data.edges.length}</span></div>
-          <div className="bar-row"><span className="bar-name">variaveis</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--c-set)" }} /></span><span className="bar-val">{data.variables.length}</span></div>
-          <div className="bar-row"><span className="bar-name">conquistas</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--accent-3)" }} /></span><span className="bar-val">{data.achievements.length}</span></div>
+          <div className="dash-card-head"><span className="dash-card-title">current scene</span><span className="dash-card-meta">{data.sceneTitle}.txt</span></div>
+          <div className="bar-row"><span className="bar-name">words</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--accent-2)" }} /></span><span className="bar-val">{currentSceneWords.toLocaleString()}</span></div>
+          <div className="bar-row"><span className="bar-name">connections</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--c-goto)" }} /></span><span className="bar-val">{data.edges.length}</span></div>
+          <div className="bar-row"><span className="bar-name">variables</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--c-set)" }} /></span><span className="bar-val">{data.variables.length}</span></div>
+          <div className="bar-row"><span className="bar-name">achievements</span><span className="bar-track"><span className="bar-fill" style={{ width: "100%", background: "var(--accent-3)" }} /></span><span className="bar-val">{data.achievements.length}</span></div>
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-head"><span className="dash-card-title">tipos de no</span><span className="dash-card-meta">{data.nodes.length} no canvas</span></div>
+          <div className="dash-card-head"><span className="dash-card-title">node types</span><span className="dash-card-meta">{data.nodes.length} on canvas</span></div>
           {typeRows.map((row) => (
             <div className="bar-row" key={row.type}>
               <span className="bar-name">{labels.nodeTypes[row.type]}</span>

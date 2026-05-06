@@ -178,7 +178,7 @@ export default function App() {
       <button
         className="resize-handle resize-handle-left"
         type="button"
-        aria-label="redimensionar painel esquerdo"
+        aria-label="resize left panel"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           setResizeTarget("left");
@@ -216,7 +216,7 @@ export default function App() {
       <button
         className="resize-handle resize-handle-right"
         type="button"
-        aria-label="redimensionar painel direito"
+        aria-label="resize right panel"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           setResizeTarget("right");
@@ -264,7 +264,7 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
     return {
       title: "startup.txt",
       path: "mygame/startup.txt",
-      description: "Titulo, autor, scene_list, variaveis, conquistas e cena inicial exportada.",
+      description: "Title, author, scene_list, variables, achievements, and exported initial scene.",
       content: generateStartupChoiceScript(project),
     };
   }
@@ -273,7 +273,7 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
     return {
       title: "choicescript_stats.txt",
       path: "mygame/choicescript_stats.txt",
-      description: "Tela de status gerada a partir das variaveis e conquistas do projeto.",
+      description: "Status screen generated from project variables and achievements.",
       content: generateStatsChoiceScript(project),
     };
   }
@@ -281,7 +281,7 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
   return {
     title: `${project.sceneTitle}.txt`,
     path: `mygame/${project.sceneTitle}.txt`,
-    description: "ChoiceScript gerado a partir do grafo visual da cena atual.",
+    description: "ChoiceScript generated from the current scene graph.",
     content: `${generateSceneChoiceScript(project)}\n`,
   };
 }
