@@ -122,11 +122,11 @@ function ContentTab({
                 >
                   <option value="none">sem condicao</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
                 </select>
-                {option.cond && <input className="cond-input" value={option.cond.expr} onChange={(event) => updateOption(node, index, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} />}
                 <select value={option.to} onChange={(event) => updateOption(node, index, { to: event.target.value }, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
               </div>
+              {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -348,6 +348,49 @@ function OptionSets({
   );
 }
 
+function ChoiceConditionBuilder({
+  node,
+  option,
+  optionIndex,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  option: ChoiceOption;
+  optionIndex: number;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  const parsed = parseConditionExpression(option.cond?.expr ?? "", project.variables);
+  const variable = project.variables.find((candidate) => candidate.name === parsed.variable) ?? project.variables[0];
+  const operators = conditionOperators(variable);
+  const operator = operators.includes(parsed.operator) ? parsed.operator : operators[0];
+  const value = parsed.value || defaultConditionValue(variable);
+
+  return (
+    <div className="cond-builder">
+      <span className="branch-effects-title">condicao da opcao</span>
+      <div className="cb-row">
+        <select value={variable?.name ?? ""} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { variable: event.target.value }, project.variables, onUpdateNode)}>
+          {project.variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
+        </select>
+        <select value={operator} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { operator: event.target.value }, project.variables, onUpdateNode)}>
+          {operators.map((candidate) => <option key={candidate} value={candidate}>{candidate}</option>)}
+        </select>
+        {variable?.type === "boolean" ? (
+          <select value={value === "true" ? "true" : "false"} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)}>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        ) : (
+          <input value={value} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)} />
+        )}
+      </div>
+      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="condicao avancada" />}
+    </div>
+  );
+}
+
 function LogicTab({
   node,
   project,
@@ -448,8 +491,25 @@ function updateOption(node: StoryNode, index: number, patch: Partial<ChoiceOptio
 }
 
 function updateOptionCondition(node: StoryNode, index: number, value: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  const cond = value === "none" ? null : { type: value as ChoiceCondition["type"], expr: node.options?.[index]?.cond?.expr ?? "" };
+  const cond = value === "none" ? null : { type: value as ChoiceCondition["type"], expr: node.options?.[index]?.cond?.expr || "true" };
   updateOption(node, index, { cond }, onUpdateNode);
+}
+
+function updateChoiceCondition(
+  node: StoryNode,
+  optionIndex: number,
+  option: ChoiceOption,
+  patch: Partial<ParsedCondition>,
+  variables: VariableSummary[],
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void,
+) {
+  const current = parseConditionExpression(option.cond?.expr ?? "", variables);
+  const next = { ...current, ...patch };
+  const variable = variables.find((candidate) => candidate.name === next.variable) ?? variables[0];
+  const operators = conditionOperators(variable);
+  const operator = operators.includes(next.operator) ? next.operator : operators[0];
+  const value = next.value || defaultConditionValue(variable);
+  updateOption(node, optionIndex, { cond: { ...option.cond!, expr: buildConditionExpression(variable?.name ?? next.variable, operator, value, variable) } }, onUpdateNode);
 }
 
 function addOption(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
@@ -581,6 +641,50 @@ function defaultSetValue(variable: VariableSummary | undefined): string {
 function normalizeSetValue(value: string, variable: VariableSummary | undefined): string {
   if (variable?.type === "boolean") return value === "true" ? "true" : "false";
   return value;
+}
+
+interface ParsedCondition {
+  variable: string;
+  operator: string;
+  value: string;
+  raw: boolean;
+}
+
+function parseConditionExpression(expression: string, variables: VariableSummary[]): ParsedCondition {
+  const trimmed = expression.trim();
+  const fallback = variables[0];
+  if (!trimmed) return { variable: fallback?.name ?? "", operator: fallback?.type === "boolean" ? "is" : "=", value: defaultConditionValue(fallback), raw: false };
+
+  const booleanMatch = /^([a-z_][\w]*)(?:\s*=\s*(true|false))?$/i.exec(trimmed);
+  if (booleanMatch) {
+    const variable = variables.find((candidate) => candidate.name === booleanMatch[1]);
+    if (variable?.type === "boolean") return { variable: variable.name, operator: booleanMatch[2] === "false" ? "is not" : "is", value: booleanMatch[2] ?? "true", raw: false };
+  }
+
+  const comparisonMatch = /^([a-z_][\w]*)\s*(=|!=|>=|<=|>|<)\s*(.+)$/i.exec(trimmed);
+  if (comparisonMatch) {
+    const variable = variables.find((candidate) => candidate.name === comparisonMatch[1]);
+    if (variable) return { variable: variable.name, operator: comparisonMatch[2], value: comparisonMatch[3], raw: false };
+  }
+
+  return { variable: fallback?.name ?? "", operator: fallback?.type === "boolean" ? "is" : "=", value: trimmed, raw: true };
+}
+
+function conditionOperators(variable: VariableSummary | undefined): string[] {
+  if (variable?.type === "boolean") return ["is", "is not"];
+  if (variable?.type === "string") return ["=", "!="];
+  return ["=", "!=", ">", ">=", "<", "<="];
+}
+
+function defaultConditionValue(variable: VariableSummary | undefined): string {
+  if (variable?.type === "boolean") return "true";
+  if (variable?.type === "string") return "\"\"";
+  return "0";
+}
+
+function buildConditionExpression(variableName: string, operator: string, value: string, variable: VariableSummary | undefined): string {
+  if (variable?.type === "boolean") return operator === "is not" ? `${variableName} = false` : variableName;
+  return `${variableName} ${operator} ${value || defaultConditionValue(variable)}`;
 }
 
 function stripCommandPrefix(value: string, command: string): string {

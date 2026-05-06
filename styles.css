@@ -1002,6 +1002,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .cb-row select, .cb-row input { padding: 4px 6px; font-size: 11px; border: 1px solid var(--paper-edge); border-radius: var(--r-1); background: var(--paper-2); font-family: var(--ff-mono); }
 .cb-row select { flex: 1; }
 .cb-row input { width: 60px; }
+.cond-raw { width: 100%; padding: 4px 6px; font-size: 11px; border: 1px dashed var(--paper-edge); border-radius: var(--r-1); background: var(--paper-2); font-family: var(--ff-mono); }
 .cb-join { display: flex; gap: 4px; padding: 2px 0; }
 .join-pill { font-family: var(--ff-mono); font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--paper-edge); color: var(--ink-mute); }
 .join-pill.is-active { background: var(--c-if); color: var(--paper-1); border-color: var(--c-if); }
