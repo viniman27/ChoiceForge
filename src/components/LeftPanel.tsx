@@ -432,8 +432,24 @@ function AssetsList({
                   </select>
                   <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>del</button>
                 </div>
+                <label className="asset-file-btn">
+                  arquivo
+                  <input
+                    type="file"
+                    onChange={(event) => {
+                      importAssetFile(event.currentTarget.files?.[0], asset, onUpdateAsset);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
                 <input className="asset-path-edit" value={asset.path} onChange={(event) => onUpdateAsset(asset.id, { path: event.target.value })} aria-label="asset path" />
                 <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder="uso ou observacao" />
+                {asset.fileName && (
+                  <div className="asset-file-meta">
+                    <span>{asset.fileName}</span>
+                    <span>{formatFileSize(asset.size ?? 0)}</span>
+                  </div>
+                )}
               </div>
             </li>
           ))}
@@ -441,4 +457,43 @@ function AssetsList({
       )}
     </div>
   );
+}
+
+function importAssetFile(file: File | undefined, asset: AssetSummary, onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    onUpdateAsset(asset.id, {
+      path: asset.path && asset.path !== "images/new_asset.png" ? asset.path : `${assetFolder(file)}/${file.name}`,
+      kind: assetKindFromFile(file),
+      desc: asset.desc || file.name,
+      fileName: file.name,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+      dataUrl: String(reader.result ?? ""),
+    });
+  });
+  reader.readAsDataURL(file);
+}
+
+function assetKindFromFile(file: File): AssetSummary["kind"] {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("audio/")) return "audio";
+  if (file.type.includes("json") || file.type.includes("text")) return "data";
+  return "other";
+}
+
+function assetFolder(file: File): string {
+  const kind = assetKindFromFile(file);
+  if (kind === "image") return "images";
+  if (kind === "audio") return "audio";
+  if (kind === "data") return "data";
+  return "assets";
+}
+
+function formatFileSize(size: number): string {
+  if (!size) return "0 B";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }

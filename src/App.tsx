@@ -75,6 +75,19 @@ export default function App() {
     };
   }, [resizeTarget]);
 
+  useEffect(() => {
+    const keyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
+      if (isTypingTarget(event.target)) return;
+      event.preventDefault();
+      actions.undo();
+      setSelectedId(null);
+      setGeneratedDocumentId(null);
+    };
+    window.addEventListener("keydown", keyDown);
+    return () => window.removeEventListener("keydown", keyDown);
+  }, [actions]);
+
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
   const activeSceneId = generatedDocumentId ?? lintedProject.scenes.find((scene) => scene.current)?.id ?? lintedProject.sceneTitle;
@@ -95,6 +108,12 @@ export default function App() {
         onThemeChange={setTheme}
         onDensityChange={setDensity}
         onViewChange={setView}
+        canUndo={actions.canUndo}
+        onUndo={() => {
+          actions.undo();
+          setSelectedId(null);
+          setGeneratedDocumentId(null);
+        }}
         onExport={() => downloadGeneratedProject(lintedProject)}
         onResetProject={() => {
           actions.resetProject(lang);
@@ -212,6 +231,11 @@ function loadLayout() {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
 
 function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgeProject) {

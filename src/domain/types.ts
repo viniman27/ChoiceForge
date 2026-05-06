@@ -50,6 +50,10 @@ export interface AssetSummary {
   path: string;
   kind: "image" | "audio" | "data" | "other";
   desc: string;
+  fileName?: string;
+  mimeType?: string;
+  size?: number;
+  dataUrl?: string;
 }
 
 export interface VariableSet {

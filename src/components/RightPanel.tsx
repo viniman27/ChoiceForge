@@ -83,6 +83,7 @@ function ContentTab({
       <div className="ip-content">
         <label className="ip-label">{labels.bodyLabel}</label>
         <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+        <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
         {node.sets && <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />}
       </div>
     );
@@ -135,6 +136,31 @@ function ContentTab({
   }
 
   return <div className="ip-content"><p className="dim">No simples - sem campos de conteudo.</p></div>;
+}
+
+function AchievementInsert({
+  node,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  if (!project.achievements.length) return null;
+
+  return (
+    <div className="achieve-insert">
+      <label className="ip-label">atribuir conquista</label>
+      <div className="achieve-actions">
+        {project.achievements.map((achievement) => (
+          <button key={achievement.id} className="mini-action" onClick={() => appendAchievementCommand(node, achievement.id, onUpdateNode)}>
+            *achieve {achievement.id}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CommandNodeFields({
@@ -343,6 +369,13 @@ function addSet(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id:
 
 function removeSet(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, { sets: node.sets?.filter((_, setIndex) => setIndex !== index) });
+}
+
+function appendAchievementCommand(node: StoryNode, achievementId: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const current = node.body?.trimEnd() ?? "";
+  const command = `*achieve ${achievementId}`;
+  if (current.split("\n").some((line) => line.trim() === command)) return;
+  onUpdateNode(node.id, { body: current ? `${current}\n${command}` : command });
 }
 
 function updateBranch(node: StoryNode, index: number, patch: Partial<NonNullable<StoryNode["branches"]>[number]>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {

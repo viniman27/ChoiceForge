@@ -140,6 +140,13 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
       encoding: "utf-8" as const,
       content: `${generateSceneChoiceScript(project, scene.name)}\n`,
     }));
+  const assetFiles = (project.assets ?? [])
+    .filter((asset) => asset.dataUrl)
+    .map((asset) => ({
+      path: `mygame/${asset.path}`,
+      encoding: "utf-8" as const,
+      content: `${asset.dataUrl}\n`,
+    }));
 
   return {
     format: "choiceforge.export",
@@ -165,6 +172,7 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
         content: generateStatsChoiceScript(project),
       },
       ...sceneFiles,
+      ...assetFiles,
     ],
   };
 }

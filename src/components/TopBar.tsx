@@ -10,11 +10,13 @@ interface TopBarProps {
   onThemeChange: (theme: Theme) => void;
   onDensityChange: (density: Density) => void;
   onViewChange: (view: EditorView) => void;
+  canUndo: boolean;
+  onUndo: () => void;
   onExport: () => void;
   onResetProject: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, onExport, onResetProject }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, onUndo, onExport, onResetProject }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -55,6 +57,7 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
           <option value="rich">rich</option>
         </select>
         <button className="ghost-btn">Modo texto</button>
+        <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
         <button className="ghost-btn" onClick={onExport}>Exportar</button>
         <button className="play-btn" onClick={() => window.alert("Play-test ainda sera integrado ao runtime oficial.")}>

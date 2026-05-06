@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v2";
+const HISTORY_LIMIT = 50;
 
 function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
   return structuredClone(project);
@@ -21,6 +22,8 @@ function loadInitialProject(): ChoiceForgeProject {
 }
 
 export interface ProjectActions {
+  canUndo: boolean;
+  undo: () => void;
   setProject: (project: ChoiceForgeProject) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
   selectScene: (id: string) => void;
@@ -48,6 +51,23 @@ export interface ProjectActions {
 
 export function useProjectStore() {
   const [project, setProjectState] = useState(loadInitialProject);
+  const [historyLength, setHistoryLength] = useState(0);
+  const historyRef = useRef<ChoiceForgeProject[]>([]);
+
+  const pushHistory = useCallback((snapshot: ChoiceForgeProject) => {
+    const nextHistory = [...historyRef.current, cloneProject(snapshot)].slice(-HISTORY_LIMIT);
+    historyRef.current = nextHistory;
+    setHistoryLength(nextHistory.length);
+  }, []);
+
+  const setTrackedProjectState = useCallback((updater: ChoiceForgeProject | ((current: ChoiceForgeProject) => ChoiceForgeProject)) => {
+    setProjectState((current) => {
+      const next = typeof updater === "function" ? updater(current) : updater;
+      if (next === current) return current;
+      pushHistory(current);
+      return next;
+    });
+  }, [pushHistory]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -60,19 +80,30 @@ export function useProjectStore() {
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);
 
   const actions = useMemo<ProjectActions>(() => ({
+    canUndo: historyLength > 0,
+    undo: () => {
+      const previous = historyRef.current.at(-1);
+      if (!previous) return;
+      const nextHistory = historyRef.current.slice(0, -1);
+      historyRef.current = nextHistory;
+      setHistoryLength(nextHistory.length);
+      const restored = commitProject(hydrateProject(cloneProject(previous)));
+      setProjectState(restored);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+    },
     setProject: (nextProject) => {
       const syncedProject = commitProject(hydrateProject(nextProject));
-      setProjectState(syncedProject);
+      setTrackedProjectState(syncedProject);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedProject));
     },
     resetProject: (language) => {
       const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
-      setProjectState(fresh);
+      setTrackedProjectState(fresh);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
     },
     selectScene: (id) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const saved = commitProject(current);
         const scene = current.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special) return current;
@@ -88,25 +119,25 @@ export function useProjectStore() {
       });
     },
     updateNode: (id, patch) => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
       }));
     },
     moveNode: (id, x, y) => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, x, y } : node)),
       }));
     },
     layoutNodes: () => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         nodes: layoutStoryNodes(current),
       }));
     },
     addNode: (type, id, position) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         if (current.nodes.some((node) => node.id === id)) return current;
         const node = createStoryNode(type, id, position, current);
         return commitProject({
@@ -119,7 +150,7 @@ export function useProjectStore() {
       });
     },
     deleteNode: (id) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         if (current.nodes.length <= 1) return current;
         const nodes = current.nodes.filter((node) => node.id !== id);
         if (nodes.length === current.nodes.length) return current;
@@ -139,7 +170,7 @@ export function useProjectStore() {
       });
     },
     connectNodes: (from, to) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const source = current.nodes.find((node) => node.id === from);
         const target = current.nodes.find((node) => node.id === to);
         if (!source || !target || from === to) return current;
@@ -182,16 +213,16 @@ export function useProjectStore() {
       });
     },
     addFlowEdge: (from, to) => {
-      setProjectState((current) => addFlowEdgeToProject(current, from, to));
+      setTrackedProjectState((current) => addFlowEdgeToProject(current, from, to));
     },
     deleteFlowEdge: (from, to) => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         edges: current.edges.filter((edge) => !(edge.from === from && edge.to === to && edge.kind === "flow")),
       }));
     },
     addScene: () => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const saved = commitProject(current);
         const name = nextAvailableName("new_scene", new Set(current.scenes.map((scene) => scene.name)));
         const graph = createEmptySceneGraph(name);
@@ -208,7 +239,7 @@ export function useProjectStore() {
       });
     },
     updateScene: (id, patch) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const saved = commitProject(current);
         const currentScene = current.scenes.find((scene) => scene.id === id);
         if (!currentScene || currentScene.isStart || currentScene.special) return current;
@@ -228,7 +259,7 @@ export function useProjectStore() {
       });
     },
     duplicateScene: (id) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const saved = commitProject(current);
         const scene = saved.scenes.find((candidate) => candidate.id === id);
         if (!scene) return current;
@@ -241,7 +272,7 @@ export function useProjectStore() {
       });
     },
     deleteScene: (id) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const saved = commitProject(current);
         const scene = saved.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special || saved.scenes.filter((candidate) => !candidate.special).length <= 2) return current;
@@ -261,14 +292,14 @@ export function useProjectStore() {
       });
     },
     addVariable: () => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const name = nextAvailableName("new_var", new Set(current.variables.map((variable) => variable.name)));
         const variable: VariableSummary = { name, type: "number", initial: "0", desc: "", uses: 0 };
         return commitProject({ ...current, variables: [...current.variables, variable] });
       });
     },
     updateVariable: (name, patch) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const nextName = patch.name?.trim();
         const shouldRename = Boolean(nextName && nextName !== name);
 
@@ -292,7 +323,7 @@ export function useProjectStore() {
       });
     },
     addAchievement: () => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const id = nextAvailableName("new_achievement", new Set(current.achievements.map((achievement) => achievement.id)));
         const achievement: AchievementSummary = {
           id,
@@ -306,7 +337,7 @@ export function useProjectStore() {
       });
     },
     updateAchievement: (id, patch) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
         return commitProject({
           ...current,
@@ -317,13 +348,13 @@ export function useProjectStore() {
       });
     },
     deleteAchievement: (id) => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         achievements: current.achievements.filter((achievement) => achievement.id !== id),
       }));
     },
     addAsset: () => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const assets = current.assets ?? [];
         const id = nextAvailableName("new_asset", new Set(assets.map((asset) => asset.id)));
         const asset: AssetSummary = { id, path: "images/new_asset.png", kind: "image", desc: "" };
@@ -331,7 +362,7 @@ export function useProjectStore() {
       });
     },
     updateAsset: (id, patch) => {
-      setProjectState((current) => {
+      setTrackedProjectState((current) => {
         const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
         return commitProject({
           ...current,
@@ -342,12 +373,12 @@ export function useProjectStore() {
       });
     },
     deleteAsset: (id) => {
-      setProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject({
         ...current,
         assets: (current.assets ?? []).filter((asset) => asset.id !== id),
       }));
     },
-  }), []);
+  }), [historyLength, setTrackedProjectState]);
 
   return { project, lintedProject, actions };
 }

@@ -89,6 +89,7 @@ body {
 }
 code, pre, kbd { font-family: var(--ff-mono); }
 button { font-family: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.45; }
 input, select, textarea { font-family: inherit; color: inherit; }
 
 .dim { color: var(--ink-mute); }
@@ -493,6 +494,23 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .asset-data .asset-kind { background: var(--c-set-tint); color: var(--c-set); }
 .asset-fields { min-width: 0; }
 .asset-field-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px auto; gap: 6px; margin-bottom: 6px; }
+.asset-file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 24px;
+  margin-bottom: 6px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  cursor: pointer;
+}
+.asset-file-btn:hover { background: var(--paper-3); }
+.asset-file-btn input { display: none; }
 .asset-id-edit, .asset-path-edit, .asset-desc-edit {
   width: 100%;
   min-width: 0;
@@ -504,6 +522,15 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .asset-id-edit, .asset-path-edit { font-family: var(--ff-mono); }
 .asset-path-edit { margin-bottom: 6px; }
+.asset-file-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+}
 
 /* ─── Canvas ─────────────────────────────── */
 .canvas-wrap {
@@ -865,6 +892,18 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-body { flex: 1; overflow: auto; padding: 14px 16px; }
 .ip-content, .ip-logic, .ip-raw { display: flex; flex-direction: column; gap: 10px; }
 .ip-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.05em; }
+.achieve-insert {
+  padding: 8px;
+  background: var(--paper-1);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-2);
+}
+.achieve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
 
 .narr-editor {
   font-family: var(--ff-narr);
