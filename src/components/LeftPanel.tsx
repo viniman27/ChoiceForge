@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { AchievementSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -17,6 +17,9 @@ interface LeftPanelProps {
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
+  onAddAsset: () => void;
+  onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
+  onDeleteAsset: (id: string) => void;
   onSelectNode: (id: string) => void;
 }
 
@@ -36,6 +39,9 @@ export function LeftPanel({
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
+  onAddAsset,
+  onUpdateAsset,
+  onDeleteAsset,
   onSelectNode,
 }: LeftPanelProps) {
   const [search, setSearch] = useState("");
@@ -88,7 +94,7 @@ export function LeftPanel({
             onDeleteAchievement={onDeleteAchievement}
           />
         )}
-        {!search.trim() && activeTab === "assets" && <AssetsList />}
+        {!search.trim() && activeTab === "assets" && <AssetsList data={data} onAddAsset={onAddAsset} onUpdateAsset={onUpdateAsset} onDeleteAsset={onDeleteAsset} />}
       </div>
     </aside>
   );
@@ -96,7 +102,7 @@ export function LeftPanel({
 
 interface SearchResult {
   id: string;
-  kind: "node" | "scene" | "variable" | "achievement";
+  kind: "node" | "scene" | "variable" | "achievement" | "asset";
   title: string;
   detail: string;
   nodeId?: string;
@@ -161,6 +167,14 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
       kind: "achievement",
       title: achievement.title,
       detail: `${achievement.id} ${achievement.desc} ${achievement.preDesc ?? ""} ${achievement.postDesc ?? ""}`,
+    });
+  });
+  (data.assets ?? []).forEach((asset) => {
+    addResult(results, normalized, {
+      id: `asset-${asset.id}`,
+      kind: "asset",
+      title: asset.id,
+      detail: `${asset.kind} ${asset.path} ${asset.desc}`,
     });
   });
   Object.entries(data.sceneData ?? { [data.sceneTitle]: { nodes: data.nodes, edges: data.edges } }).forEach(([sceneName, graph]) => {
@@ -385,20 +399,46 @@ function AchievementsList({
   );
 }
 
-function AssetsList() {
-  const assets = ["logo_signal.png", "rooftop_rain.jpg", "kana_portrait.png", "deck_diagram.svg"];
+function AssetsList({
+  data,
+  onAddAsset,
+  onUpdateAsset,
+  onDeleteAsset,
+}: {
+  data: ChoiceForgeProject;
+  onAddAsset: () => void;
+  onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
+  onDeleteAsset: (id: string) => void;
+}) {
+  const assets = data.assets ?? [];
   return (
     <div className="assets-list">
-      <div className="section-title"><span>*image</span><button className="ghost-btn">+ import</button></div>
-      <div className="assets-grid">
-        {assets.map((asset) => (
-          <div className="asset-card" key={asset}>
-            <div className="asset-thumb"><span className="asset-thumb-label">img</span></div>
-            <div className="asset-name">{asset}</div>
-            <div className="asset-dim">mock</div>
-          </div>
-        ))}
-      </div>
+      <div className="section-title"><span>assets</span><button className="ghost-btn" onClick={onAddAsset}>+ asset</button></div>
+      {assets.length === 0 ? (
+        <p className="empty-search">nenhum asset cadastrado</p>
+      ) : (
+        <ul className="asset-list">
+          {assets.map((asset) => (
+            <li className={`asset-row asset-${asset.kind}`} key={asset.id}>
+              <div className="asset-kind">{asset.kind}</div>
+              <div className="asset-fields">
+                <div className="asset-field-row">
+                  <input className="asset-id-edit" value={asset.id} onChange={(event) => onUpdateAsset(asset.id, { id: normalizeIdentifier(event.target.value) })} aria-label="asset id" />
+                  <select value={asset.kind} onChange={(event) => onUpdateAsset(asset.id, { kind: event.target.value as AssetSummary["kind"] })}>
+                    <option value="image">image</option>
+                    <option value="audio">audio</option>
+                    <option value="data">data</option>
+                    <option value="other">other</option>
+                  </select>
+                  <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>del</button>
+                </div>
+                <input className="asset-path-edit" value={asset.path} onChange={(event) => onUpdateAsset(asset.id, { path: event.target.value })} aria-label="asset path" />
+                <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder="uso ou observacao" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

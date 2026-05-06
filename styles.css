@@ -468,12 +468,42 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 
 /* Assets */
-.assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.asset-card { background: var(--paper-1); border: 1px solid var(--paper-edge); border-radius: var(--r-2); overflow: hidden; }
-.asset-thumb { aspect-ratio: 4/3; position: relative; display: flex; align-items: center; justify-content: center; }
-.asset-thumb-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); background: var(--paper-1); padding: 1px 6px; border-radius: var(--r-1); }
-.asset-name { font-size: 11px; padding: 4px 6px 0; font-family: var(--ff-mono); }
-.asset-dim { font-size: 10px; padding: 0 6px 6px; color: var(--ink-mute); font-family: var(--ff-mono); }
+.asset-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.asset-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 8px;
+  padding: 8px;
+  background: var(--paper-1);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-2);
+}
+.asset-kind {
+  align-self: start;
+  padding: 4px 0;
+  border-radius: var(--r-1);
+  background: var(--c-label-tint);
+  color: var(--c-label);
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  text-align: center;
+}
+.asset-image .asset-kind { background: var(--c-passage-tint); color: var(--c-passage); }
+.asset-audio .asset-kind { background: var(--c-gosub-tint); color: var(--c-gosub); }
+.asset-data .asset-kind { background: var(--c-set-tint); color: var(--c-set); }
+.asset-fields { min-width: 0; }
+.asset-field-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px auto; gap: 6px; margin-bottom: 6px; }
+.asset-id-edit, .asset-path-edit, .asset-desc-edit {
+  width: 100%;
+  min-width: 0;
+  background: var(--paper-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.asset-id-edit, .asset-path-edit { font-family: var(--ff-mono); }
+.asset-path-edit { margin-bottom: 6px; }
 
 /* ─── Canvas ─────────────────────────────── */
 .canvas-wrap {

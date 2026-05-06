@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
-import type { AchievementSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v2";
 
@@ -41,6 +41,9 @@ export interface ProjectActions {
   addAchievement: () => void;
   updateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   deleteAchievement: (id: string) => void;
+  addAsset: () => void;
+  updateAsset: (id: string, patch: Partial<AssetSummary>) => void;
+  deleteAsset: (id: string) => void;
 }
 
 export function useProjectStore() {
@@ -230,11 +233,11 @@ export function useProjectStore() {
         const scene = saved.scenes.find((candidate) => candidate.id === id);
         if (!scene) return current;
         const name = nextAvailableName(`${scene.name}_copy`, new Set(saved.scenes.map((candidate) => candidate.name)));
-        return {
+        return commitProject({
           ...saved,
           scenes: [...saved.scenes, { ...scene, id: name, name, current: false, isStart: false, special: false }],
           sceneData: { ...(saved.sceneData ?? {}), [name]: structuredClone(saved.sceneData?.[scene.name] ?? createEmptySceneGraph(name)) },
-        };
+        });
       });
     },
     deleteScene: (id) => {
@@ -319,6 +322,31 @@ export function useProjectStore() {
         achievements: current.achievements.filter((achievement) => achievement.id !== id),
       }));
     },
+    addAsset: () => {
+      setProjectState((current) => {
+        const assets = current.assets ?? [];
+        const id = nextAvailableName("new_asset", new Set(assets.map((asset) => asset.id)));
+        const asset: AssetSummary = { id, path: "images/new_asset.png", kind: "image", desc: "" };
+        return commitProject({ ...current, assets: [...assets, asset] });
+      });
+    },
+    updateAsset: (id, patch) => {
+      setProjectState((current) => {
+        const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
+        return commitProject({
+          ...current,
+          assets: (current.assets ?? []).map((asset) => (
+            asset.id === id ? { ...asset, ...patch, id: nextId || asset.id } : asset
+          )),
+        });
+      });
+    },
+    deleteAsset: (id) => {
+      setProjectState((current) => commitProject({
+        ...current,
+        assets: (current.assets ?? []).filter((asset) => asset.id !== id),
+      }));
+    },
   }), []);
 
   return { project, lintedProject, actions };
@@ -363,6 +391,7 @@ function hydrateProject(project: ChoiceForgeProject): ChoiceForgeProject {
     sceneData,
     nodes: activeGraph.nodes,
     edges: activeGraph.edges,
+    assets: project.assets ?? [],
     scenes: project.scenes.map((scene) => ({ ...scene, current: scene.name === activeSceneName })),
   };
 }

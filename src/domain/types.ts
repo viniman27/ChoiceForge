@@ -45,6 +45,13 @@ export interface AchievementSummary {
   hidden?: boolean;
 }
 
+export interface AssetSummary {
+  id: string;
+  path: string;
+  kind: "image" | "audio" | "data" | "other";
+  desc: string;
+}
+
 export interface VariableSet {
   var: string;
   op: "=" | "+" | "-" | "%+" | "%-";
@@ -113,6 +120,7 @@ export interface ChoiceForgeProject {
   scenes: SceneSummary[];
   variables: VariableSummary[];
   achievements: AchievementSummary[];
+  assets: AssetSummary[];
   nodes: StoryNode[];
   edges: StoryEdge[];
   sceneData?: Record<string, SceneGraph>;

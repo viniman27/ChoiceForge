@@ -132,6 +132,9 @@ export default function App() {
         onAddAchievement={actions.addAchievement}
         onUpdateAchievement={actions.updateAchievement}
         onDeleteAchievement={actions.deleteAchievement}
+        onAddAsset={actions.addAsset}
+        onUpdateAsset={actions.updateAsset}
+        onDeleteAsset={actions.deleteAsset}
         onSelectNode={setSelectedId}
       />
       <button

@@ -186,6 +186,10 @@ const pt: ChoiceForgeProject = {
       postDesc: "Voce reacendeu o farol no instante certo.",
     },
   ],
+  assets: [
+    { id: "farol_bruma", path: "images/farol_bruma.png", kind: "image", desc: "Imagem de referencia para o farol na neblina." },
+    { id: "radio_ruido", path: "audio/radio_ruido.ogg", kind: "audio", desc: "Ambiencia curta para chamadas interrompidas." },
+  ],
   nodes: intro.nodes,
   edges: intro.edges,
   sceneData: {
