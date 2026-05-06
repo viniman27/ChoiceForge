@@ -96,13 +96,15 @@ input, select, textarea { font-family: inherit; color: inherit; }
 
 /* ─── App layout ─────────────────────────────── */
 .app {
+  --left-panel-width: 280px;
+  --right-panel-width: 360px;
   display: grid;
   grid-template-rows: 56px 1fr 36px;
-  grid-template-columns: 280px 1fr 360px;
+  grid-template-columns: var(--left-panel-width) 6px minmax(0, 1fr) 6px var(--right-panel-width);
   grid-template-areas:
-    "top top top"
-    "left canvas right"
-    "bot bot bot";
+    "top top top top top"
+    "left left-resize canvas right-resize right"
+    "bot bot bot bot bot";
   height: 100vh;
 }
 .app[data-bot-open="true"] {
@@ -113,7 +115,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .top-bar {
   grid-area: top;
   display: grid;
-  grid-template-columns: 280px 1fr auto;
+  grid-template-columns: var(--left-panel-width) 1fr auto;
   align-items: center;
   gap: 16px;
   padding: 0 16px 0 0;
@@ -195,9 +197,40 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .left-panel {
   grid-area: left;
   background: var(--paper-2);
-  border-right: 1px solid var(--paper-edge);
   display: flex; flex-direction: column;
   overflow: hidden;
+}
+.resize-handle {
+  position: relative;
+  z-index: 7;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--paper-2);
+  cursor: col-resize;
+}
+.resize-handle-left { grid-area: left-resize; border-left: 1px solid var(--paper-edge); border-right: 1px solid var(--paper-edge); }
+.resize-handle-right { grid-area: right-resize; border-left: 1px solid var(--paper-edge); border-right: 1px solid var(--paper-edge); }
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--ink-faint);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+.resize-handle:hover,
+.app.is-resizing .resize-handle {
+  background: var(--paper-3);
+}
+.resize-handle:hover::after,
+.app.is-resizing .resize-handle::after {
+  opacity: 1;
 }
 .search-bar {
   display: flex; align-items: center; gap: 8px;

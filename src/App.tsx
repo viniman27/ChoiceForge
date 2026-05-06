@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { GeneratedDocumentView } from "./components/GeneratedDocumentView";
@@ -12,6 +12,17 @@ import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Them
 import { useProjectStore } from "./state/projectStore";
 
 type GeneratedDocumentId = "startup" | "stats";
+type ResizeTarget = "left" | "right";
+
+const LAYOUT_STORAGE_KEY = "choiceforge.layout.v1";
+const LEFT_PANEL_DEFAULT = 280;
+const RIGHT_PANEL_DEFAULT = 360;
+const LEFT_PANEL_MIN = 220;
+const LEFT_PANEL_MAX = 520;
+const RIGHT_PANEL_MIN = 300;
+const RIGHT_PANEL_MAX = 640;
+const BOARD_MIN = 460;
+const RESIZE_GUTTERS = 12;
 
 export default function App() {
   const [lang, setLang] = useState<Language>("pt");
@@ -23,6 +34,8 @@ export default function App() {
   const [zoom, setZoom] = useState(0.85);
   const [view, setView] = useState<EditorView>("editor");
   const [generatedDocumentId, setGeneratedDocumentId] = useState<GeneratedDocumentId | null>(null);
+  const [layout, setLayout] = useState(loadLayout);
+  const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const { lintedProject, actions } = useProjectStore();
 
   useEffect(() => {
@@ -31,12 +44,47 @@ export default function App() {
     document.documentElement.dataset.direction = "default";
   }, [theme]);
 
+  useEffect(() => {
+    window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+  }, [layout]);
+
+  useEffect(() => {
+    if (!resizeTarget) return;
+
+    const move = (event: PointerEvent) => {
+      setLayout((current) => {
+        const maxLeft = Math.min(LEFT_PANEL_MAX, window.innerWidth - current.right - BOARD_MIN - RESIZE_GUTTERS);
+        const maxRight = Math.min(RIGHT_PANEL_MAX, window.innerWidth - current.left - BOARD_MIN - RESIZE_GUTTERS);
+        if (resizeTarget === "left") {
+          return { ...current, left: clamp(event.clientX, LEFT_PANEL_MIN, maxLeft) };
+        }
+        return { ...current, right: clamp(window.innerWidth - event.clientX, RIGHT_PANEL_MIN, maxRight) };
+      });
+    };
+    const up = () => setResizeTarget(null);
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [resizeTarget]);
+
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
   const activeSceneId = generatedDocumentId ?? lintedProject.scenes.find((scene) => scene.current)?.id ?? lintedProject.sceneTitle;
+  const appStyle = {
+    "--left-panel-width": `${layout.left}px`,
+    "--right-panel-width": `${layout.right}px`,
+  } as CSSProperties;
 
   return (
-    <div className="app" data-bot-open="false">
+    <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open="false" style={appStyle}>
       <TopBar
         data={lintedProject}
         lang={lang}
@@ -86,6 +134,15 @@ export default function App() {
         onDeleteAchievement={actions.deleteAchievement}
         onSelectNode={setSelectedId}
       />
+      <button
+        className="resize-handle resize-handle-left"
+        type="button"
+        aria-label="redimensionar painel esquerdo"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setResizeTarget("left");
+        }}
+      />
       {generatedDocument ? (
         <GeneratedDocumentView {...generatedDocument} />
       ) : (
@@ -113,6 +170,15 @@ export default function App() {
           }}
         />
       )}
+      <button
+        className="resize-handle resize-handle-right"
+        type="button"
+        aria-label="redimensionar painel direito"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setResizeTarget("right");
+        }}
+      />
       <RightPanel
         node={selectedNode}
         project={lintedProject}
@@ -125,6 +191,24 @@ export default function App() {
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
     </div>
   );
+}
+
+function loadLayout() {
+  const fallback = { left: LEFT_PANEL_DEFAULT, right: RIGHT_PANEL_DEFAULT };
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(LAYOUT_STORAGE_KEY) ?? "null") as Partial<typeof fallback> | null;
+    if (!saved) return fallback;
+    return {
+      left: clamp(saved.left ?? fallback.left, LEFT_PANEL_MIN, LEFT_PANEL_MAX),
+      right: clamp(saved.right ?? fallback.right, RIGHT_PANEL_MIN, RIGHT_PANEL_MAX),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgeProject) {
