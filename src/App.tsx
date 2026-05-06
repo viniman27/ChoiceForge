@@ -302,19 +302,18 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   URL.revokeObjectURL(url);
 }
 
-function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    try {
-      const parsed = JSON.parse(String(reader.result ?? "")) as ChoiceForgeProject;
-      assertChoiceForgeProject(parsed);
-      setProject(parsed);
-      onDone();
-    } catch {
-      window.alert(lang === "pt" ? "Nao foi possivel importar este project.json." : "Could not import this project.json.");
-    }
-  });
-  reader.readAsText(file);
+async function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
+  try {
+    const content = file.name.toLowerCase().endsWith(".zip")
+      ? await extractProjectJsonFromZip(new Uint8Array(await file.arrayBuffer()))
+      : await file.text();
+    const parsed = JSON.parse(content) as ChoiceForgeProject;
+    assertChoiceForgeProject(parsed);
+    setProject(parsed);
+    onDone();
+  } catch {
+    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip exportado pelo ChoiceForge ou o project.json." : "Could not import this project. Use a ChoiceForge export .zip or project.json.");
+  }
 }
 
 function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {
@@ -322,6 +321,42 @@ function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeP
   const project = value as Partial<ChoiceForgeProject>;
   if (typeof project.title !== "string" || typeof project.author !== "string" || typeof project.sceneTitle !== "string") throw new Error("invalid metadata");
   if (!Array.isArray(project.scenes) || !Array.isArray(project.variables) || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) throw new Error("invalid collections");
+}
+
+async function extractProjectJsonFromZip(bytes: Uint8Array): Promise<string> {
+  const decoder = new TextDecoder();
+  let offset = 0;
+
+  while (offset + 30 <= bytes.length) {
+    if (readU32(bytes, offset) !== 0x04034b50) break;
+    const flags = readU16(bytes, offset + 6);
+    const method = readU16(bytes, offset + 8);
+    const compressedSize = readU32(bytes, offset + 18);
+    const fileNameLength = readU16(bytes, offset + 26);
+    const extraLength = readU16(bytes, offset + 28);
+    const nameStart = offset + 30;
+    const contentStart = nameStart + fileNameLength + extraLength;
+    const contentEnd = contentStart + compressedSize;
+    const name = decoder.decode(bytes.slice(nameStart, nameStart + fileNameLength));
+
+    if ((flags & 0x08) !== 0) throw new Error("unsupported streamed zip");
+    if (contentEnd > bytes.length) throw new Error("invalid zip entry");
+    if (name === "project.json" || name.endsWith("/project.json")) {
+      const content = bytes.slice(contentStart, contentEnd);
+      if (method === 0) return decoder.decode(content);
+      if (method === 8) return decoder.decode(await inflateRaw(content));
+      throw new Error("unsupported compressed zip");
+    }
+
+    offset = contentEnd;
+  }
+
+  throw new Error("project.json not found");
+}
+
+async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([toArrayBuffer(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]): Uint8Array {
@@ -396,6 +431,14 @@ function u16(value: number): Uint8Array {
 
 function u32(value: number): Uint8Array {
   return new Uint8Array([value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]);
+}
+
+function readU16(bytes: Uint8Array, offset: number): number {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function readU32(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
 }
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {

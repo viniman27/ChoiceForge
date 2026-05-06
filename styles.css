@@ -138,8 +138,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .cmd-btn:hover, .ghost-btn:hover { background: var(--paper-3); border-color: var(--paper-edge); }
 .cmd-btn { font-family: var(--ff-mono); }
-.file-action { cursor: pointer; }
-.file-action input { display: none; }
+.hidden-file-input { display: none; }
 .play-btn {
   background: var(--accent-1); color: oklch(98% 0.01 78); border: none;
   border-radius: var(--r-1); padding: 7px 14px; font-size: 12px; font-weight: 600;

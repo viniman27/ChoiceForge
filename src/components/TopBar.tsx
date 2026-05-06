@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { ChoiceForgeProject, Density, EditorView, Language, Theme } from "../domain/types";
 
 interface TopBarProps {
@@ -21,6 +22,8 @@ interface TopBarProps {
 }
 
 export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
   return (
     <header className="top-bar">
       <div className="brand">
@@ -63,18 +66,22 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
-        <label className="ghost-btn file-action">
+        <button className="ghost-btn" onClick={() => importInputRef.current?.click()}>
           {lang === "pt" ? "Importar" : "Import"}
-          <input
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              if (file) onImport(file);
-              event.currentTarget.value = "";
-            }}
-          />
-        </label>
+        </button>
+        <input
+          ref={importInputRef}
+          className="hidden-file-input"
+          type="file"
+          accept="application/json,application/zip,.json,.zip"
+          onClick={(event) => {
+            event.currentTarget.value = "";
+          }}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) onImport(file);
+          }}
+        />
         <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
