@@ -61,10 +61,10 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
-        <button className="ghost-btn" onClick={onExport}>Exportar</button>
+        <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
         <button className="play-btn" onClick={() => window.alert("Play-test ainda sera integrado ao runtime oficial.")}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
-          Jogar
+          {lang === "pt" ? "Jogar" : "Play"}
         </button>
       </div>
     </header>
