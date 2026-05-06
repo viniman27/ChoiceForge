@@ -84,7 +84,16 @@ function ContentTab({
         <label className="ip-label">{labels.bodyLabel}</label>
         <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
         <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
-        {node.sets && <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />}
+        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
+      </div>
+    );
+  }
+
+  if (node.type === "if") {
+    return (
+      <div className="ip-content">
+        <p className="dim">Efeitos aplicados antes da avaliacao das branches.</p>
+        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
       </div>
     );
   }
