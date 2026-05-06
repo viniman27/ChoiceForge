@@ -261,7 +261,7 @@ export function useProjectStore() {
       setProjectState((current) => {
         const name = nextAvailableName("new_var", new Set(current.variables.map((variable) => variable.name)));
         const variable: VariableSummary = { name, type: "number", initial: "0", desc: "", uses: 0 };
-        return { ...current, variables: [...current.variables, variable] };
+        return commitProject({ ...current, variables: [...current.variables, variable] });
       });
     },
     updateVariable: (name, patch) => {
@@ -299,22 +299,22 @@ export function useProjectStore() {
           preDesc: "Conquista bloqueada.",
           postDesc: "Conquista desbloqueada.",
         };
-        return { ...current, achievements: [...current.achievements, achievement] };
+        return commitProject({ ...current, achievements: [...current.achievements, achievement] });
       });
     },
     updateAchievement: (id, patch) => {
       setProjectState((current) => {
         const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
-        return {
+        return commitProject({
           ...current,
           achievements: current.achievements.map((achievement) => (
             achievement.id === id ? { ...achievement, ...patch, id: nextId || achievement.id } : achievement
           )),
-        };
+        });
       });
     },
     deleteAchievement: (id) => {
-      setProjectState((current) => ({
+      setProjectState((current) => commitProject({
         ...current,
         achievements: current.achievements.filter((achievement) => achievement.id !== id),
       }));

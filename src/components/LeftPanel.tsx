@@ -264,12 +264,12 @@ function VariablesList({
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>desc</th></tr></thead>
+        <thead><tr><th>tipo</th><th>name</th><th>inicial</th><th>stats</th><th>desc</th></tr></thead>
         <tbody>
           {data.variables.map((variable) => (
             <tr key={variable.name}>
               <td>
-                <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"] })}>
+                <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
                   <option value="number">num</option>
                   <option value="string">str</option>
                   <option value="boolean">bool</option>
@@ -277,9 +277,19 @@ function VariablesList({
               </td>
               <td>
                 <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
-                {variable.fairmath && <span className="fm-tag">%</span>}
               </td>
               <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
+              <td>
+                <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(variable.fairmath)}
+                    disabled={variable.type !== "number"}
+                    onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
+                  />
+                  <span>{variable.fairmath ? "percent" : "text"}</span>
+                </label>
+              </td>
               <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
             </tr>
           ))}

@@ -397,6 +397,22 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .type-pill.type-number { background: var(--c-set-tint); color: var(--c-set); }
 .type-pill.type-boolean { background: var(--c-if-tint); color: var(--c-if); }
 .fm-tag { font-size: 9px; padding: 0 4px; border-radius: 3px; background: var(--c-set-tint); color: var(--c-set); margin-left: 4px; font-family: var(--ff-mono); }
+.stat-format-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-2);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.stat-format-toggle input {
+  margin: 0;
+  accent-color: var(--c-set);
+}
+.stat-format-toggle.is-disabled {
+  opacity: 0.45;
+}
 
 .var-detail {
   margin-top: 16px; padding: 10px;
