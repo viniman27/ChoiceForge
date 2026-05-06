@@ -21,9 +21,9 @@ const intro: SceneGraph = {
       title: "primeira_investigacao",
       prompt: "Por onde voce comeca?",
       options: [
-        { text: "Subir direto para a sala da lente.", to: "n3", cond: null },
-        { text: "Procurar marcas na praia.", to: "n4", cond: null },
-        { text: "Ligar para a capitania antes de entrar.", to: "n5", cond: { type: "selectable_if", expr: "sinal_radio" } },
+        { text: "Subir direto para a sala da lente.", to: "n3", cond: null, sets: [{ var: "coragem", op: "%+", val: "5" }] },
+        { text: "Procurar marcas na praia.", to: "n4", cond: null, sets: [{ var: "pistas", op: "+", val: "1" }] },
+        { text: "Ligar para a capitania antes de entrar.", to: "n5", cond: { type: "selectable_if", expr: "sinal_radio" }, sets: [{ var: "sinal_radio", op: "=", val: "false" }] },
       ],
     },
     {
@@ -56,13 +56,15 @@ const intro: SceneGraph = {
       body: "A voz no radio some no meio da frase: 'nao toque no relogio da sala de maquinas'.",
       sets: [{ var: "pistas", op: "+", val: "1" }],
     },
-    { id: "n6", type: "goto_scene", x: 1260, y: 230, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
+    { id: "n7", type: "checkpoint", x: 1260, y: 230, w: 230, title: "*save_checkpoint antes_da_maquina" },
+    { id: "n6", type: "goto_scene", x: 1550, y: 230, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
   ],
   edges: [
     { from: "n1", to: "n2", kind: "flow" },
-    { from: "n3", to: "n6", kind: "flow" },
-    { from: "n4", to: "n6", kind: "flow" },
-    { from: "n5", to: "n6", kind: "flow" },
+    { from: "n3", to: "n7", kind: "flow" },
+    { from: "n4", to: "n7", kind: "flow" },
+    { from: "n5", to: "n7", kind: "flow" },
+    { from: "n7", to: "n6", kind: "flow" },
   ],
 };
 

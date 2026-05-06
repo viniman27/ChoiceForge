@@ -31,6 +31,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     lines.push("*choice");
     node.options?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
+      option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
       lines.push(`    *goto ${generatedNodeLabel(option.to)}`);
     });
   }
@@ -221,6 +222,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
       if (!option.text.trim()) issues.push({ level: "error", msg: `opcao #${index + 1} vazia em "${node.title}"`, scene: project.sceneTitle, node: node.id });
       if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `opcao #${index + 1} aponta para no inexistente: ${option.to}`, scene: project.sceneTitle, node: node.id });
       lintCondition(option.cond, variables, issues, project.sceneTitle, node.id);
+      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
     });
 
     node.branches?.forEach((branch) => {

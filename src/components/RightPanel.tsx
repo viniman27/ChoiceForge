@@ -127,6 +127,7 @@ function ContentTab({
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
               </div>
+              <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
@@ -152,14 +153,23 @@ function AchievementInsert({
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   if (!project.achievements.length) return null;
+  const assigned = new Set(extractAchievementCommands(node.body ?? ""));
 
   return (
     <div className="achieve-insert">
       <label className="ip-label">atribuir conquista</label>
       <div className="achieve-actions">
         {project.achievements.map((achievement) => (
-          <button key={achievement.id} className="mini-action" onClick={() => appendAchievementCommand(node, achievement.id, onUpdateNode)}>
-            *achieve {achievement.id}
+          <button
+            key={achievement.id}
+            className={`mini-action ${assigned.has(achievement.id) ? "is-active" : ""}`}
+            onClick={() => (
+              assigned.has(achievement.id)
+                ? removeAchievementCommand(node, achievement.id, onUpdateNode)
+                : appendAchievementCommand(node, achievement.id, onUpdateNode)
+            )}
+          >
+            {assigned.has(achievement.id) ? "remover" : "*achieve"} {achievement.id}
           </button>
         ))}
       </div>
@@ -309,6 +319,35 @@ function BranchSets({
   );
 }
 
+function OptionSets({
+  node,
+  option,
+  optionIndex,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  option: ChoiceOption;
+  optionIndex: number;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  return (
+    <div className="branch-effects">
+      <span className="branch-effects-title">efeitos ao escolher esta opcao</span>
+      <ul className="ip-sets">
+        {option.sets?.map((set, setIndex) => (
+          <li key={`${set.var}-${setIndex}`} className="ip-set-row">
+            <SetFields set={set} variables={project.variables} onChange={(patch) => updateOptionSet(node, optionIndex, setIndex, patch, project, onUpdateNode)} />
+            <button className="x-btn" onClick={() => removeOptionSet(node, optionIndex, setIndex, onUpdateNode)}>x</button>
+          </li>
+        ))}
+        <li><button className="ghost-btn" onClick={() => addOptionSet(node, optionIndex, project, onUpdateNode)}>+ efeito</button></li>
+      </ul>
+    </div>
+  );
+}
+
 function LogicTab({
   node,
   project,
@@ -422,6 +461,32 @@ function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string,
   onUpdateNode(node.id, { options: node.options?.filter((_, optionIndex) => optionIndex !== index) });
 }
 
+function updateOptionSet(node: StoryNode, optionIndex: number, setIndex: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    options: node.options?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex
+        ? { ...option, sets: option.sets?.map((set, currentSetIndex) => (currentSetIndex === setIndex ? normalizeSetPatch({ ...set, ...patch }, project.variables) : set)) }
+        : option
+    )),
+  });
+}
+
+function addOptionSet(node: StoryNode, optionIndex: number, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    options: node.options?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex ? { ...option, sets: [...(option.sets ?? []), createDefaultSet(project.variables)] } : option
+    )),
+  });
+}
+
+function removeOptionSet(node: StoryNode, optionIndex: number, setIndex: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    options: node.options?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex ? { ...option, sets: option.sets?.filter((_, currentSetIndex) => currentSetIndex !== setIndex) } : option
+    )),
+  });
+}
+
 function updateSet(node: StoryNode, index: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   const nextSets = node.sets?.map((set, setIndex) => (setIndex === index ? normalizeSetPatch({ ...set, ...patch }, project.variables) : set));
   const title = node.type === "set" && index === 0 && patch.var ? `*set ${patch.var}` : node.title;
@@ -441,6 +506,16 @@ function appendAchievementCommand(node: StoryNode, achievementId: string, onUpda
   const command = `*achieve ${achievementId}`;
   if (current.split("\n").some((line) => line.trim() === command)) return;
   onUpdateNode(node.id, { body: current ? `${current}\n${command}` : command });
+}
+
+function removeAchievementCommand(node: StoryNode, achievementId: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const command = `*achieve ${achievementId}`;
+  const body = (node.body ?? "").split("\n").filter((line) => line.trim() !== command).join("\n").trimEnd();
+  onUpdateNode(node.id, { body });
+}
+
+function extractAchievementCommands(body: string): string[] {
+  return [...body.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
 }
 
 function updateBranch(node: StoryNode, index: number, patch: Partial<NonNullable<StoryNode["branches"]>[number]>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {

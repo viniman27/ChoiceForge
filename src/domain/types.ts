@@ -72,6 +72,7 @@ export interface ChoiceOption {
   to: string;
   cond?: ChoiceCondition | null;
   hideReuse?: boolean;
+  sets?: VariableSet[];
 }
 
 export interface ConditionalBranch {

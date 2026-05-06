@@ -313,6 +313,7 @@ export function useProjectStore() {
             options: node.options?.map((option) => ({
               ...option,
               cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
+              sets: option.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
             })),
             branches: node.branches?.map((branch) => ({
               ...branch,
