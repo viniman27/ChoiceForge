@@ -27,12 +27,17 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
   }
 
   const colors = typeColors[node.type];
+  const nodeIssues = project.lints.filter((lint) => lint.node === node.id);
+  const nodeErrors = nodeIssues.filter((lint) => lint.level === "error").length;
+  const nodeWarnings = nodeIssues.filter((lint) => lint.level === "warning").length;
+  const lintClass = nodeErrors ? "err" : nodeWarnings ? "warn" : "ok";
+  const lintText = nodeErrors ? `${nodeErrors} ${labels.errors}` : nodeWarnings ? `${nodeWarnings} ${labels.warnings}` : labels.linterPasses;
   return (
     <aside className="right-panel">
       <div className="ip-head" style={{ "--accent": colors.dot, "--accent-tint": colors.tint } as React.CSSProperties}>
         <div className="ip-type"><span className="ip-dot" /><NodeIcon type={node.type} /><span>{labels.nodeTypes[node.type]}</span></div>
         <input className="ip-title" value={node.title} onChange={(event) => onUpdateNode(node.id, { title: event.target.value })} />
-        <div className="ip-meta"><span><code>scene:</code> intro_grid</span><span>-</span><span><code>id:</code> {node.id}</span></div>
+        <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
       </div>
 
       <div className="ip-tabs">
@@ -57,7 +62,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
         {tab === "raw" && <RawTab node={node} />}
       </div>
 
-      <div className="ip-footer"><span className="ok-pill">{labels.linterPasses}</span><span className="dim">{labels.indentRule}</span></div>
+      <div className="ip-footer"><span className={`lint-pill ${lintClass}`}>{lintText}</span><span className="dim">{labels.indentRule}</span></div>
     </aside>
   );
 }

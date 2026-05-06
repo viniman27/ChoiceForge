@@ -890,6 +890,9 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: var(--paper-2);
 }
 .ok-pill { color: var(--ok); }
+.lint-pill.ok { color: var(--ok); }
+.lint-pill.warn { color: var(--warn); }
+.lint-pill.err { color: var(--err); }
 
 /* ─── Bottom bar ─────────────────────────────── */
 .bot-bar {
