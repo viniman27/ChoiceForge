@@ -1,4 +1,4 @@
-import type { AchievementSummary, AssetSummary, ChoiceForgeProject, SceneGraph, SceneSummary, VariableSummary } from "./types";
+import type { AchievementSummary, AssetSummary, ChoiceForgeProject, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
   name: string;
@@ -110,20 +110,68 @@ function parseStartup(text: string) {
 }
 
 function createImportedSceneGraph(sceneName: string, content: string): SceneGraph {
-  return {
-    nodes: [
-      {
-        id: "n1",
-        type: "passage",
-        x: 70,
-        y: 70,
-        w: 460,
-        title: `${sceneName}_imported`,
-        body: content.trimEnd(),
-      },
-    ],
-    edges: [],
+  const nodes: StoryNode[] = [];
+  const edges: StoryEdge[] = [];
+  const pending: string[] = [];
+  const lines = content.split(/\r?\n/);
+  let previous: StoryNode | null = null;
+
+  const addNode = (node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) => {
+    const next: StoryNode = {
+      ...node,
+      id: `n${nodes.length + 1}`,
+      x: 70 + (nodes.length % 4) * 380,
+      y: 70 + Math.floor(nodes.length / 4) * 220,
+      w: node.w ?? defaultImportedWidth(node.type),
+    };
+    if (previous && canAutoFlow(previous)) edges.push({ from: previous.id, to: next.id, kind: "flow" });
+    nodes.push(next);
+    previous = next;
   };
+
+  const flushPassage = () => {
+    const body = pending.join("\n").trim();
+    pending.length = 0;
+    if (!body) return;
+    addNode({ type: "passage", title: `${sceneName}_text_${nodes.length + 1}`, body });
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const command = commandName(line);
+    if (!command || /^\s+\S/.test(line)) {
+      pending.push(line);
+      continue;
+    }
+
+    if (isComplexCommand(command)) {
+      flushPassage();
+      const block = [line];
+      while (index + 1 < lines.length && (/^\s/.test(lines[index + 1]) || !lines[index + 1].trim())) {
+        index += 1;
+        block.push(lines[index]);
+      }
+      addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+      continue;
+    }
+
+    const simpleNode = simpleCommandNode(command, line, nodes.length + 1);
+    if (simpleNode) {
+      flushPassage();
+      addNode(simpleNode);
+      continue;
+    }
+
+    pending.push(line);
+  }
+
+  flushPassage();
+
+  if (!nodes.length) {
+    addNode({ type: "passage", title: `${sceneName}_imported`, body: "" });
+  }
+
+  return { nodes, edges };
 }
 
 function createSceneSummaries(sceneNames: string[], activeScene: string, sceneData: Record<string, SceneGraph>): SceneSummary[] {
@@ -162,6 +210,56 @@ function commandName(line: string): string | null {
 
 function commandValue(line: string, command: string): string {
   return line.trim().replace(command, "").trim();
+}
+
+function simpleCommandNode(command: string, line: string, index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
+  const value = commandValue(line, `*${command}`);
+  if (command === "label") return { type: "label", title: `*label ${normalizeIdentifier(value || `label_${index}`)}` };
+  if (command === "goto") return { type: "goto", title: `*goto ${normalizeIdentifier(value || "label")}` };
+  if (command === "goto_scene") return { type: "goto_scene", title: `*goto_scene ${normalizeIdentifier(value || "scene")}`, target: normalizeIdentifier(value || "scene") };
+  if (command === "gosub") return { type: "gosub", title: `*gosub ${value || "subroutine"}` };
+  if (command === "ending") return { type: "ending", title: "*ending" };
+  if (command === "finish") return { type: "finish", title: "*finish" };
+  if (command === "save_checkpoint") return { type: "checkpoint", title: `*save_checkpoint ${normalizeIdentifier(value || `checkpoint_${index}`)}` };
+  if (command === "page_break") return { type: "page_break", title: `*page_break ${value || "Continue"}` };
+  if (command === "comment") return { type: "comment", title: "*comment", body: value || "Imported comment." };
+  if (command === "input_text") return { type: "input_text", title: `*input_text ${normalizeIdentifier(value || "text")}`, inputVar: normalizeIdentifier(value || "text"), body: "Imported text input." };
+  if (command === "input_number") {
+    const [inputVar = "number", inputMin = "0", inputMax = "100"] = value.split(/\s+/);
+    return { type: "input_number", title: `*input_number ${normalizeIdentifier(inputVar)}`, inputVar: normalizeIdentifier(inputVar), inputMin, inputMax, body: "Imported number input." };
+  }
+  if (command === "rand") {
+    const [inputVar = "number", inputMin = "1", inputMax = "100"] = value.split(/\s+/);
+    return { type: "rand", title: `*rand ${normalizeIdentifier(inputVar)}`, inputVar: normalizeIdentifier(inputVar), inputMin, inputMax };
+  }
+  if (command === "set") {
+    const parsed = parseSet(value);
+    return parsed ? { type: "passage", title: `set_${parsed.var}`, sets: [parsed] } : null;
+  }
+  return null;
+}
+
+function parseSet(value: string): VariableSet | null {
+  const match = value.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(%[+-]|[=+-])\s+(.+)$/);
+  if (!match) return null;
+  const [, variable, op, setValue] = match;
+  return { var: variable, op: op as VariableSet["op"], val: setValue.trim() };
+}
+
+function isComplexCommand(command: string): boolean {
+  return ["choice", "fake_choice", "if", "elseif", "else", "selectable_if"].includes(command);
+}
+
+function canAutoFlow(node: StoryNode): boolean {
+  if (["ending", "finish", "goto", "goto_scene"].includes(node.type)) return false;
+  if (node.body?.trim().match(/^\*(choice|fake_choice|if|elseif|else|selectable_if)\b/i)) return false;
+  return true;
+}
+
+function defaultImportedWidth(type: NodeType): number {
+  if (type === "passage") return 340;
+  if (["goto_scene", "checkpoint", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
+  return 240;
 }
 
 function inferVariableType(value: string): VariableSummary["type"] {
