@@ -43,6 +43,7 @@ export interface ProjectActions {
   deleteScene: (id: string) => void;
   addVariable: () => void;
   updateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+  deleteVariable: (name: string) => void;
   addAchievement: () => void;
   updateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   deleteAchievement: (id: string) => void;
@@ -353,6 +354,34 @@ export function useProjectStore() {
         });
       });
     },
+    deleteVariable: (name) => {
+      setTrackedProjectState((current) => {
+        const removed = current.variables.find((variable) => variable.name === name);
+        if (!removed) return current;
+        const variables = current.variables.filter((variable) => variable.name !== name);
+        const inputFallback = variables.find((variable) => variable.type === removed.type) ?? variables[0];
+        return commitProject({
+          ...current,
+          variables,
+          nodes: current.nodes.map((node) => {
+            const inputPatch = node.inputVar === name
+              ? {
+                  inputVar: inputFallback?.name,
+                  title: inputFallback ? replaceInputTitle(node, inputFallback.name) : node.title,
+                }
+              : {};
+            return {
+              ...node,
+              ...inputPatch,
+              sets: node.sets?.filter((set) => set.var !== name),
+              options: node.options?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
+              fakeOptions: node.fakeOptions?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
+              branches: node.branches?.map((branch) => ({ ...branch, sets: branch.sets?.filter((set) => set.var !== name) })),
+            };
+          }),
+        });
+      });
+    },
     addAchievement: () => {
       setTrackedProjectState((current) => {
         const id = nextAvailableName("new_achievement", new Set(current.achievements.map((achievement) => achievement.id)));
@@ -574,6 +603,13 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
 
 function stripCommandPrefix(value: string, command: string): string {
   return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function replaceInputTitle(node: StoryNode, variableName: string): string {
+  if (node.type === "input_text") return `*input_text ${variableName}`;
+  if (node.type === "input_number") return `*input_number ${variableName}`;
+  if (node.type === "rand") return `*rand ${variableName}`;
+  return node.title;
 }
 
 function layoutStoryNodes(project: ChoiceForgeProject): StoryNode[] {

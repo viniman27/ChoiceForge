@@ -15,6 +15,7 @@ interface LeftPanelProps {
   onDeleteScene: (id: string) => void;
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+  onDeleteVariable: (name: string) => void;
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
@@ -38,6 +39,7 @@ export function LeftPanel({
   onDeleteScene,
   onAddVariable,
   onUpdateVariable,
+  onDeleteVariable,
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
@@ -87,7 +89,7 @@ export function LeftPanel({
             onDeleteScene={onDeleteScene}
           />
         )}
-        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} />}
+        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} onDeleteVariable={onDeleteVariable} />}
         {!search.trim() && activeTab === "achievements" && (
           <AchievementsList
             data={data}
@@ -277,17 +279,19 @@ function VariablesList({
   labels,
   onAddVariable,
   onUpdateVariable,
+  onDeleteVariable,
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
+  onDeleteVariable: (name: string) => void;
 }) {
   return (
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th></tr></thead>
+        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th></th></tr></thead>
         <tbody>
           {data.variables.map((variable) => (
             <tr key={variable.name}>
@@ -314,6 +318,7 @@ function VariablesList({
                 </label>
               </td>
               <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
+              <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
             </tr>
           ))}
         </tbody>
