@@ -160,7 +160,7 @@ const praiaNeblina: SceneGraph = {
       title: "mare_subindo",
       body: "A agua sobe rapido demais. Voce consegue sair com uma pista parcial, mas deixa para tras algo importante na gruta.",
     },
-    { id: "n5", type: "goto_scene", x: 1240, y: 165, w: 260, title: "*goto_scene final", target: "final" },
+    { id: "n5", type: "finish", x: 1240, y: 165, w: 220, title: "*finish" },
   ],
   edges: [
     { from: "n1", to: "n2", kind: "flow" },
