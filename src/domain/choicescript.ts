@@ -4,8 +4,8 @@ const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "goto", "goto_
 
 export interface ChoiceForgeExportFile {
   path: string;
-  encoding: "utf-8";
-  content: string;
+  encoding: "utf-8" | "binary";
+  content: string | Uint8Array;
 }
 
 export interface ChoiceForgeExportPackage {
@@ -150,6 +150,40 @@ export function generateProjectJson(project: ChoiceForgeProject): string {
   return `${JSON.stringify(project, null, 2)}\n`;
 }
 
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const separator = dataUrl.indexOf(",");
+  if (separator === -1) return new TextEncoder().encode(dataUrl);
+
+  const header = dataUrl.slice(0, separator);
+  const data = dataUrl.slice(separator + 1);
+
+  if (!header.includes(";base64")) {
+    return new TextEncoder().encode(decodeURIComponent(data));
+  }
+
+  const normalized = data.replace(/\s/g, "");
+  const outputLength = Math.floor((normalized.length * 3) / 4) - (normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0);
+  const bytes = new Uint8Array(Math.max(0, outputLength));
+  let buffer = 0;
+  let bits = 0;
+  let index = 0;
+
+  for (const char of normalized) {
+    if (char === "=") break;
+    const value = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf(char);
+    if (value === -1) continue;
+    buffer = (buffer << 6) | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes[index] = (buffer >> bits) & 0xff;
+      index += 1;
+    }
+  }
+
+  return bytes.slice(0, index);
+}
+
 export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExportPackage {
   const sceneFiles = project.scenes
     .filter((scene) => !scene.special && !scene.isStart && scene.name !== "startup")
@@ -162,8 +196,8 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
     .filter((asset) => asset.dataUrl)
     .map((asset) => ({
       path: `mygame/${asset.path}`,
-      encoding: "utf-8" as const,
-      content: `${asset.dataUrl}\n`,
+      encoding: "binary" as const,
+      content: dataUrlToBytes(asset.dataUrl ?? ""),
     }));
 
   return {

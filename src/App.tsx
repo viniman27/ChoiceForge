@@ -367,7 +367,7 @@ function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]
 
   files.forEach((file) => {
     const name = encoder.encode(file.path);
-    const content = encoder.encode(file.content);
+    const content = typeof file.content === "string" ? encoder.encode(file.content) : file.content;
     const crc = crc32(content);
     const localHeader = concatBytes(
       u32(0x04034b50),
