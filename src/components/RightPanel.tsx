@@ -127,6 +127,10 @@ function ContentTab({
                 </select>
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
+              <label className="toggle-row">
+                <input type="checkbox" checked={Boolean(option.hideReuse)} onChange={(event) => updateOption(node, index, { hideReuse: event.target.checked }, onUpdateNode)} />
+                *hide_reuse
+              </label>
               <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -159,6 +163,10 @@ function ContentTab({
                 </select>
               </div>
               {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
+              <label className="toggle-row">
+                <input type="checkbox" checked={Boolean(option.hideReuse)} onChange={(event) => updateFakeOption(node, index, { hideReuse: event.target.checked }, onUpdateNode)} />
+                *hide_reuse
+              </label>
               <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
