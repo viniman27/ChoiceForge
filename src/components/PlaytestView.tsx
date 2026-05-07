@@ -32,11 +32,18 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
       setSceneName(node.target);
       setNodeId("n1");
     }
+    if (node.type === "finish") {
+      const nextScene = nextPlayableScene(project, sceneName);
+      if (nextScene) {
+        setSceneName(nextScene);
+        setNodeId("n1");
+      }
+    }
     if (node.type === "goto" || node.type === "gosub") {
       const target = graph.edges.find((edge) => edge.from === node.id && edge.kind === "goto")?.to;
       if (target) setNodeId(target);
     }
-  }, [graph.edges, node, project.variables, stats]);
+  }, [graph.edges, node, project, project.variables, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];
   const flowTarget = useMemo(() => (node ? graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to : undefined), [graph.edges, node]);
@@ -112,6 +119,12 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
 
 function getSceneGraph(project: ChoiceForgeProject, sceneName: string): SceneGraph {
   return project.sceneData?.[sceneName] ?? { nodes: project.nodes, edges: project.edges };
+}
+
+function nextPlayableScene(project: ChoiceForgeProject, sceneName: string): string | null {
+  const scenes = project.scenes.filter((scene) => !scene.isStart && !scene.special);
+  const index = scenes.findIndex((scene) => scene.name === sceneName);
+  return index >= 0 ? scenes[index + 1]?.name ?? null : null;
 }
 
 function initialStats(variables: VariableSummary[]): Record<string, string | number | boolean> {
