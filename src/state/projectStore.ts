@@ -631,6 +631,10 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
     const variable = firstVariable(project, "number") ?? project.variables[0]?.name ?? "number";
     return { ...base, title: `*input_number ${variable}`, inputVar: variable, inputMin: "0", inputMax: "100", body: "Enter a number." };
   }
+  if (type === "rand") {
+    const variable = firstVariable(project, "number") ?? project.variables[0]?.name ?? "number";
+    return { ...base, title: `*rand ${variable}`, inputVar: variable, inputMin: "1", inputMax: "100" };
+  }
   return { ...base, title: "*ending" };
 }
 
@@ -651,6 +655,7 @@ function defaultNodeTitle(type: NodeType): string {
     comment: "new_comment",
     input_text: "*input_text",
     input_number: "*input_number",
+    rand: "*rand",
   };
   return titles[type];
 }
@@ -658,7 +663,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice" || type === "fake_choice") return 340;
   if (type === "passage") return 300;
-  if (["checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number"].includes(type)) return 280;
+  if (["checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
   return 240;
 }
 

@@ -16,6 +16,7 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   comment: { dot: "var(--ink-mute)", tint: "var(--paper-3)", label: "*comment" },
   input_text: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_text" },
   input_number: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_number" },
+  rand: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*rand" },
 };
 
 export function NodeIcon({ type }: { type: NodeType }) {
@@ -43,6 +44,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "comment") return <svg {...common}><path d="M2 3h8v5H5l-3 2z" /></svg>;
   if (type === "input_text") return <svg {...common}><path d="M2 3h8M4 3v6M2 9h4" /></svg>;
   if (type === "input_number") return <svg {...common}><path d="M3 3h6M5 3v6M3 9h6M8 5v4" /></svg>;
+  if (type === "rand") return <svg {...common}><path d="M3 3h6v6H3z" /><path d="M5 5h.01M7 7h.01M7 5h.01M5 7h.01" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
 }
 

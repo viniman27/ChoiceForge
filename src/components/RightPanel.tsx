@@ -185,7 +185,7 @@ function ContentTab({
     );
   }
 
-  if (node.type === "input_text" || node.type === "input_number") {
+  if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
     return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
@@ -316,20 +316,24 @@ function InputNodeFields({
   const variables = project.variables.filter((variable) => variable.type === allowedType);
   const fallback = variables[0]?.name ?? project.variables[0]?.name ?? "";
   const current = variables.some((variable) => variable.name === node.inputVar) ? node.inputVar! : fallback;
-  const command = node.type === "input_text" ? "*input_text" : "*input_number";
+  const command = node.type === "input_text" ? "*input_text" : node.type === "input_number" ? "*input_number" : "*rand";
 
   return (
     <div className="ip-content">
-      <label className="ip-label">prompt text</label>
-      <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+      {node.type !== "rand" && (
+        <>
+          <label className="ip-label">prompt text</label>
+          <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+        </>
+      )}
       <label className="ip-label">target variable</label>
       <select className="command-input" value={current} onChange={(event) => onUpdateNode(node.id, { inputVar: event.target.value, title: `${command} ${event.target.value}` })}>
         {!variables.length && <option value={fallback}>{fallback || "no variable"}</option>}
         {variables.map((variable) => <option key={variable.name} value={variable.name}>{variable.name}</option>)}
       </select>
-      {node.type === "input_number" && (
+      {(node.type === "input_number" || node.type === "rand") && (
         <div className="ip-set-row">
-          <input value={node.inputMin ?? "0"} inputMode="decimal" aria-label="minimum value" onChange={(event) => onUpdateNode(node.id, { inputMin: event.target.value })} />
+          <input value={node.inputMin ?? (node.type === "rand" ? "1" : "0")} inputMode="decimal" aria-label="minimum value" onChange={(event) => onUpdateNode(node.id, { inputMin: event.target.value })} />
           <input value={node.inputMax ?? "100"} inputMode="decimal" aria-label="maximum value" onChange={(event) => onUpdateNode(node.id, { inputMax: event.target.value })} />
         </div>
       )}

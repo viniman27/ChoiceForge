@@ -18,7 +18,8 @@ export type NodeType =
   | "page_break"
   | "comment"
   | "input_text"
-  | "input_number";
+  | "input_number"
+  | "rand";
 
 export interface SceneSummary {
   id: string;
