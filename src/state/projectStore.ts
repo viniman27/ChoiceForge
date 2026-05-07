@@ -657,9 +657,6 @@ function reorderScenesFromStartup(scenes: SceneSummary[], sceneNames: string[], 
   const stats = scenes.find((scene) => scene.special) ?? { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true };
   const existing = new Map(scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => [scene.name, scene]));
   const orderedNames = sceneNames.length ? sceneNames : [...existing.keys()];
-  existing.forEach((_scene, name) => {
-    if (!orderedNames.includes(name)) orderedNames.push(name);
-  });
   return [
     startup,
     ...orderedNames.map((name) => ({
