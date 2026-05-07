@@ -157,7 +157,12 @@ export default function App() {
         }, lang)}
         onExport={() => downloadGeneratedProject(lintedProject)}
         onResetProject={() => {
+          const confirmed = window.confirm(lang === "pt"
+            ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
+            : "Reset replaces the locally saved project with the starter sample. Continue?");
+          if (!confirmed) return;
           actions.resetProject(lang);
+          setSaveStatus(formatSaveStatus(lang));
           setGeneratedDocumentId(null);
           setPlayOpen(false);
           setSelectedId("n3");
