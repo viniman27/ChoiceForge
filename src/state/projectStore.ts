@@ -352,14 +352,16 @@ export function useProjectStore() {
         delete sceneData[scene.name];
         const scenes = saved.scenes.filter((candidate) => candidate.id !== id);
         const fallback = scenes.find((candidate) => !candidate.isStart && !candidate.special);
-        const graph = fallback ? sceneData[fallback.name] ?? createEmptySceneGraph(fallback.name) : { nodes: saved.nodes, edges: saved.edges };
+        const retargetedSceneData = fallback ? retargetGotoSceneReferences(sceneData, scene.name, fallback.name) : sceneData;
+        const activeSceneName = saved.sceneTitle === scene.name ? fallback?.name ?? saved.sceneTitle : saved.sceneTitle;
+        const graph = retargetedSceneData[activeSceneName] ?? (fallback ? createEmptySceneGraph(fallback.name) : { nodes: saved.nodes, edges: saved.edges });
         return commitProject({
           ...saved,
-          scenes: scenes.map((candidate) => ({ ...candidate, current: fallback?.id === candidate.id })),
-          sceneData,
-          sceneTitle: fallback?.name ?? saved.sceneTitle,
-          nodes: saved.sceneTitle === scene.name ? graph.nodes : saved.nodes,
-          edges: saved.sceneTitle === scene.name ? graph.edges : saved.edges,
+          scenes: scenes.map((candidate) => ({ ...candidate, current: candidate.name === activeSceneName })),
+          sceneData: retargetedSceneData,
+          sceneTitle: activeSceneName,
+          nodes: graph.nodes,
+          edges: graph.edges,
         });
       });
     },
@@ -841,6 +843,16 @@ function renameSceneGraphKey(sceneData: Record<string, SceneGraph>, from: string
   next[to] = next[from] ?? createEmptySceneGraph(to);
   delete next[from];
   return Object.fromEntries(Object.entries(next).map(([sceneName, graph]) => [
+    sceneName,
+    {
+      nodes: graph.nodes.map((node) => (node.type === "goto_scene" && node.target === from ? { ...node, target: to, title: `*goto_scene ${to}` } : node)),
+      edges: graph.edges,
+    },
+  ]));
+}
+
+function retargetGotoSceneReferences(sceneData: Record<string, SceneGraph>, from: string, to: string): Record<string, SceneGraph> {
+  return Object.fromEntries(Object.entries(sceneData).map(([sceneName, graph]) => [
     sceneName,
     {
       nodes: graph.nodes.map((node) => (node.type === "goto_scene" && node.target === from ? { ...node, target: to, title: `*goto_scene ${to}` } : node)),
