@@ -15,27 +15,28 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ### Done
 - Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
-- Real-time linter (`lintProject`) covering orphan nodes, missing labels, undefined variables, dead-end nodes, empty choices, invalid `*goto_scene` targets
-- Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave
+- Real-time linter (`lintProject`) runs across every playable scene and covers orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, invalid `*goto_scene` targets, input bounds, and invalid stat operators
+- Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
 - Per-scene graph persistence via `sceneData` — each scene has independent nodes/edges
 - Scene CRUD: create, rename (with cross-reference updates), duplicate, delete, reorder
-- Variable CRUD with rename propagation across all node bodies, conditions, and set expressions
-- Achievement CRUD
+- Variable CRUD with rename/delete propagation across all saved scene graphs
+- Achievement CRUD with rename/delete propagation for `*achieve` commands across all saved scene graphs
+- Asset CRUD with real file import stored as `dataUrl` and exported as binary package entries
 - Auto-layout (hierarchical by topological depth)
-- Export package: generates `startup.txt`, per-scene `.txt` files, and `project.json`
+- Export package: generates `_choiceforge/project.json`, `startup.txt`, `choicescript_stats.txt`, per-scene `.txt` files, and imported asset files inside a `.zip`
+- Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`
+- Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes
+- Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
+- Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Sample project in both PT and EN (`src/data/sampleProject.ts`)
 - Bilingual UI (PT/EN) via `I18nLabels` type in `types.ts`
 
 ### Not Yet Implemented
-- Parser: importing existing ChoiceScript `.txt` files back into the graph (no AST parser exists)
+- Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
 - Inline text editor with syntax highlighting (CodeMirror/Monaco — not yet integrated)
-- Play-test window with the official ChoiceScript runtime
-- Stats screen editor (`choicescript_stats.txt`)
-- Asset/image management
+- Play-test with the official ChoiceScript runtime
 - Global search (Ctrl+Shift+F)
-- `*fake_choice`, `*input_text`, `*input_number`, `*rand`, `*page_break`, `*comment` node types
 - `*disable_reuse` / `*allow_reuse` on choice options (only `*hide_reuse` is modeled)
-- Fairmath operators (`%+` / `%-`) in the UI (the type exists but no visual builder)
 - Git integration, version history, snapshots
 - Desktop packaging (Tauri/Electron)
 
@@ -48,7 +49,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 | Framework | React 19 + TypeScript 5.8 |
 | Build | Vite 4 |
 | State | React `useState` + `useMemo` (no external state library) |
-| Persistence | `localStorage` (key: `choiceforge.project.v2`) |
+| Persistence | `localStorage` (key: `choiceforge.project.v2`), manual Save, Ctrl/Cmd+S, autosave debounce, pagehide flush |
 | Deployment | Cloudflare Pages (`npm run cf:deploy`) |
 | Tests | None yet |
 
@@ -71,7 +72,7 @@ src/
     sampleProject.ts  ← Sample ChoiceForgeProject for PT and EN languages.
   components/
     App.tsx           ← Root layout: TopBar, LeftPanel, GraphCanvas, RightPanel, BottomBar
-    TopBar.tsx        ← Export, play, language toggle, project title
+    TopBar.tsx        ← Save, import/export, play, language/theme/density toggles, project title/author
     BottomBar.tsx     ← Lint issue list, encoding/indent status
     LeftPanel.tsx     ← Scenes / Variables / Achievements tabs
     GraphCanvas.tsx   ← The node canvas (SVG/div-based, custom pan/zoom)
@@ -106,7 +107,14 @@ Agents must understand these before touching logic or generating code.
 | `goto_scene` | `*goto_scene scene_name` — ends current scene, jumps to another. |
 | `gosub` | `*gosub label` — calls a subroutine. |
 | `ending` | `*ending` — game over / play again screen. |
+| `finish` | `*finish` — advances to the next scene in `*scene_list`. |
 | `checkpoint` | `*save_checkpoint name`. |
+| `fake_choice` | `*fake_choice` block; options continue after their inline content. |
+| `page_break` | `*page_break label`. |
+| `comment` | One or more `*comment` lines. |
+| `input_text` | Prompt body plus `*input_text variable`. |
+| `input_number` | Prompt body plus `*input_number variable min max`. |
+| `rand` | `*rand variable min max`. |
 
 ### Edge kinds
 
@@ -135,12 +143,14 @@ Conditions appear in `*if`, `*elseif`, and `*selectable_if` / `*if` guards on ch
 ## Key Invariants — Never Break These
 
 1. **`choicescript.ts` is pure.** No imports from React, no DOM access, no side-effects.
-2. **`commitProject` must be called on every state mutation.** It runs `syncDerivedEdges → updateSceneCounts → persistActiveScene`. Skipping it causes stale derived data.
+2. **`commitProject` must be called on every project state mutation.** It runs `syncDerivedEdges → updateSceneCounts → persistActiveScene`. Skipping it causes stale derived data.
 3. **The active scene's graph always lives in `project.nodes` + `project.edges`**, and is also mirrored in `project.sceneData[project.sceneTitle]`. Both must stay in sync — `persistActiveScene` does this.
 4. **`startup` and `special` scenes are locked.** `isStart` and `special` scenes cannot be renamed, deleted, or navigated to as a graph. The store enforces this — keep it.
 5. **Exported `.txt` files must be UTF-8** and produce zero errors in the official ChoiceScript runner. When changing `generateNodeChoiceScript` or `generateStartupChoiceScript`, verify output manually against the ChoiceScript spec.
 6. **Scene names and variable names are identifiers.** Use `normalizeIdentifier()` (lowercase, underscores only, no leading digits) before persisting user-typed names. Never skip this.
 7. **Node IDs are stable references.** Choice `option.to`, branch `branch.to`, and edge `from`/`to` all reference node IDs. When deleting a node, clean up all references — the `deleteNode` action in the store already does this.
+8. **Global rename/delete operations must touch every saved graph.** Variables, achievements, and scene references can exist in inactive `sceneData` entries; do not update only `project.nodes`.
+9. **Save semantics are local-first.** Autosave and manual Save write the full project snapshot to `localStorage`. Export is a separate ChoiceScript/ChoiceForge zip package.
 
 ---
 
@@ -189,16 +199,19 @@ newAction: (param) => {
 
 ## Export Format
 
-`createExportPackage()` returns a `ChoiceForgeExportPackage` with a `files[]` array. The UI serializes this to a `.zip` download. File paths mirror the ChoiceScript web runner layout:
+`createExportPackage()` returns a `ChoiceForgeExportPackage` with a `files[]` array. The UI serializes this to a `.zip` download. File paths mirror the ChoiceScript web runner layout plus a ChoiceForge metadata directory:
 
 ```
-project.json          ← ChoiceForge metadata (full project state)
+_choiceforge/
+  project.json        ← ChoiceForge metadata (full project state)
 mygame/
   startup.txt         ← title, author, scene_list, creates, achievements
+  choicescript_stats.txt
   <scene_name>.txt    ← one file per non-startup, non-special scene
+  <asset paths>       ← imported assets as binary files when `dataUrl` exists
 ```
 
-`choicescript_stats.txt` is not yet generated (stats screen not implemented).
+Imported ChoiceForge zips are restored from `_choiceforge/project.json` when present. Plain ChoiceScript zips are parsed by the pragmatic importer in `choicescriptImport.ts`.
 
 ---
 
@@ -206,11 +219,11 @@ mygame/
 
 In rough order of value:
 
-1. **ChoiceScript parser** — importing existing `.txt` files. Blocking for real users who have existing projects.
+1. **Full ChoiceScript parser/AST** — current import is useful but incomplete for complex existing projects.
 2. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
-3. **`*fake_choice`, `*page_break`, `*input_text` node types** — common commands missing from the canvas.
-4. **Stats screen editor** — `choicescript_stats.txt` generation.
-5. **Play-test integration** — embed the official ChoiceScript runtime in an iframe using the exported files via `Blob` URLs.
+3. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
+4. **Global search/navigation** — Ctrl+Shift+F across scenes, variables, achievements, and assets.
+5. **More complete ChoiceScript commands** — reuse modes beyond `*hide_reuse`, more expression helpers, subroutine ergonomics.
 
 ---
 
@@ -234,7 +247,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 - Drag starts on `.anchor-out` (bottom-right of each card) → fires `onConnectStart`.
 - Drop target detection uses `document.elementFromPoint` on `pointerup`, checking for `.anchor-in[data-node-id]`.
 - `onConnectEnd` on `NodeCard` is also wired to handle drops when the pointer releases directly on a card.
-- Only nodes whose type is NOT in `["choice", "if", "ending", "goto", "goto_scene"]` can start a flow connection.
+- Only exportable flow nodes can start manual flow connections. Terminal/derived-output nodes such as `choice`, `if`, `ending`, `finish`, `goto`, and `goto_scene` are restricted because their outgoing behavior comes from node-specific data.
 
 ### Zoom and pan
 - Zoom range: `0.25` – `2.5`. Ctrl+wheel zooms centered on the pointer; plain wheel pans.
@@ -247,16 +260,23 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 
 ---
 
-## Known Hardcoded Placeholders
+## Persistence
 
-These look like real data but are not — do not try to wire them up without implementing the underlying feature first:
+- The working project is stored in browser `localStorage` under `choiceforge.project.v2`.
+- Autosave writes the current project after a short debounce whenever React project state changes.
+- Manual Save in `TopBar` and Ctrl/Cmd+S call `actions.saveNow()`, which commits the active scene graph and writes immediately.
+- A `pagehide` / `visibilitychange` flush writes the latest project when the tab is closed, hidden, or navigated away.
+- This is not cloud sync and not a file backup. Export remains the portable zip format.
 
-| Location | What | Status |
-|----------|------|--------|
-| `GraphCanvas.tsx` lines 208–214 | Sticky notes and regions | Hardcoded mock; not data-driven |
-| `LeftPanel.tsx` `AssetsList()` | Four fake asset filenames | Mock; no real asset import |
-| `RightPanel.tsx` `ip-meta` | Scene name shows `"intro_grid"` | Hardcoded string, should come from `project.sceneTitle` |
-| `RightPanel.tsx` `ip-footer` | `linterPasses` always shown green | Not actually checking the selected node's lints |
+## Known UI Gaps
+
+| Area | Status |
+|------|--------|
+| Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
+| Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
+| Import parser | Handles common/simple ChoiceScript commands, not a full AST or full language roundtrip |
+| Global search | Not implemented |
+| Git/version history | Not implemented beyond browser undo history |
 
 ---
 
@@ -266,11 +286,11 @@ Things that look wrong but are intentional, or are easy to break silently:
 
 - **`normalizeIdentifier` is defined in three places** (`projectStore.ts`, `LeftPanel.tsx`, `RightPanel.tsx`). This is intentional — components own their local input normalization to avoid importing from the store. Don't consolidate into a shared util without checking that the import doesn't pull store dependencies into components.
 
-- **`RawTab` calls `generateNodeChoiceScript(node)` without edges.** The raw preview shows the node in isolation, so flow `*goto` lines won't appear. This is by design — the tab is meant to show the node's intrinsic output.
+- **`RawTab` calls `generateNodeChoiceScript(node, project.edges)`.** It can show flow `*goto` lines for the current scene, but it is still a node-level preview, not a whole-scene export.
 
 - **`typeColors` in `NodeCard.tsx` is the single source of truth for node colors.** CSS variables like `--c-passage`, `--c-choice`, etc. are set globally; `typeColors` maps types to those vars. Never hardcode color values for nodes — always go through `typeColors[node.type]`.
 
-- **The `if` node inspector has no add/remove branch buttons.** You can edit existing branch expressions and targets, but adding a third branch (`*elseif`) or removing one requires direct node update via `onUpdateNode`. This is a known UI gap, not a bug.
+- **The `if` node inspector has branch target/effect editing but still limited branch structure controls.** Be careful when changing branch UX because stat effects are intentionally scoped to the branch that wins.
 
 - **`syncDerivedEdges` runs on every `commitProject` call**, so `choice`, `goto`, and `if` edges are always recomputed from node data. If you add a new node type with derived edges, add a case in `deriveNodeEdges()` — otherwise the edges will never appear even if the data is correct.
 
@@ -289,9 +309,9 @@ The original design document (`prompt_editor_visual_choicescript (1).md`) descri
 | CodeMirror 6 / Monaco in node editor | Plain `<textarea>` in RightPanel |
 | Zustand or Redux Toolkit | React `useState` + `useMemo` only |
 | Vitest + Playwright tests, 70% coverage | No tests yet |
-| Parser (import `.txt` → graph) | Not implemented |
-| Play-test with official runtime | Not implemented |
-| Stats screen editor | Not implemented |
+| Parser (import `.txt` → graph) | Partially implemented pragmatic importer, not full AST |
+| Play-test with official runtime | Not implemented; internal graph playtest exists |
+| Stats screen editor | Basic editable generated `choicescript_stats.txt`, no rich stats-screen designer |
 | Git integration, version history | Not implemented |
 | i18n in ES (Spanish) | Only PT + EN |
 

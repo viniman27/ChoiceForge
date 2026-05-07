@@ -62,6 +62,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
             onKeyDown={(event) => {
               if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "s") return;
               event.preventDefault();
+              event.stopPropagation();
               saveDraft();
             }}
           />

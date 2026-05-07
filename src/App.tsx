@@ -39,6 +39,7 @@ export default function App() {
   const [playOpen, setPlayOpen] = useState(false);
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
+  const [saveStatus, setSaveStatus] = useState("");
   const { lintedProject, actions } = useProjectStore();
 
   useEffect(() => {
@@ -80,6 +81,12 @@ export default function App() {
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        actions.saveNow();
+        setSaveStatus(formatSaveStatus(lang));
+        return;
+      }
       if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
       if (isTypingTarget(event.target)) return;
       event.preventDefault();
@@ -90,7 +97,13 @@ export default function App() {
     };
     window.addEventListener("keydown", keyDown);
     return () => window.removeEventListener("keydown", keyDown);
-  }, [actions]);
+  }, [actions, lang]);
+
+  useEffect(() => {
+    if (!saveStatus) return;
+    const handle = window.setTimeout(() => setSaveStatus(""), 3500);
+    return () => window.clearTimeout(handle);
+  }, [saveStatus]);
 
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
@@ -122,6 +135,11 @@ export default function App() {
           setGeneratedDocumentId(null);
           setPlayOpen(false);
         }}
+        onSave={() => {
+          actions.saveNow();
+          setSaveStatus(formatSaveStatus(lang));
+        }}
+        saveStatus={saveStatus}
         onTextMode={() => {
           setPlayOpen(false);
           setGeneratedDocumentId((current) => (current === "scene" ? null : "scene"));
@@ -298,6 +316,15 @@ function clamp(value: number, min: number, max: number) {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function formatSaveStatus(lang: Language): string {
+  const time = new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date());
+  return lang === "pt" ? `Salvo localmente ${time}` : `Saved locally ${time}`;
 }
 
 function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgeProject) {

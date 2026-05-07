@@ -14,6 +14,8 @@ interface TopBarProps {
   canUndo: boolean;
   textModeActive: boolean;
   onUndo: () => void;
+  onSave: () => void;
+  saveStatus: string;
   onTextMode: () => void;
   onPlay: () => void;
   onImport: (file: File) => void;
@@ -21,7 +23,7 @@ interface TopBarProps {
   onResetProject: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, textModeActive, onUndo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -75,6 +77,8 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         </select>
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
+        <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : "Save"}</button>
+        {saveStatus && <span className="save-status">{saveStatus}</span>}
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
         <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
           {lang === "pt" ? "Importar" : "Import"}

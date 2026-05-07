@@ -22,9 +22,14 @@ function loadInitialProject(): ChoiceForgeProject {
   }
 }
 
+function saveProjectSnapshot(project: ChoiceForgeProject) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+}
+
 export interface ProjectActions {
   canUndo: boolean;
   undo: () => void;
+  saveNow: () => void;
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
   replaceCurrentSceneText: (content: string) => void;
@@ -79,10 +84,23 @@ export function useProjectStore() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+      saveProjectSnapshot(project);
     }, 400);
 
     return () => window.clearTimeout(handle);
+  }, [project]);
+
+  useEffect(() => {
+    const flush = () => saveProjectSnapshot(project);
+    const visibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", visibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", visibilityChange);
+    };
   }, [project]);
 
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);
@@ -97,12 +115,19 @@ export function useProjectStore() {
       setHistoryLength(nextHistory.length);
       const restored = commitProject(hydrateProject(cloneProject(previous)));
       setProjectState(restored);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+      saveProjectSnapshot(restored);
+    },
+    saveNow: () => {
+      setProjectState((current) => {
+        const saved = commitProject(current);
+        saveProjectSnapshot(saved);
+        return saved;
+      });
     },
     setProject: (nextProject) => {
       const syncedProject = commitProject(hydrateProject(nextProject));
       setTrackedProjectState(syncedProject);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedProject));
+      saveProjectSnapshot(syncedProject);
     },
     updateMetadata: (patch) => {
       setTrackedProjectState((current) => commitProject({ ...current, ...patch }));
@@ -130,7 +155,7 @@ export function useProjectStore() {
     resetProject: (language) => {
       const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
       setTrackedProjectState(fresh);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      saveProjectSnapshot(fresh);
       return fresh;
     },
     selectScene: (id) => {
