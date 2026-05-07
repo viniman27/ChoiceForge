@@ -254,6 +254,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   ]);
   const variables = new Set(project.variables.map((variable) => variable.name));
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
+  const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
@@ -282,6 +283,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+    });
+
+    extractAchievementCommands(node.body ?? "").forEach((id) => {
+      if (!achievements.has(id)) issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, scene: sceneName, node: node.id });
     });
 
     node.options?.forEach((option, index) => {
@@ -465,6 +470,10 @@ function lintExpression(expression: string | undefined, variables: Set<string>, 
 
 function extractVariableReferences(text: string): string[] {
   return [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((match) => match[1]);
+}
+
+function extractAchievementCommands(text: string): string[] {
+  return [...text.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
 }
 
 function extractExpressionNames(expression: string): string[] {

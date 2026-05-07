@@ -429,20 +429,43 @@ export function useProjectStore() {
     },
     updateAchievement: (id, patch) => {
       setTrackedProjectState((current) => {
+        const saved = commitProject(current);
         const nextId = patch.id ? normalizeIdentifier(patch.id) : undefined;
+        const shouldRename = Boolean(nextId && nextId !== id);
+        const sceneData = shouldRename
+          ? mapSceneGraphs(saved, (graph) => ({
+              ...graph,
+              nodes: graph.nodes.map((node) => renameNodeAchievement(node, id, nextId!)),
+            }))
+          : saved.sceneData;
+        const activeGraph = sceneData?.[saved.sceneTitle];
         return commitProject({
-          ...current,
-          achievements: current.achievements.map((achievement) => (
+          ...saved,
+          achievements: saved.achievements.map((achievement) => (
             achievement.id === id ? { ...achievement, ...patch, id: nextId || achievement.id } : achievement
           )),
+          sceneData,
+          nodes: shouldRename ? activeGraph?.nodes ?? saved.nodes.map((node) => renameNodeAchievement(node, id, nextId!)) : saved.nodes,
+          edges: shouldRename ? activeGraph?.edges ?? saved.edges : saved.edges,
         });
       });
     },
     deleteAchievement: (id) => {
-      setTrackedProjectState((current) => commitProject({
-        ...current,
-        achievements: current.achievements.filter((achievement) => achievement.id !== id),
-      }));
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        const sceneData = mapSceneGraphs(saved, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((node) => removeNodeAchievement(node, id)),
+        }));
+        const activeGraph = sceneData[saved.sceneTitle];
+        return commitProject({
+          ...saved,
+          achievements: saved.achievements.filter((achievement) => achievement.id !== id),
+          sceneData,
+          nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeAchievement(node, id)),
+          edges: activeGraph?.edges ?? saved.edges,
+        });
+      });
     },
     addAsset: () => {
       setTrackedProjectState((current) => {
@@ -535,6 +558,32 @@ function removeNodeVariable(node: StoryNode, name: string, inputFallback: Variab
     fakeOptions: node.fakeOptions?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
     branches: node.branches?.map((branch) => ({ ...branch, sets: branch.sets?.filter((set) => set.var !== name) })),
   };
+}
+
+function renameNodeAchievement(node: StoryNode, from: string, to: string): StoryNode {
+  return {
+    ...node,
+    body: node.body ? replaceAchievementCommand(node.body, from, to) : node.body,
+  };
+}
+
+function removeNodeAchievement(node: StoryNode, id: string): StoryNode {
+  return {
+    ...node,
+    body: node.body ? removeAchievementCommand(node.body, id) : node.body,
+  };
+}
+
+function replaceAchievementCommand(body: string, from: string, to: string): string {
+  return body.replace(new RegExp(`(^\\s*\\*achieve\\s+)${escapeRegex(from)}(\\s*$)`, "gim"), `$1${to}$2`);
+}
+
+function removeAchievementCommand(body: string, id: string): string {
+  return body
+    .split("\n")
+    .filter((line) => !new RegExp(`^\\s*\\*achieve\\s+${escapeRegex(id)}\\s*$`, "i").test(line))
+    .join("\n")
+    .trimEnd();
 }
 
 function nextAvailableName(base: string, existing: Set<string>): string {
