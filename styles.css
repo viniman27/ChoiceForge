@@ -127,6 +127,31 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
 .brand-name { font-family: var(--ff-mono); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .brand-project { font-size: 11px; color: var(--ink-mute); font-family: var(--ff-mono); }
+.brand-project-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.brand-project-edit input {
+  width: clamp(72px, 9vw, 170px);
+  min-width: 0;
+  padding: 1px 2px;
+  border: 1px solid transparent;
+  border-radius: var(--r-1);
+  background: transparent;
+  color: var(--ink-mute);
+  font: inherit;
+}
+.brand-project-edit input:focus {
+  border-color: var(--paper-edge);
+  background: var(--paper-1);
+  color: var(--ink);
+  outline: none;
+}
 .bread { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .bread code { font-size: 12px; padding: 2px 6px; background: var(--paper-3); border-radius: var(--r-1); }
 .top-actions { display: flex; align-items: center; gap: 6px; }

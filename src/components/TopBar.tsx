@@ -10,6 +10,7 @@ interface TopBarProps {
   onThemeChange: (theme: Theme) => void;
   onDensityChange: (density: Density) => void;
   onViewChange: (view: EditorView) => void;
+  onMetadataChange: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
   canUndo: boolean;
   textModeActive: boolean;
   onUndo: () => void;
@@ -20,7 +21,7 @@ interface TopBarProps {
   onResetProject: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, textModeActive, onUndo, onTextMode, onPlay, onImport, onExport, onResetProject }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -32,7 +33,19 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         </div>
         <div className="brand-text">
           <span className="brand-name">ChoiceForge</span>
-          <span className="brand-project">{data.title} <span className="dim">/ {data.author}</span></span>
+          <span className="brand-project-edit">
+            <input
+              value={data.title}
+              aria-label="project title"
+              onChange={(event) => onMetadataChange({ title: event.target.value, author: data.author })}
+            />
+            <span className="dim">/</span>
+            <input
+              value={data.author}
+              aria-label="project author"
+              onChange={(event) => onMetadataChange({ title: data.title, author: event.target.value })}
+            />
+          </span>
         </div>
       </div>
 

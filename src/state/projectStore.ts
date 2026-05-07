@@ -25,6 +25,7 @@ export interface ProjectActions {
   canUndo: boolean;
   undo: () => void;
   setProject: (project: ChoiceForgeProject) => void;
+  updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
@@ -95,6 +96,9 @@ export function useProjectStore() {
       const syncedProject = commitProject(hydrateProject(nextProject));
       setTrackedProjectState(syncedProject);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedProject));
+    },
+    updateMetadata: (patch) => {
+      setTrackedProjectState((current) => commitProject({ ...current, ...patch }));
     },
     resetProject: (language) => {
       const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));

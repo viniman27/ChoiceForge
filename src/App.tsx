@@ -112,6 +112,7 @@ export default function App() {
         onThemeChange={setTheme}
         onDensityChange={setDensity}
         onViewChange={setView}
+        onMetadataChange={actions.updateMetadata}
         canUndo={actions.canUndo}
         textModeActive={generatedDocumentId === "scene"}
         onUndo={() => {
