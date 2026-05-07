@@ -77,8 +77,9 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
 export function generateSceneChoiceScript(project: ChoiceForgeProject, sceneName = project.sceneTitle): string {
   const graph = getSceneGraph(project, sceneName);
+  const edges = mergeGraphEdges(graph.edges, deriveNodeEdges(graph.nodes));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
-  graph.edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));
+  edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));
 
   return [...graph.nodes]
     .sort((a, b) => {
@@ -232,6 +233,7 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
 
 export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   const issues: LintIssue[] = [];
+  const edges = mergeGraphEdges(project.edges, deriveNodeEdges(project.nodes));
   const nodeIds = new Set(project.nodes.map((node) => node.id));
   const labels = new Set([
     ...project.nodes.map((node) => generatedNodeLabel(node.id)),
@@ -243,7 +245,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   const outgoing = new Map(project.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(project.nodes.map((node) => [node.id, 0]));
 
-  project.edges.forEach((edge) => {
+  edges.forEach((edge) => {
     if (!nodeIds.has(edge.from)) {
       issues.push({ level: "error", msg: `edge starts from a missing node: ${edge.from}`, scene: project.sceneTitle });
     }
@@ -312,6 +314,61 @@ function generateSet(set: VariableSet): string {
 
 function generatedNodeLabel(id: string): string {
   return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+}
+
+function mergeGraphEdges(...edgeGroups: StoryEdge[][]): StoryEdge[] {
+  const seen = new Set<string>();
+  return edgeGroups.flat().filter((edge) => {
+    const key = `${edge.from}:${edge.to}:${edge.kind}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const labels = new Map(
+    nodes
+      .filter((node) => node.type === "label")
+      .map((node) => [stripCommandPrefix(node.title, "*label"), node.id]),
+  );
+
+  return nodes.flatMap((node): StoryEdge[] => {
+    if (node.type === "choice") {
+      return (node.options ?? [])
+        .filter((option) => nodeIds.has(option.to))
+        .map((option, index) => ({
+          from: node.id,
+          to: option.to,
+          kind: "choice",
+          label: `#${index + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
+        }));
+    }
+
+    if (node.type === "if") {
+      return (node.branches ?? [])
+        .filter((branch) => nodeIds.has(branch.to))
+        .map((branch) => ({
+          from: node.id,
+          to: branch.to,
+          kind: branch.kind,
+          label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
+        }));
+    }
+
+    if (node.type === "goto") {
+      const target = labels.get(stripCommandPrefix(node.title, "*goto"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*goto" }] : [];
+    }
+
+    if (node.type === "gosub") {
+      const target = labels.get(stripCommandPrefix(node.title, "*gosub"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*gosub" }] : [];
+    }
+
+    return [];
+  });
 }
 
 function getSceneGraph(project: ChoiceForgeProject, sceneName: string): SceneGraph {
