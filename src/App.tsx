@@ -259,7 +259,19 @@ export default function App() {
         onAddFlowEdge={actions.addFlowEdge}
         onDeleteFlowEdge={actions.deleteFlowEdge}
       />
-      <BottomBar data={lintedProject} labels={i18n[lang]} onSelectNode={setSelectedId} />
+      <BottomBar
+        data={lintedProject}
+        labels={i18n[lang]}
+        onSelectIssue={(sceneName, nodeId) => {
+          const scene = lintedProject.scenes.find((candidate) => candidate.name === sceneName);
+          setGeneratedDocumentId(null);
+          setPlayOpen(false);
+          if (scene && !scene.isStart && !scene.special && scene.name !== lintedProject.sceneTitle) {
+            actions.selectScene(scene.id);
+          }
+          setSelectedId(nodeId);
+        }}
+      />
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
     </div>
   );

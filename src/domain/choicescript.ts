@@ -233,79 +233,89 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
 
 export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   const issues: LintIssue[] = [];
-  const edges = mergeGraphEdges(project.edges, deriveNodeEdges(project.nodes));
-  const nodeIds = new Set(project.nodes.map((node) => node.id));
+  const sceneNames = project.scenes
+    .filter((scene) => !scene.isStart && !scene.special)
+    .map((scene) => scene.name);
+
+  sceneNames.forEach((sceneName) => {
+    lintSceneGraph(project, getSceneGraph(project, sceneName), sceneName, issues);
+  });
+
+  issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
+  return issues;
+}
+
+function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {
+  const edges = mergeGraphEdges(graph.edges, deriveNodeEdges(graph.nodes));
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
   const labels = new Set([
-    ...project.nodes.map((node) => generatedNodeLabel(node.id)),
-    ...project.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
+    ...graph.nodes.map((node) => generatedNodeLabel(node.id)),
+    ...graph.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
   ]);
   const variables = new Set(project.variables.map((variable) => variable.name));
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
-  const scenes = new Set(project.scenes.map((scene) => scene.name));
-  const outgoing = new Map(project.nodes.map((node) => [node.id, 0]));
-  const incoming = new Map(project.nodes.map((node) => [node.id, 0]));
+  const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
+  const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
+  const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
 
   edges.forEach((edge) => {
     if (!nodeIds.has(edge.from)) {
-      issues.push({ level: "error", msg: `edge starts from a missing node: ${edge.from}`, scene: project.sceneTitle });
+      issues.push({ level: "error", msg: `edge starts from a missing node: ${edge.from}`, scene: sceneName });
     }
     if (!nodeIds.has(edge.to)) {
-      issues.push({ level: "error", msg: `edge points to a missing node: ${edge.to}`, scene: project.sceneTitle });
+      issues.push({ level: "error", msg: `edge points to a missing node: ${edge.to}`, scene: sceneName });
     }
     outgoing.set(edge.from, (outgoing.get(edge.from) ?? 0) + 1);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   });
 
-  project.nodes.forEach((node) => {
+  graph.nodes.forEach((node) => {
     if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, scene: sceneName, node: node.id });
     }
 
     if (!TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if" && (outgoing.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "info", msg: `node "${node.title}" has no visual output`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "info", msg: `node "${node.title}" has no visual output`, scene: sceneName, node: node.id });
     }
 
-    node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
+    node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
-      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: project.sceneTitle, node: node.id });
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
 
     node.options?.forEach((option, index) => {
-      if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: project.sceneTitle, node: node.id });
-      if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: project.sceneTitle, node: node.id });
-      lintCondition(option.cond, variables, issues, project.sceneTitle, node.id);
-      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
+      if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
+      if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
+      lintCondition(option.cond, variables, issues, sceneName, node.id);
+      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
     });
 
     node.fakeOptions?.forEach((option, index) => {
-      if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: project.sceneTitle, node: node.id });
-      lintCondition(option.cond, variables, issues, project.sceneTitle, node.id);
-      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
+      if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
+      lintCondition(option.cond, variables, issues, sceneName, node.id);
+      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
     });
 
     node.branches?.forEach((branch) => {
-      if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: project.sceneTitle, node: node.id });
-      lintExpression(branch.expr, variables, issues, project.sceneTitle, node.id);
-      branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
+      if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: sceneName, node: node.id });
+      lintExpression(branch.expr, variables, issues, sceneName, node.id);
+      branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
     });
 
     if (node.type === "goto_scene" && node.target && !scenes.has(node.target)) {
-      issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${node.target}`, scene: project.sceneTitle, node: node.id });
+      issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${node.target}`, scene: sceneName, node: node.id });
     }
 
     if (node.type === "goto") {
       const label = stripCommandPrefix(node.title, "*goto");
-      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: project.sceneTitle, node: node.id });
+      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: sceneName, node: node.id });
     }
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
-      lintInputNode(node, variables, variableTypes, issues, project.sceneTitle);
+      lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
   });
-
-  issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
-  return issues;
 }
 
 function generateSet(set: VariableSet): string {

@@ -1,6 +1,14 @@
 import type { ChoiceForgeProject, I18nLabels } from "../domain/types";
 
-export function BottomBar({ data, labels, onSelectNode }: { data: ChoiceForgeProject; labels: I18nLabels; onSelectNode: (id: string) => void }) {
+export function BottomBar({
+  data,
+  labels,
+  onSelectIssue,
+}: {
+  data: ChoiceForgeProject;
+  labels: I18nLabels;
+  onSelectIssue: (scene: string | null | undefined, node: string) => void;
+}) {
   const errors = data.lints.filter((lint) => lint.level === "error").length;
   const warnings = data.lints.filter((lint) => lint.level === "warning").length;
   return (
@@ -18,7 +26,7 @@ export function BottomBar({ data, labels, onSelectNode }: { data: ChoiceForgePro
               <li
                 key={index}
                 className={`con-row con-${lint.level} ${lint.node ? "is-clickable" : ""}`}
-                onClick={() => lint.node && onSelectNode(lint.node)}
+                onClick={() => lint.node && onSelectIssue(lint.scene, lint.node)}
               >
                 <span className={`con-dot dot-${lint.level}`} />
                 <span className="con-msg">{lint.msg}</span>

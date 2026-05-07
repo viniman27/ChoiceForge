@@ -27,7 +27,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
   }
 
   const colors = typeColors[node.type];
-  const nodeIssues = project.lints.filter((lint) => lint.node === node.id);
+  const nodeIssues = project.lints.filter((lint) => lint.node === node.id && lint.scene === project.sceneTitle);
   const nodeErrors = nodeIssues.filter((lint) => lint.level === "error").length;
   const nodeWarnings = nodeIssues.filter((lint) => lint.level === "warning").length;
   const lintClass = nodeErrors ? "err" : nodeWarnings ? "warn" : "ok";
