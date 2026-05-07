@@ -13,6 +13,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
   const [draft, setDraft] = useState(content);
   const visibleContent = editable ? draft : content;
   const lines = visibleContent.replace(/\n$/, "").split("\n");
+  const dirty = draft !== content;
 
   useEffect(() => {
     setDraft(content);
@@ -29,8 +30,8 @@ export function GeneratedDocumentView({ title, path, description, content, edita
         <div className="generated-doc-actions">
           <code>{path}</code>
           {editable && (
-            <button className="ghost-btn" disabled={draft === content} onClick={() => onSave?.(draft)}>
-              Save to board
+            <button className="ghost-btn" disabled={!dirty} onClick={() => onSave?.(draft)}>
+              {dirty ? "Save to board" : "Saved"}
             </button>
           )}
         </div>
@@ -45,6 +46,11 @@ export function GeneratedDocumentView({ title, path, description, content, edita
             value={draft}
             spellCheck={false}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "s") return;
+              event.preventDefault();
+              if (dirty) onSave?.(draft);
+            }}
           />
         ) : (
           <pre><code>{lines.join("\n")}</code></pre>
