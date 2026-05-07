@@ -1,4 +1,4 @@
-import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
+import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, ConditionalBranch, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
   name: string;
@@ -114,6 +114,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   const edges: StoryEdge[] = [];
   const pending: string[] = [];
   const pendingChoices: Array<{ nodeId: string; options: ImportedChoiceOption[] }> = [];
+  const pendingIfs: Array<{ nodeId: string; branches: ImportedConditionalBranch[]; rawBlock: string }> = [];
   const lines = content.split(/\r?\n/);
   let previous: StoryNode | null = null;
 
@@ -173,6 +174,20 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       continue;
     }
 
+    if (command === "if") {
+      flushPassage();
+      const block = collectIfChain(lines, index);
+      index += block.length - 1;
+      const parsedIf = parseIfBlock(block, nodes.length + 1);
+      if (parsedIf) {
+        const ifNode = addNode(parsedIf.node);
+        pendingIfs.push({ nodeId: ifNode.id, branches: parsedIf.branches, rawBlock: block.join("\n").trimEnd() });
+      } else {
+        addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+      }
+      continue;
+    }
+
     if (isComplexCommand(command)) {
       flushPassage();
       const block = collectIndentedBlock(lines, index);
@@ -198,6 +213,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   }
 
   resolveImportedChoices(nodes, edges, pendingChoices);
+  resolveImportedIfs(nodes, edges, pendingIfs);
 
   return { nodes, edges };
 }
@@ -275,7 +291,7 @@ function parseSet(value: string): VariableSet | null {
 }
 
 function isComplexCommand(command: string): boolean {
-  return ["if", "elseif", "else", "selectable_if"].includes(command);
+  return ["elseif", "else", "selectable_if"].includes(command);
 }
 
 function canAutoFlow(node: StoryNode): boolean {
@@ -292,12 +308,37 @@ interface ImportedChoiceOption {
   sets: VariableSet[];
 }
 
+interface ImportedConditionalBranch {
+  kind: ConditionalBranch["kind"];
+  expr?: string;
+  targetLabel: string;
+  sets: VariableSet[];
+}
+
 function collectIndentedBlock(lines: string[], startIndex: number): string[] {
   const block = [lines[startIndex]];
   let index = startIndex;
   while (index + 1 < lines.length && (/^\s/.test(lines[index + 1]) || !lines[index + 1].trim())) {
     index += 1;
     block.push(lines[index]);
+  }
+  return block;
+}
+
+function collectIfChain(lines: string[], startIndex: number): string[] {
+  const block = collectIndentedBlock(lines, startIndex);
+  let index = startIndex + block.length;
+  while (index < lines.length) {
+    if (!lines[index].trim()) {
+      block.push(lines[index]);
+      index += 1;
+      continue;
+    }
+    const command = commandName(lines[index]);
+    if (/^\s/.test(lines[index]) || (command !== "elseif" && command !== "else")) break;
+    const branchBlock = collectIndentedBlock(lines, index);
+    block.push(...branchBlock);
+    index += branchBlock.length;
   }
   return block;
 }
@@ -377,6 +418,59 @@ function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, 
   };
 }
 
+function parseIfBlock(block: string[], index: number): { node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }; branches: ImportedConditionalBranch[] } | null {
+  const branches: ImportedConditionalBranch[] = [];
+  let current: ImportedConditionalBranch | null = null;
+
+  for (const line of block) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const branchHeader = parseIfHeader(trimmed);
+    if (branchHeader) {
+      if (current) branches.push(current);
+      current = { ...branchHeader, targetLabel: "", sets: [] };
+      continue;
+    }
+    if (!current) return null;
+    if (trimmed.startsWith("*set ")) {
+      const set = parseSet(commandValue(trimmed, "*set"));
+      if (set) current.sets.push(set);
+      continue;
+    }
+    if (trimmed.startsWith("*goto ")) {
+      current.targetLabel = normalizeIdentifier(commandValue(trimmed, "*goto"));
+      continue;
+    }
+    if (trimmed.startsWith("*comment")) continue;
+    return null;
+  }
+
+  if (current) branches.push(current);
+  if (!branches.length || branches.some((branch) => !branch.targetLabel)) return null;
+  if (branches[0]?.kind !== "if") return null;
+
+  return {
+    node: {
+      type: "if",
+      title: `imported_if_${index}`,
+      branches: [],
+      w: 320,
+    },
+    branches,
+  };
+}
+
+function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" | "expr"> | null {
+  const conditional = trimmed.match(/^\*if\s+\(?(.+?)\)?$/i);
+  if (conditional) return { kind: "if", expr: stripOuterParens(conditional[1].trim()) };
+
+  const elseif = trimmed.match(/^\*elseif\s+\(?(.+?)\)?$/i);
+  if (elseif) return { kind: "elseif", expr: stripOuterParens(elseif[1].trim()) };
+
+  if (/^\*else$/i.test(trimmed)) return { kind: "else" };
+  return null;
+}
+
 function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" | "cond" | "hideReuse"> | null {
   if (trimmed.startsWith("#")) return { text: trimmed.replace(/^#+/, "").trim(), cond: null };
 
@@ -433,6 +527,61 @@ function resolveImportedChoices(nodes: StoryNode[], edges: StoryEdge[], pendingC
       });
     });
   });
+}
+
+function resolveImportedIfs(nodes: StoryNode[], edges: StoryEdge[], pendingIfs: Array<{ nodeId: string; branches: ImportedConditionalBranch[]; rawBlock: string }>) {
+  if (!pendingIfs.length) return;
+  const labels = labelMap(nodes);
+
+  pendingIfs.forEach(({ nodeId, branches, rawBlock }) => {
+    const node = nodes.find((candidate) => candidate.id === nodeId);
+    if (!node) return;
+    const resolvedBranches = branches
+      .map((branch): ConditionalBranch | null => {
+        const target = labels.get(branch.targetLabel);
+        if (!target) return null;
+        return {
+          kind: branch.kind,
+          expr: branch.expr,
+          to: target,
+          sets: branch.sets,
+        };
+      })
+      .filter((branch): branch is ConditionalBranch => Boolean(branch));
+    if (resolvedBranches.length !== branches.length) {
+      Object.assign(node, {
+        type: "passage",
+        title: `if_block_${node.id}`,
+        body: rawBlock,
+        branches: undefined,
+        w: 500,
+      });
+      return;
+    }
+    node.branches = resolvedBranches;
+    resolvedBranches.forEach((branch) => {
+      edges.push({
+        from: node.id,
+        to: branch.to,
+        kind: branch.kind,
+        label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
+      });
+    });
+  });
+}
+
+function labelMap(nodes: StoryNode[]): Map<string, string> {
+  return new Map(
+    nodes
+      .filter((node) => node.type === "label")
+      .map((node) => [normalizeIdentifier(commandValue(node.title, "*label")), node.id]),
+  );
+}
+
+function stripOuterParens(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("(") && trimmed.endsWith(")")) return trimmed.slice(1, -1).trim();
+  return trimmed;
 }
 
 function defaultImportedWidth(type: NodeType): number {
