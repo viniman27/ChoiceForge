@@ -6,18 +6,30 @@ interface GeneratedDocumentViewProps {
   description: string;
   content: string;
   editable?: boolean;
-  onSave?: (content: string) => void;
+  onSave?: (content: string) => string | void;
 }
 
 export function GeneratedDocumentView({ title, path, description, content, editable = false, onSave }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
+  const [saveStatus, setSaveStatus] = useState("");
   const visibleContent = editable ? draft : content;
   const lines = visibleContent.replace(/\n$/, "").split("\n");
   const dirty = draft !== content;
 
   useEffect(() => {
     setDraft(content);
+    setSaveStatus("");
   }, [content]);
+
+  const saveDraft = () => {
+    if (!dirty) return;
+    try {
+      const message = onSave?.(draft);
+      setSaveStatus(message || "Saved to project.");
+    } catch (error) {
+      setSaveStatus(error instanceof Error ? error.message : "Could not save changes.");
+    }
+  };
 
   return (
     <section className="generated-doc">
@@ -30,11 +42,12 @@ export function GeneratedDocumentView({ title, path, description, content, edita
         <div className="generated-doc-actions">
           <code>{path}</code>
           {editable && (
-            <button className="ghost-btn" disabled={!dirty} onClick={() => onSave?.(draft)}>
+            <button className="ghost-btn" disabled={!dirty} onClick={saveDraft}>
               {dirty ? "Save to project" : "Saved"}
             </button>
           )}
         </div>
+        {editable && saveStatus && <div className="generated-doc-status">{saveStatus}</div>}
       </div>
       <div className="generated-doc-body">
         <div className="generated-doc-gutter">
@@ -49,7 +62,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
             onKeyDown={(event) => {
               if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "s") return;
               event.preventDefault();
-              if (dirty) onSave?.(draft);
+              saveDraft();
             }}
           />
         ) : (

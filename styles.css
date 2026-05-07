@@ -613,6 +613,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: var(--paper-1);
 }
 .generated-doc-header {
+  position: relative;
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -620,6 +621,14 @@ input, select, textarea { font-family: inherit; color: inherit; }
   padding: 22px 28px 18px;
   border-bottom: 1px solid var(--paper-edge);
   background: var(--paper-2);
+}
+.generated-doc-status {
+  position: absolute;
+  right: 28px;
+  bottom: 4px;
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 10px;
 }
 .generated-doc-kicker {
   margin-bottom: 6px;

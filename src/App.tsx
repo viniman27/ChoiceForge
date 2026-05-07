@@ -202,11 +202,18 @@ export default function App() {
           {...generatedDocument}
           editable
           onSave={(content) => {
-            if (generatedDocumentId === "startup") actions.replaceStartupText(content);
-            if (generatedDocumentId === "stats") actions.replaceStatsText(content);
+            if (generatedDocumentId === "startup") {
+              actions.replaceStartupText(content);
+              return "startup.txt applied to project metadata.";
+            }
+            if (generatedDocumentId === "stats") {
+              actions.replaceStatsText(content);
+              return "choicescript_stats.txt applied to stat settings.";
+            }
             if (generatedDocumentId === "scene") {
               actions.replaceCurrentSceneText(content);
               setSelectedId("n1");
+              return `${lintedProject.sceneTitle}.txt parsed into the board.`;
             }
           }}
         />
