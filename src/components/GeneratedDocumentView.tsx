@@ -23,7 +23,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
     <section className="generated-doc">
       <div className="generated-doc-header">
         <div>
-          <div className="generated-doc-kicker">generated file</div>
+          <div className="generated-doc-kicker">{editable ? "editable file" : "generated file"}</div>
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
@@ -31,7 +31,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           <code>{path}</code>
           {editable && (
             <button className="ghost-btn" disabled={!dirty} onClick={() => onSave?.(draft)}>
-              {dirty ? "Save to board" : "Saved"}
+              {dirty ? "Save to project" : "Saved"}
             </button>
           )}
         </div>
