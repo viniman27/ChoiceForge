@@ -14,6 +14,7 @@ export type NodeType =
   | "goto_scene"
   | "gosub"
   | "ending"
+  | "finish"
   | "checkpoint"
   | "page_break"
   | "comment"

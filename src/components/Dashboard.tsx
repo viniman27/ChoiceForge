@@ -11,7 +11,7 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
   const totalNodes = sceneRows.reduce((sum, scene) => sum + scene.nodes, 0);
   const choiceCount = data.nodes.filter((node) => node.type === "choice").length;
   const optionCount = data.nodes.reduce((sum, node) => sum + (node.options?.length ?? 0), 0);
-  const endingCount = data.nodes.filter((node) => node.type === "ending").length;
+  const endingCount = data.nodes.filter((node) => node.type === "ending" || node.type === "finish").length;
   const maxWords = Math.max(1, ...sceneRows.map((scene) => scene.words));
   const typeRows = summarizeNodeTypes(data.nodes);
 
@@ -93,6 +93,7 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
     goto_scene: "var(--c-goto)",
     gosub: "var(--c-gosub)",
     ending: "var(--c-ending)",
+    finish: "var(--c-ending)",
     checkpoint: "var(--c-check)",
     page_break: "var(--c-check)",
     comment: "var(--ink-mute)",

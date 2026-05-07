@@ -189,7 +189,7 @@ function ContentTab({
     return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
-  if (["label", "goto", "goto_scene", "gosub", "checkpoint", "page_break", "ending"].includes(node.type)) {
+  if (["label", "goto", "goto_scene", "gosub", "checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
@@ -300,6 +300,7 @@ function CommandNodeFields({
     );
   }
 
+  if (node.type === "finish") return <div className="ip-content"><p className="dim">This node finishes the current scene with *finish.</p></div>;
   return <div className="ip-content"><p className="dim">This node ends the story with *ending.</p></div>;
 }
 
