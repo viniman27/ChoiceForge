@@ -9,6 +9,7 @@ import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
+import { importChoiceScriptArchive } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 
@@ -304,15 +305,24 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
 
 async function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
   try {
-    const content = file.name.toLowerCase().endsWith(".zip")
-      ? await extractProjectJsonFromZip(new Uint8Array(await file.arrayBuffer()))
-      : await file.text();
-    const parsed = JSON.parse(content) as ChoiceForgeProject;
-    assertChoiceForgeProject(parsed);
-    setProject(parsed);
+    if (file.name.toLowerCase().endsWith(".zip")) {
+      const entries = await extractZipEntries(new Uint8Array(await file.arrayBuffer()));
+      const projectJson = entries.find((entry) => entry.name === "project.json" || entry.name.endsWith("/project.json"));
+      if (projectJson) {
+        const parsed = JSON.parse(new TextDecoder().decode(projectJson.bytes)) as ChoiceForgeProject;
+        assertChoiceForgeProject(parsed);
+        setProject(parsed);
+      } else {
+        setProject(importChoiceScriptArchive(entries));
+      }
+    } else {
+      const parsed = JSON.parse(await file.text()) as ChoiceForgeProject;
+      assertChoiceForgeProject(parsed);
+      setProject(parsed);
+    }
     onDone();
   } catch {
-    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip exportado pelo ChoiceForge ou o project.json." : "Could not import this project. Use a ChoiceForge export .zip or project.json.");
+    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge ou o project.json." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip or project.json.");
   }
 }
 
@@ -323,8 +333,9 @@ function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeP
   if (!Array.isArray(project.scenes) || !Array.isArray(project.variables) || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) throw new Error("invalid collections");
 }
 
-async function extractProjectJsonFromZip(bytes: Uint8Array): Promise<string> {
+async function extractZipEntries(bytes: Uint8Array) {
   const decoder = new TextDecoder();
+  const entries: { name: string; bytes: Uint8Array }[] = [];
   let offset = 0;
 
   while (offset + 30 <= bytes.length) {
@@ -341,17 +352,17 @@ async function extractProjectJsonFromZip(bytes: Uint8Array): Promise<string> {
 
     if ((flags & 0x08) !== 0) throw new Error("unsupported streamed zip");
     if (contentEnd > bytes.length) throw new Error("invalid zip entry");
-    if (name === "project.json" || name.endsWith("/project.json")) {
-      const content = bytes.slice(contentStart, contentEnd);
-      if (method === 0) return decoder.decode(content);
-      if (method === 8) return decoder.decode(await inflateRaw(content));
-      throw new Error("unsupported compressed zip");
+    const content = bytes.slice(contentStart, contentEnd);
+    if (!name.endsWith("/")) {
+      if (method === 0) entries.push({ name, bytes: content });
+      else if (method === 8) entries.push({ name, bytes: await inflateRaw(content) });
+      else throw new Error("unsupported compressed zip");
     }
 
     offset = contentEnd;
   }
 
-  throw new Error("project.json not found");
+  return entries;
 }
 
 async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
