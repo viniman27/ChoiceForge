@@ -94,7 +94,8 @@ export default function App() {
 
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
-  const activeSceneId = generatedDocumentId ?? lintedProject.scenes.find((scene) => scene.current)?.id ?? lintedProject.sceneTitle;
+  const currentSceneId = lintedProject.scenes.find((scene) => scene.current)?.id ?? lintedProject.sceneTitle;
+  const activeSceneId = generatedDocumentId === "startup" || generatedDocumentId === "stats" ? generatedDocumentId : currentSceneId;
   const appStyle = {
     "--left-panel-width": `${layout.left}px`,
     "--right-panel-width": `${layout.right}px`,

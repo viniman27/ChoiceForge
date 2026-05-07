@@ -5,7 +5,10 @@ export interface ChoiceScriptArchiveEntry {
   bytes: Uint8Array;
 }
 
-export function importChoiceScriptSceneText(sceneName: string, content: string): SceneGraph {
+export function importChoiceScriptSceneText(sceneName: string, content: string, currentGraph?: SceneGraph): SceneGraph {
+  if (currentGraph && hasChoiceForgeLabels(content)) {
+    return updateChoiceForgeSceneGraph(currentGraph, content);
+  }
   return createImportedSceneGraph(sceneName, content);
 }
 
@@ -222,6 +225,182 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   return { nodes, edges };
 }
 
+function updateChoiceForgeSceneGraph(currentGraph: SceneGraph, content: string): SceneGraph {
+  const sectionMap = splitChoiceForgeSections(content);
+  const labelToNodeId = new Map(currentGraph.nodes.map((node) => [generatedNodeLabel(node.id), node.id]));
+  const flowEdges: StoryEdge[] = [];
+  const nodes = currentGraph.nodes.map((node) => {
+    const section = sectionMap.get(generatedNodeLabel(node.id));
+    if (!section) return { ...node };
+    const next = updateChoiceForgeNode(node, section, labelToNodeId);
+    const flowTarget = parseChoiceForgeFlowTarget(section, labelToNodeId);
+    if (flowTarget && canAutoFlow(next)) flowEdges.push({ from: next.id, to: flowTarget, kind: "flow" });
+    return next;
+  });
+  return { nodes, edges: flowEdges };
+}
+
+function hasChoiceForgeLabels(content: string): boolean {
+  return /^\*label\s+cf_[a-zA-Z0-9_]+\s*$/m.test(content);
+}
+
+function splitChoiceForgeSections(content: string): Map<string, string[]> {
+  const sections = new Map<string, string[]>();
+  let currentLabel: string | null = null;
+  let currentLines: string[] = [];
+
+  content.split(/\r?\n/).forEach((line) => {
+    const label = choiceForgeLabel(line);
+    if (label) {
+      if (currentLabel) sections.set(currentLabel, currentLines);
+      currentLabel = label;
+      currentLines = [];
+      return;
+    }
+    if (currentLabel) currentLines.push(line);
+  });
+
+  if (currentLabel) sections.set(currentLabel, currentLines);
+  return sections;
+}
+
+function updateChoiceForgeNode(node: StoryNode, section: string[], labelToNodeId: Map<string, string>): StoryNode {
+  const topLevelSets = parseTopLevelSets(section);
+  const body = parseChoiceForgeBody(section);
+  const base: StoryNode = {
+    ...node,
+    body: body || undefined,
+    sets: topLevelSets.length ? topLevelSets : undefined,
+  };
+
+  if (node.type === "label") {
+    const label = section.map((line) => line.trim()).find((line) => line.startsWith("*label ") && !choiceForgeLabel(line));
+    return label ? { ...base, title: `*label ${commandValue(label, "*label")}` } : base;
+  }
+
+  if (node.type === "choice") {
+    const block = extractChoiceForgeCommandBlock(section, "choice");
+    const parsed = block ? parseChoiceBlock(block, 1) : null;
+    if (!parsed) return base;
+    return {
+      ...base,
+      options: parsed.options.map((option, index) => ({
+        text: option.text,
+        to: labelToNodeId.get(option.targetLabel) ?? node.options?.[index]?.to ?? node.id,
+        cond: option.cond ?? null,
+        hideReuse: option.hideReuse,
+        sets: option.sets,
+      })),
+    };
+  }
+
+  if (node.type === "fake_choice") {
+    const block = extractChoiceForgeCommandBlock(section, "fake_choice");
+    const parsed = block ? parseFakeChoiceBlock(block, 1) : null;
+    return parsed ? { ...base, fakeOptions: parsed.fakeOptions } : base;
+  }
+
+  if (node.type === "if") {
+    const block = extractChoiceForgeIfBlock(section);
+    const parsed = block ? parseIfBlock(block, 1) : null;
+    if (!parsed) return base;
+    return {
+      ...base,
+      branches: parsed.branches.map((branch, index) => ({
+        kind: branch.kind,
+        expr: branch.expr,
+        to: labelToNodeId.get(branch.targetLabel) ?? node.branches?.[index]?.to ?? node.id,
+        sets: branch.sets,
+      })),
+    };
+  }
+
+  const commandNode = updateChoiceForgeCommandNode(base, section);
+  return commandNode;
+}
+
+function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): StoryNode {
+  const commands = section.map((line) => line.trim()).filter((line) => line.startsWith("*"));
+  const command = commands.find((line) => !choiceForgeLabel(line) && !line.startsWith("*set ") && !isChoiceForgeFlowGoto(line));
+  if (!command) return node;
+  const name = commandName(command);
+  if (node.type === "goto_scene" && name === "goto_scene") return { ...node, title: command, target: commandValue(command, "*goto_scene") };
+  if (node.type === "goto" && name === "goto") return { ...node, title: command };
+  if (node.type === "gosub" && name === "gosub") return { ...node, title: command };
+  if (node.type === "ending" && name === "ending") return { ...node, title: "*ending" };
+  if (node.type === "finish" && name === "finish") return { ...node, title: "*finish" };
+  if (node.type === "checkpoint" && name === "save_checkpoint") return { ...node, title: command };
+  if (node.type === "page_break" && name === "page_break") return { ...node, title: command };
+  if (node.type === "comment" && name === "comment") return { ...node, title: "*comment", body: commands.filter((line) => line.startsWith("*comment")).map((line) => commandValue(line, "*comment")).join("\n") };
+  if (node.type === "input_text" && name === "input_text") return { ...node, title: command, inputVar: commandValue(command, "*input_text") };
+  if (node.type === "input_number" && name === "input_number") {
+    const [inputVar, inputMin, inputMax] = commandValue(command, "*input_number").split(/\s+/);
+    return { ...node, title: `*input_number ${inputVar}`, inputVar, inputMin, inputMax };
+  }
+  if (node.type === "rand" && name === "rand") {
+    const [inputVar, inputMin, inputMax] = commandValue(command, "*rand").split(/\s+/);
+    return { ...node, title: `*rand ${inputVar}`, inputVar, inputMin, inputMax };
+  }
+  return node;
+}
+
+function parseTopLevelSets(section: string[]): VariableSet[] {
+  return section
+    .filter((line) => line.startsWith("*set "))
+    .map((line) => parseSet(commandValue(line.trim(), "*set")))
+    .filter((set): set is VariableSet => Boolean(set));
+}
+
+function parseChoiceForgeBody(section: string[]): string {
+  const bodyLines: string[] = [];
+  for (const line of section) {
+    const trimmed = line.trim();
+    if (isChoiceForgeBodyStop(trimmed)) break;
+    bodyLines.push(line);
+  }
+  return bodyLines.join("\n").trim();
+}
+
+function isChoiceForgeBodyStop(trimmed: string): boolean {
+  if (!trimmed.startsWith("*")) return false;
+  if (isChoiceForgeFlowGoto(trimmed)) return true;
+  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*ending", "*finish", "*save_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand"].some((prefix) => trimmed.startsWith(prefix));
+}
+
+function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
+  const start = section.findIndex((line) => line.trim() === `*${command}`);
+  if (start < 0) return null;
+  const block = [section[start]];
+  for (let index = start + 1; index < section.length; index += 1) {
+    if (section[index].trim() && !/^\s/.test(section[index])) break;
+    block.push(section[index]);
+  }
+  return block;
+}
+
+function extractChoiceForgeIfBlock(section: string[]): string[] | null {
+  const start = section.findIndex((line) => line.trim().startsWith("*if"));
+  if (start < 0) return null;
+  return section.slice(start).filter((line) => !isChoiceForgeFlowGoto(line.trim()));
+}
+
+function parseChoiceForgeFlowTarget(section: string[], labelToNodeId: Map<string, string>): string | null {
+  const flow = section.map((line) => line.trim()).find(isChoiceForgeFlowGoto);
+  return flow ? labelToNodeId.get(commandValue(flow, "*goto")) ?? null : null;
+}
+
+function isChoiceForgeFlowGoto(line: string): boolean {
+  return /^\*goto\s+cf_[a-zA-Z0-9_]+\s*$/.test(line);
+}
+
+function choiceForgeLabel(line: string): string | null {
+  return line.trim().match(/^\*label\s+(cf_[a-zA-Z0-9_]+)\s*$/)?.[1] ?? null;
+}
+
+function generatedNodeLabel(id: string): string {
+  return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+}
+
 function createSceneSummaries(sceneNames: string[], activeScene: string, sceneData: Record<string, SceneGraph>): SceneSummary[] {
   return sceneNames.map((sceneName, index) => ({
     id: `scene_${index + 1}`,
@@ -288,10 +467,13 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
 }
 
 function parseSet(value: string): VariableSet | null {
-  const match = value.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*(%[+-]|[=+-])\s+(.+)$/);
-  if (!match) return null;
-  const [, variable, op, setValue] = match;
-  return { var: variable, op: op as VariableSet["op"], val: setValue.trim() };
+  const [variable, maybeOp, ...rest] = value.trim().split(/\s+/);
+  if (!variable || !maybeOp) return null;
+  if (["=", "+", "-", "%+", "%-"].includes(maybeOp)) {
+    const setValue = rest.join(" ").trim();
+    return setValue ? { var: variable, op: maybeOp as VariableSet["op"], val: setValue } : null;
+  }
+  return { var: variable, op: "=", val: [maybeOp, ...rest].join(" ").trim() };
 }
 
 function isComplexCommand(command: string): boolean {
