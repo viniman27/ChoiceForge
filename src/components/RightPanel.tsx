@@ -59,7 +59,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
             onDeleteFlowEdge={onDeleteFlowEdge}
           />
         )}
-        {tab === "raw" && <RawTab node={node} />}
+        {tab === "raw" && <RawTab node={node} project={project} />}
       </div>
 
       <div className="ip-footer"><span className={`lint-pill ${lintClass}`}>{lintText}</span><span className="dim">{labels.indentRule}</span></div>
@@ -638,10 +638,10 @@ function targetLabel(project: ChoiceForgeProject, edge: StoryEdge): string {
   return target ? `${target.id} - ${target.title}` : edge.to;
 }
 
-function RawTab({ node }: { node: StoryNode }) {
+function RawTab({ node, project }: { node: StoryNode; project: ChoiceForgeProject }) {
   return (
     <div className="ip-raw">
-      <pre className="raw-code"><code>{generateNodeChoiceScript(node)}</code></pre>
+      <pre className="raw-code"><code>{generateNodeChoiceScript(node, project.edges)}</code></pre>
     </div>
   );
 }
