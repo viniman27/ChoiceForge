@@ -1,4 +1,4 @@
-import type { AchievementSummary, AssetSummary, ChoiceForgeProject, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
+import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
   name: string;
@@ -113,6 +113,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   const nodes: StoryNode[] = [];
   const edges: StoryEdge[] = [];
   const pending: string[] = [];
+  const pendingChoices: Array<{ nodeId: string; options: ImportedChoiceOption[] }> = [];
   const lines = content.split(/\r?\n/);
   let previous: StoryNode | null = null;
 
@@ -127,6 +128,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
     if (previous && canAutoFlow(previous)) edges.push({ from: previous.id, to: next.id, kind: "flow" });
     nodes.push(next);
     previous = next;
+    return next;
   };
 
   const flushPassage = () => {
@@ -144,13 +146,24 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       continue;
     }
 
+    if (command === "choice") {
+      flushPassage();
+      const block = collectIndentedBlock(lines, index);
+      index += block.length - 1;
+      const parsedChoice = parseChoiceBlock(block, nodes.length + 1);
+      if (parsedChoice) {
+        const choiceNode = addNode(parsedChoice.node);
+        pendingChoices.push({ nodeId: choiceNode.id, options: parsedChoice.options });
+      } else {
+        addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+      }
+      continue;
+    }
+
     if (isComplexCommand(command)) {
       flushPassage();
-      const block = [line];
-      while (index + 1 < lines.length && (/^\s/.test(lines[index + 1]) || !lines[index + 1].trim())) {
-        index += 1;
-        block.push(lines[index]);
-      }
+      const block = collectIndentedBlock(lines, index);
+      index += block.length - 1;
       addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
       continue;
     }
@@ -170,6 +183,8 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   if (!nodes.length) {
     addNode({ type: "passage", title: `${sceneName}_imported`, body: "" });
   }
+
+  resolveImportedChoices(nodes, edges, pendingChoices);
 
   return { nodes, edges };
 }
@@ -247,13 +262,130 @@ function parseSet(value: string): VariableSet | null {
 }
 
 function isComplexCommand(command: string): boolean {
-  return ["choice", "fake_choice", "if", "elseif", "else", "selectable_if"].includes(command);
+  return ["fake_choice", "if", "elseif", "else", "selectable_if"].includes(command);
 }
 
 function canAutoFlow(node: StoryNode): boolean {
-  if (["ending", "finish", "goto", "goto_scene"].includes(node.type)) return false;
+  if (["choice", "if", "ending", "finish", "goto", "goto_scene"].includes(node.type)) return false;
   if (node.body?.trim().match(/^\*(choice|fake_choice|if|elseif|else|selectable_if)\b/i)) return false;
   return true;
+}
+
+interface ImportedChoiceOption {
+  text: string;
+  targetLabel: string;
+  cond?: ChoiceCondition | null;
+  hideReuse?: boolean;
+  sets: VariableSet[];
+}
+
+function collectIndentedBlock(lines: string[], startIndex: number): string[] {
+  const block = [lines[startIndex]];
+  let index = startIndex;
+  while (index + 1 < lines.length && (/^\s/.test(lines[index + 1]) || !lines[index + 1].trim())) {
+    index += 1;
+    block.push(lines[index]);
+  }
+  return block;
+}
+
+function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }; options: ImportedChoiceOption[] } | null {
+  const options: ImportedChoiceOption[] = [];
+  let current: ImportedChoiceOption | null = null;
+
+  for (const line of block.slice(1)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const header = parseChoiceHeader(trimmed);
+    if (header) {
+      if (current) options.push(current);
+      current = { ...header, targetLabel: "", sets: [] };
+      continue;
+    }
+    if (!current) return null;
+    if (trimmed.startsWith("*set ")) {
+      const set = parseSet(commandValue(trimmed, "*set"));
+      if (set) current.sets.push(set);
+      continue;
+    }
+    if (trimmed.startsWith("*goto ")) {
+      current.targetLabel = normalizeIdentifier(commandValue(trimmed, "*goto"));
+      continue;
+    }
+    if (trimmed.startsWith("*comment")) continue;
+    return null;
+  }
+
+  if (current) options.push(current);
+  if (!options.length || options.some((option) => !option.targetLabel)) return null;
+  return {
+    node: {
+      type: "choice",
+      title: `imported_choice_${index}`,
+      prompt: "Choose:",
+      options: [],
+      w: 360,
+    },
+    options,
+  };
+}
+
+function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" | "cond" | "hideReuse"> | null {
+  if (trimmed.startsWith("#")) return { text: trimmed.replace(/^#+/, "").trim(), cond: null };
+
+  const selectable = trimmed.match(/^\*selectable_if\s+\((.+)\)\s+#(.+)$/i);
+  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: selectable[1].trim() } };
+
+  const conditional = trimmed.match(/^\*if\s+\((.+)\)\s+#(.+)$/i);
+  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: conditional[1].trim() } };
+
+  const hideReuse = trimmed.match(/^\*hide_reuse\s+#(.+)$/i);
+  if (hideReuse) return { text: hideReuse[1].trim(), cond: null, hideReuse: true };
+
+  return null;
+}
+
+function resolveImportedChoices(nodes: StoryNode[], edges: StoryEdge[], pendingChoices: Array<{ nodeId: string; options: ImportedChoiceOption[] }>) {
+  if (!pendingChoices.length) return;
+  const labels = new Map(
+    nodes
+      .filter((node) => node.type === "label")
+      .map((node) => [normalizeIdentifier(commandValue(node.title, "*label")), node.id]),
+  );
+
+  pendingChoices.forEach(({ nodeId, options }) => {
+    const node = nodes.find((candidate) => candidate.id === nodeId);
+    if (!node) return;
+    const resolvedOptions = options
+      .map((option): ChoiceOption | null => {
+        const target = labels.get(option.targetLabel);
+        if (!target) return null;
+        return {
+          text: option.text,
+          to: target,
+          cond: option.cond ?? null,
+          hideReuse: option.hideReuse,
+          sets: option.sets,
+        };
+      })
+      .filter((option): option is ChoiceOption => Boolean(option));
+    if (resolvedOptions.length !== options.length) {
+      node.body = [
+        "*comment ChoiceForge import: unresolved choice targets",
+        ...(node.body ? [node.body] : []),
+      ].join("\n");
+      return;
+    }
+    node.options = resolvedOptions;
+    resolvedOptions.forEach((option, index) => {
+      edges.push({
+        from: node.id,
+        to: option.to,
+        kind: "choice",
+        label: `#${index + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
+      });
+    });
+  });
 }
 
 function defaultImportedWidth(type: NodeType): number {
