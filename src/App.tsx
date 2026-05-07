@@ -171,6 +171,7 @@ export default function App() {
         }}
         onUpdateScene={actions.updateScene}
         onMoveScene={actions.moveScene}
+        onMoveSceneBefore={actions.moveSceneBefore}
         onDuplicateScene={actions.duplicateScene}
         onDeleteScene={actions.deleteScene}
         onAddVariable={actions.addVariable}
@@ -196,7 +197,14 @@ export default function App() {
       {playOpen ? (
         <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} />
       ) : generatedDocument ? (
-        <GeneratedDocumentView {...generatedDocument} />
+        <GeneratedDocumentView
+          {...generatedDocument}
+          editable={generatedDocumentId === "scene"}
+          onSave={(content) => {
+            actions.replaceCurrentSceneText(content);
+            setSelectedId("n1");
+          }}
+        />
       ) : (
         <GraphCanvas
           data={lintedProject}

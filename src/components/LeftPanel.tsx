@@ -11,6 +11,7 @@ interface LeftPanelProps {
   onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
   onMoveScene: (id: string, direction: "up" | "down") => void;
+  onMoveSceneBefore: (id: string, beforeId: string | null) => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
   onAddVariable: () => void;
@@ -35,6 +36,7 @@ export function LeftPanel({
   onSelectScene,
   onUpdateScene,
   onMoveScene,
+  onMoveSceneBefore,
   onDuplicateScene,
   onDeleteScene,
   onAddVariable,
@@ -85,6 +87,7 @@ export function LeftPanel({
             onSelectScene={onSelectScene}
             onUpdateScene={onUpdateScene}
             onMoveScene={onMoveScene}
+            onMoveSceneBefore={onMoveSceneBefore}
             onDuplicateScene={onDuplicateScene}
             onDeleteScene={onDeleteScene}
           />
@@ -225,6 +228,7 @@ function ScenesList({
   onSelectScene,
   onUpdateScene,
   onMoveScene,
+  onMoveSceneBefore,
   onDuplicateScene,
   onDeleteScene,
 }: {
@@ -235,17 +239,51 @@ function ScenesList({
   onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
   onMoveScene: (id: string, direction: "up" | "down") => void;
+  onMoveSceneBefore: (id: string, beforeId: string | null) => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
 }) {
+  const [draggedSceneId, setDraggedSceneId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
   return (
     <div className="scene-list">
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
-        {data.scenes.map((scene) => (
-          <li key={scene.id} className={`scene-item ${activeSceneId === scene.id ? "is-current" : ""} ${scene.special ? "is-special" : ""}`} onClick={() => onSelectScene(scene.id)}>
-            <span className="scene-handle">::</span>
+        {data.scenes.map((scene) => {
+          const movable = !scene.isStart && !scene.special;
+          return (
+          <li
+            key={scene.id}
+            className={`scene-item ${activeSceneId === scene.id ? "is-current" : ""} ${scene.special ? "is-special" : ""} ${dropTargetId === scene.id ? "is-drop-target" : ""} ${draggedSceneId === scene.id ? "is-dragging" : ""}`}
+            draggable={movable}
+            onClick={() => onSelectScene(scene.id)}
+            onDragStart={(event) => {
+              if (!movable) return;
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", scene.id);
+              setDraggedSceneId(scene.id);
+            }}
+            onDragOver={(event) => {
+              if (!movable || !draggedSceneId || draggedSceneId === scene.id) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              setDropTargetId(scene.id);
+            }}
+            onDragLeave={() => setDropTargetId((current) => (current === scene.id ? null : current))}
+            onDrop={(event) => {
+              event.preventDefault();
+              const draggedId = event.dataTransfer.getData("text/plain") || draggedSceneId;
+              if (movable && draggedId && draggedId !== scene.id) onMoveSceneBefore(draggedId, scene.id);
+              setDraggedSceneId(null);
+              setDropTargetId(null);
+            }}
+            onDragEnd={() => {
+              setDraggedSceneId(null);
+              setDropTargetId(null);
+            }}
+          >
+            <span className="scene-handle">{movable ? "::" : "--"}</span>
             <div className="scene-meta">
               <div className="scene-name">
                 {scene.isStart || scene.special ? (
@@ -268,7 +306,24 @@ function ScenesList({
               </div>
             </div>
           </li>
-        ))}
+        );
+        })}
+        <li
+          className={`scene-drop-end ${draggedSceneId ? "is-visible" : ""}`}
+          onDragOver={(event) => {
+            if (!draggedSceneId) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            setDropTargetId(null);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            const draggedId = event.dataTransfer.getData("text/plain") || draggedSceneId;
+            if (draggedId) onMoveSceneBefore(draggedId, null);
+            setDraggedSceneId(null);
+            setDropTargetId(null);
+          }}
+        />
       </ul>
     </div>
   );

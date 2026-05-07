@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
+import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v2";
@@ -26,6 +27,7 @@ export interface ProjectActions {
   undo: () => void;
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
+  replaceCurrentSceneText: (content: string) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
@@ -39,6 +41,7 @@ export interface ProjectActions {
   addScene: () => void;
   updateScene: (id: string, patch: Partial<SceneSummary>) => void;
   moveScene: (id: string, direction: "up" | "down") => void;
+  moveSceneBefore: (id: string, beforeId: string | null) => void;
   duplicateScene: (id: string) => void;
   deleteScene: (id: string) => void;
   addVariable: () => void;
@@ -101,6 +104,20 @@ export function useProjectStore() {
     },
     updateMetadata: (patch) => {
       setTrackedProjectState((current) => commitProject({ ...current, ...patch }));
+    },
+    replaceCurrentSceneText: (content) => {
+      setTrackedProjectState((current) => {
+        const graph = importChoiceScriptSceneText(current.sceneTitle, content);
+        return commitProject({
+          ...current,
+          nodes: graph.nodes,
+          edges: graph.edges,
+          sceneData: {
+            ...(current.sceneData ?? {}),
+            [current.sceneTitle]: graph,
+          },
+        });
+      });
     },
     resetProject: (language) => {
       const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
@@ -274,6 +291,29 @@ export function useProjectStore() {
 
         const reorderedMovable = [...movable];
         [reorderedMovable[currentIndex], reorderedMovable[targetIndex]] = [reorderedMovable[targetIndex], reorderedMovable[currentIndex]];
+        const queue = [...reorderedMovable];
+
+        return commitProject({
+          ...saved,
+          scenes: saved.scenes.map((scene) => (scene.isStart || scene.special ? scene : queue.shift() ?? scene)),
+        });
+      });
+    },
+    moveSceneBefore: (id, beforeId) => {
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        const movable = saved.scenes.filter((scene) => !scene.isStart && !scene.special);
+        const dragged = movable.find((scene) => scene.id === id);
+        if (!dragged || id === beforeId) return current;
+
+        const withoutDragged = movable.filter((scene) => scene.id !== id);
+        const targetIndex = beforeId ? withoutDragged.findIndex((scene) => scene.id === beforeId) : withoutDragged.length;
+        if (targetIndex < 0) return current;
+        const reorderedMovable = [
+          ...withoutDragged.slice(0, targetIndex),
+          dragged,
+          ...withoutDragged.slice(targetIndex),
+        ];
         const queue = [...reorderedMovable];
 
         return commitProject({

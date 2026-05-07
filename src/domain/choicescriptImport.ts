@@ -5,6 +5,10 @@ export interface ChoiceScriptArchiveEntry {
   bytes: Uint8Array;
 }
 
+export function importChoiceScriptSceneText(sceneName: string, content: string): SceneGraph {
+  return createImportedSceneGraph(sceneName, content);
+}
+
 export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): ChoiceForgeProject {
   const decoder = new TextDecoder();
   const textFiles = entries
