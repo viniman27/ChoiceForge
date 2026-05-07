@@ -1144,6 +1144,29 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-family: var(--ff-mono);
   font-size: 10px;
 }
+.command-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--paper-1);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+.command-summary span {
+  color: var(--ink-mute);
+  text-transform: lowercase;
+}
+.command-summary code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .achieve-insert {
   padding: 8px;
   background: var(--paper-1);

@@ -300,8 +300,25 @@ function CommandNodeFields({
     );
   }
 
-  if (node.type === "finish") return <div className="ip-content"><p className="dim">This node finishes the current scene with *finish.</p></div>;
+  if (node.type === "finish") {
+    const nextScene = nextPlayableScene(project);
+    return (
+      <div className="ip-content">
+        <p className="dim">This node finishes the current scene with *finish.</p>
+        <div className="command-summary">
+          <span>next scene</span>
+          <code>{nextScene ? `${nextScene}.txt` : "end of scene_list"}</code>
+        </div>
+      </div>
+    );
+  }
   return <div className="ip-content"><p className="dim">This node ends the story with *ending.</p></div>;
+}
+
+function nextPlayableScene(project: ChoiceForgeProject): string | null {
+  const scenes = project.scenes.filter((scene) => !scene.isStart && !scene.special);
+  const currentIndex = scenes.findIndex((scene) => scene.name === project.sceneTitle);
+  return currentIndex >= 0 ? scenes[currentIndex + 1]?.name ?? null : null;
 }
 
 function InputNodeFields({
