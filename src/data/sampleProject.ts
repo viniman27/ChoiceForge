@@ -57,7 +57,7 @@ const intro: SceneGraph = {
       sets: [{ var: "pistas", op: "+", val: "1" }],
     },
     { id: "n7", type: "checkpoint", x: 1200, y: 960, w: 280, title: "*save_checkpoint antes_da_maquina" },
-    { id: "n6", type: "goto_scene", x: 1540, y: 960, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
+    { id: "n6", type: "finish", x: 1540, y: 960, w: 220, title: "*finish" },
   ],
   edges: [
     { from: "n1", to: "n2", kind: "flow" },
@@ -109,7 +109,7 @@ const salaMaquinas: SceneGraph = {
       title: "tentativa_as_cegas",
       body: "Sem informacao suficiente, voce gira a chave principal. O farol acende, mas alguma coisa responde do mar.",
     },
-    { id: "n5", type: "goto_scene", x: 1240, y: 170, w: 260, title: "*goto_scene final", target: "final" },
+    { id: "n5", type: "finish", x: 1240, y: 170, w: 220, title: "*finish" },
   ],
   edges: [
     { from: "n1", to: "n2", kind: "flow" },
