@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, I18nLabels, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { NodeIcon, typeColors } from "./NodeCard";
 
 interface RightPanelProps {
@@ -132,6 +132,38 @@ function ContentTab({
           ))}
         </ul>
         <button className="ghost-btn" onClick={() => addOption(node, project, onUpdateNode)}>{labels.addOption}</button>
+      </div>
+    );
+  }
+
+  if (node.type === "fake_choice") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">fake choice prompt</label>
+        <input className="ip-prompt" value={node.prompt ?? ""} onChange={(event) => onUpdateNode(node.id, { prompt: event.target.value })} />
+        <label className="ip-label">#options</label>
+        <ul className="ip-opts">
+          {node.fakeOptions?.map((option, index) => (
+            <li key={`${option.text}-${index}`} className="ip-opt-row">
+              <div className="ip-opt-head">
+                <span className="opt-num">#{index + 1}</span>
+                <input className="ip-opt-text" value={option.text} onChange={(event) => updateFakeOption(node, index, { text: event.target.value }, onUpdateNode)} />
+                <button className="x-btn" onClick={() => removeFakeOption(node, index, onUpdateNode)}>x</button>
+              </div>
+              <div className="ip-opt-cond">
+                <select
+                  value={option.cond?.type ?? "none"}
+                  onChange={(event) => updateFakeOptionCondition(node, index, event.target.value, onUpdateNode)}
+                >
+                  <option value="none">no condition</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
+                </select>
+              </div>
+              {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
+              <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
+            </li>
+          ))}
+        </ul>
+        <button className="ghost-btn" onClick={() => addFakeOption(node, onUpdateNode)}>{labels.addOption}</button>
       </div>
     );
   }
@@ -404,6 +436,35 @@ function OptionSets({
   );
 }
 
+function FakeOptionSets({
+  node,
+  option,
+  optionIndex,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  option: FakeChoiceOption;
+  optionIndex: number;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  return (
+    <div className="branch-effects">
+      <span className="branch-effects-title">effects when this option is chosen</span>
+      <ul className="ip-sets">
+        {option.sets?.map((set, setIndex) => (
+          <li key={`${set.var}-${setIndex}`} className="ip-set-row">
+            <SetFields set={set} variables={project.variables} onChange={(patch) => updateFakeOptionSet(node, optionIndex, setIndex, patch, project, onUpdateNode)} />
+            <button className="x-btn" onClick={() => removeFakeOptionSet(node, optionIndex, setIndex, onUpdateNode)}>x</button>
+          </li>
+        ))}
+        <li><button className="ghost-btn" onClick={() => addFakeOptionSet(node, optionIndex, project, onUpdateNode)}>+ effect</button></li>
+      </ul>
+    </div>
+  );
+}
+
 function ChoiceConditionBuilder({
   node,
   option,
@@ -443,6 +504,49 @@ function ChoiceConditionBuilder({
         )}
       </div>
       {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="advanced condition" />}
+    </div>
+  );
+}
+
+function FakeChoiceConditionBuilder({
+  node,
+  option,
+  optionIndex,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  option: FakeChoiceOption;
+  optionIndex: number;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  const parsed = parseConditionExpression(option.cond?.expr ?? "", project.variables);
+  const variable = project.variables.find((candidate) => candidate.name === parsed.variable) ?? project.variables[0];
+  const operators = conditionOperators(variable);
+  const operator = operators.includes(parsed.operator) ? parsed.operator : operators[0];
+  const value = parsed.value || defaultConditionValue(variable);
+
+  return (
+    <div className="cond-builder">
+      <span className="branch-effects-title">option condition</span>
+      <div className="cb-row">
+        <select value={variable?.name ?? ""} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { variable: event.target.value }, project.variables, onUpdateNode)}>
+          {project.variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
+        </select>
+        <select value={operator} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { operator: event.target.value }, project.variables, onUpdateNode)}>
+          {operators.map((candidate) => <option key={candidate} value={candidate}>{candidate}</option>)}
+        </select>
+        {variable?.type === "boolean" ? (
+          <select value={value === "true" ? "true" : "false"} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)}>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        ) : (
+          <input value={value} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)} />
+        )}
+      </div>
+      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateFakeOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="advanced condition" />}
     </div>
   );
 }
@@ -577,6 +681,40 @@ function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string,
   onUpdateNode(node.id, { options: node.options?.filter((_, optionIndex) => optionIndex !== index) });
 }
 
+function updateFakeOption(node: StoryNode, index: number, patch: Partial<FakeChoiceOption>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, { fakeOptions: node.fakeOptions?.map((option, optionIndex) => (optionIndex === index ? { ...option, ...patch } : option)) });
+}
+
+function updateFakeOptionCondition(node: StoryNode, index: number, value: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const cond = value === "none" ? null : { type: value as ChoiceCondition["type"], expr: node.fakeOptions?.[index]?.cond?.expr || "true" };
+  updateFakeOption(node, index, { cond }, onUpdateNode);
+}
+
+function updateFakeChoiceCondition(
+  node: StoryNode,
+  optionIndex: number,
+  option: FakeChoiceOption,
+  patch: Partial<ParsedCondition>,
+  variables: VariableSummary[],
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void,
+) {
+  const current = parseConditionExpression(option.cond?.expr ?? "", variables);
+  const next = { ...current, ...patch };
+  const variable = variables.find((candidate) => candidate.name === next.variable) ?? variables[0];
+  const operators = conditionOperators(variable);
+  const operator = operators.includes(next.operator) ? next.operator : operators[0];
+  const value = next.value || defaultConditionValue(variable);
+  updateFakeOption(node, optionIndex, { cond: { ...option.cond!, expr: buildConditionExpression(variable?.name ?? next.variable, operator, value, variable) } }, onUpdateNode);
+}
+
+function addFakeOption(node: StoryNode, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, { fakeOptions: [...(node.fakeOptions ?? []), { text: "New option", cond: null }] });
+}
+
+function removeFakeOption(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, { fakeOptions: node.fakeOptions?.filter((_, optionIndex) => optionIndex !== index) });
+}
+
 function updateOptionSet(node: StoryNode, optionIndex: number, setIndex: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, {
     options: node.options?.map((option, currentOptionIndex) => (
@@ -598,6 +736,32 @@ function addOptionSet(node: StoryNode, optionIndex: number, project: ChoiceForge
 function removeOptionSet(node: StoryNode, optionIndex: number, setIndex: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, {
     options: node.options?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex ? { ...option, sets: option.sets?.filter((_, currentSetIndex) => currentSetIndex !== setIndex) } : option
+    )),
+  });
+}
+
+function updateFakeOptionSet(node: StoryNode, optionIndex: number, setIndex: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    fakeOptions: node.fakeOptions?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex
+        ? { ...option, sets: option.sets?.map((set, currentSetIndex) => (currentSetIndex === setIndex ? normalizeSetPatch({ ...set, ...patch }, project.variables) : set)) }
+        : option
+    )),
+  });
+}
+
+function addFakeOptionSet(node: StoryNode, optionIndex: number, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    fakeOptions: node.fakeOptions?.map((option, currentOptionIndex) => (
+      currentOptionIndex === optionIndex ? { ...option, sets: [...(option.sets ?? []), createDefaultSet(project.variables)] } : option
+    )),
+  });
+}
+
+function removeFakeOptionSet(node: StoryNode, optionIndex: number, setIndex: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, {
+    fakeOptions: node.fakeOptions?.map((option, currentOptionIndex) => (
       currentOptionIndex === optionIndex ? { ...option, sets: option.sets?.filter((_, currentSetIndex) => currentSetIndex !== setIndex) } : option
     )),
   });

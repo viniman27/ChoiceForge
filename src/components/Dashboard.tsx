@@ -85,6 +85,7 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
   const colors: Record<NodeType, string> = {
     passage: "var(--c-passage)",
     choice: "var(--c-choice)",
+    fake_choice: "var(--c-choice)",
     if: "var(--c-if)",
     set: "var(--c-set)",
     label: "var(--c-label)",

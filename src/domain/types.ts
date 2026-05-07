@@ -6,6 +6,7 @@ export type EditorView = "editor" | "dashboard";
 export type NodeType =
   | "passage"
   | "choice"
+  | "fake_choice"
   | "if"
   | "set"
   | "label"
@@ -79,6 +80,13 @@ export interface ChoiceOption {
   sets?: VariableSet[];
 }
 
+export interface FakeChoiceOption {
+  text: string;
+  cond?: ChoiceCondition | null;
+  hideReuse?: boolean;
+  sets?: VariableSet[];
+}
+
 export interface ConditionalBranch {
   kind: "if" | "elseif" | "else";
   expr?: string;
@@ -97,6 +105,7 @@ export interface StoryNode {
   prompt?: string;
   sets?: VariableSet[];
   options?: ChoiceOption[];
+  fakeOptions?: FakeChoiceOption[];
   branches?: ConditionalBranch[];
   target?: string;
   inputVar?: string;

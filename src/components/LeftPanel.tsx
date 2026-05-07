@@ -205,6 +205,7 @@ function nodeSearchTargets(node: StoryNode): string[] {
     node.body ?? "",
     node.prompt ?? "",
     ...(node.options?.map((option) => `${option.text} ${option.cond?.expr ?? ""}`) ?? []),
+    ...(node.fakeOptions?.map((option) => `${option.text} ${option.cond?.expr ?? ""}`) ?? []),
     ...(node.branches?.map((branch) => `${branch.kind} ${branch.expr ?? ""}`) ?? []),
     ...(node.sets?.map((set) => `${set.var} ${set.op} ${set.val}`) ?? []),
     node.target ?? "",

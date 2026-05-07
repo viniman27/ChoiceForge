@@ -3,6 +3,7 @@ import type { Density, I18nLabels, NodeType, StoryNode, VariableSet } from "../d
 export const typeColors: Record<NodeType, { dot: string; tint: string; label: string }> = {
   passage: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "passage" },
   choice: { dot: "var(--c-choice)", tint: "var(--c-choice-tint)", label: "choice" },
+  fake_choice: { dot: "var(--c-choice)", tint: "var(--c-choice-tint)", label: "*fake_choice" },
   if: { dot: "var(--c-if)", tint: "var(--c-if-tint)", label: "*if" },
   set: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*set" },
   label: { dot: "var(--c-label)", tint: "var(--c-label-tint)", label: "*label" },
@@ -30,6 +31,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   };
 
   if (type === "choice") return <svg {...common}><path d="M3 2v3a2 2 0 0 0 2 2h4M9 5l2 2-2 2M3 9h2" /></svg>;
+  if (type === "fake_choice") return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /><path d="M9 8l1 1-1 1" /></svg>;
   if (type === "if") return <svg {...common}><path d="M6 2v3M6 5l-3 3M6 5l3 3M3 8v2M9 8v2" /></svg>;
   if (type === "set") return <svg {...common}><path d="M2 4h8M2 8h8M5 2v8" /></svg>;
   if (type === "label") return <svg {...common}><path d="M2 4l3-2h5v8H5l-3-2z" /></svg>;
@@ -108,6 +110,19 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
       {!isMinimal && node.options && (
         <ul className="opts">
           {node.options.map((option, index) => (
+            <li key={`${option.text}-${index}`} className={`opt ${option.cond?.type === "selectable_if" ? "opt-disabled" : ""}`}>
+              <span className="opt-num">#{index + 1}</span>
+              <span className="opt-text">{highlightInline(option.text)}</span>
+              {isRich && option.cond && <span className="cond-badge"><span className="cond-key">*{option.cond.type}</span><code>{option.cond.expr}</code></span>}
+              {isRich && option.hideReuse && <span className="opt-tag">*hide_reuse</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!isMinimal && node.fakeOptions && (
+        <ul className="opts">
+          {node.fakeOptions.map((option, index) => (
             <li key={`${option.text}-${index}`} className={`opt ${option.cond?.type === "selectable_if" ? "opt-disabled" : ""}`}>
               <span className="opt-num">#{index + 1}</span>
               <span className="opt-text">{highlightInline(option.text)}</span>

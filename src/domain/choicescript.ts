@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
 
 const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "goto", "goto_scene"]);
 
@@ -33,6 +33,14 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
       lines.push(`  ${generateOptionHeader(option)}`);
       option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
       lines.push(`    *goto ${generatedNodeLabel(option.to)}`);
+    });
+  }
+
+  if (node.type === "fake_choice") {
+    lines.push("*fake_choice");
+    node.fakeOptions?.forEach((option) => {
+      lines.push(`  ${generateOptionHeader(option)}`);
+      option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
     });
   }
 
@@ -232,6 +240,12 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
       option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
     });
 
+    node.fakeOptions?.forEach((option, index) => {
+      if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: project.sceneTitle, node: node.id });
+      lintCondition(option.cond, variables, issues, project.sceneTitle, node.id);
+      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, project.sceneTitle, node.id));
+    });
+
     node.branches?.forEach((branch) => {
       if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: project.sceneTitle, node: node.id });
       lintExpression(branch.expr, variables, issues, project.sceneTitle, node.id);
@@ -268,7 +282,7 @@ function getSceneGraph(project: ChoiceForgeProject, sceneName: string): SceneGra
   return project.sceneData?.[sceneName] ?? { nodes: project.nodes, edges: project.edges };
 }
 
-function generateOptionHeader(option: ChoiceOption): string {
+function generateOptionHeader(option: ChoiceOption | FakeChoiceOption): string {
   const reuse = option.hideReuse ? "*hide_reuse " : "";
   const condition = option.cond ? `*${option.cond.type} (${option.cond.expr}) ` : "";
   return `${reuse}${condition}#${option.text}`;

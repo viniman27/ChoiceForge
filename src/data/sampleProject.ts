@@ -244,6 +244,7 @@ export const i18n: Record<Language, I18nLabels> = {
     nodeTypes: {
       passage: "trecho",
       choice: "escolha",
+      fake_choice: "escolha falsa",
       if: "condicional",
       set: "atribuicao",
       label: "rotulo",
@@ -295,6 +296,7 @@ export const i18n: Record<Language, I18nLabels> = {
     nodeTypes: {
       passage: "passage",
       choice: "choice",
+      fake_choice: "fake choice",
       if: "conditional",
       set: "set",
       label: "label",

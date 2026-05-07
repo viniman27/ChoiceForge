@@ -316,6 +316,11 @@ export function useProjectStore() {
               cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
               sets: option.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
             })),
+            fakeOptions: node.fakeOptions?.map((option) => ({
+              ...option,
+              cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
+              sets: option.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
+            })),
             branches: node.branches?.map((branch) => ({
               ...branch,
               expr: branch.expr ? renameExpressionName(branch.expr, name, nextName!) : branch.expr,
@@ -605,6 +610,7 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
 
   if (type === "passage") return { ...base, body: "New narrative passage." };
   if (type === "choice") return { ...base, prompt: "What happens next?", options: [] };
+  if (type === "fake_choice") return { ...base, prompt: "What do you notice?", fakeOptions: [{ text: "Look closer.", cond: null }] };
   if (type === "if") return { ...base, branches: [{ kind: "if", expr: "true", to: project.nodes[0]?.id ?? id }] };
   if (type === "set") {
     const firstVariable = project.variables[0]?.name ?? "variable";
@@ -632,6 +638,7 @@ function defaultNodeTitle(type: NodeType): string {
   const titles: Record<NodeType, string> = {
     passage: "new_passage",
     choice: "new_choice",
+    fake_choice: "new_fake_choice",
     if: "new_condition",
     set: "*set stats",
     label: "new_label",
@@ -649,7 +656,7 @@ function defaultNodeTitle(type: NodeType): string {
 }
 
 function defaultNodeWidth(type: NodeType): number {
-  if (type === "choice") return 340;
+  if (type === "choice" || type === "fake_choice") return 340;
   if (type === "passage") return 300;
   if (["checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number"].includes(type)) return 280;
   return 240;
@@ -674,6 +681,7 @@ function countSceneWords(nodes: StoryNode[]): number {
       node.body ?? "",
       node.prompt ?? "",
       ...(node.options?.map((option) => option.text) ?? []),
+      ...(node.fakeOptions?.map((option) => option.text) ?? []),
     ])
     .join(" ")
     .replace(/\$\{[^}]+\}/g, " ")
