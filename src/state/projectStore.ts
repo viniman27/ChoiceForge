@@ -372,61 +372,44 @@ export function useProjectStore() {
     },
     updateVariable: (name, patch) => {
       setTrackedProjectState((current) => {
+        const saved = commitProject(current);
         const nextName = patch.name?.trim();
         const shouldRename = Boolean(nextName && nextName !== name);
+        const sceneData = shouldRename
+          ? mapSceneGraphs(saved, (graph) => ({
+              ...graph,
+              nodes: graph.nodes.map((node) => renameNodeVariable(node, name, nextName!)),
+            }))
+          : saved.sceneData;
+        const activeGraph = sceneData?.[saved.sceneTitle];
 
         return commitProject({
-          ...current,
-          variables: current.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
-          nodes: shouldRename ? current.nodes.map((node) => ({
-            ...node,
-            body: node.body ? renameVariableReferences(node.body, name, nextName!) : node.body,
-            inputVar: node.inputVar === name ? nextName! : node.inputVar,
-            sets: node.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
-            options: node.options?.map((option) => ({
-              ...option,
-              cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
-              sets: option.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
-            })),
-            fakeOptions: node.fakeOptions?.map((option) => ({
-              ...option,
-              cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, name, nextName!) } : option.cond,
-              sets: option.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
-            })),
-            branches: node.branches?.map((branch) => ({
-              ...branch,
-              expr: branch.expr ? renameExpressionName(branch.expr, name, nextName!) : branch.expr,
-              sets: branch.sets?.map((set) => (set.var === name ? { ...set, var: nextName! } : set)),
-            })),
-          })) : current.nodes,
+          ...saved,
+          variables: saved.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
+          sceneData,
+          nodes: shouldRename ? activeGraph?.nodes ?? saved.nodes.map((node) => renameNodeVariable(node, name, nextName!)) : saved.nodes,
+          edges: shouldRename ? activeGraph?.edges ?? saved.edges : saved.edges,
         });
       });
     },
     deleteVariable: (name) => {
       setTrackedProjectState((current) => {
-        const removed = current.variables.find((variable) => variable.name === name);
+        const saved = commitProject(current);
+        const removed = saved.variables.find((variable) => variable.name === name);
         if (!removed) return current;
-        const variables = current.variables.filter((variable) => variable.name !== name);
+        const variables = saved.variables.filter((variable) => variable.name !== name);
         const inputFallback = variables.find((variable) => variable.type === removed.type) ?? variables[0];
+        const sceneData = mapSceneGraphs(saved, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((node) => removeNodeVariable(node, name, inputFallback)),
+        }));
+        const activeGraph = sceneData[saved.sceneTitle];
         return commitProject({
-          ...current,
+          ...saved,
           variables,
-          nodes: current.nodes.map((node) => {
-            const inputPatch = node.inputVar === name
-              ? {
-                  inputVar: inputFallback?.name,
-                  title: inputFallback ? replaceInputTitle(node, inputFallback.name) : node.title,
-                }
-              : {};
-            return {
-              ...node,
-              ...inputPatch,
-              sets: node.sets?.filter((set) => set.var !== name),
-              options: node.options?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
-              fakeOptions: node.fakeOptions?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
-              branches: node.branches?.map((branch) => ({ ...branch, sets: branch.sets?.filter((set) => set.var !== name) })),
-            };
-          }),
+          sceneData,
+          nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeVariable(node, name, inputFallback)),
+          edges: activeGraph?.edges ?? saved.edges,
         });
       });
     },
@@ -501,6 +484,57 @@ function renameExpressionName(expression: string, from: string, to: string): str
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function mapSceneGraphs(project: ChoiceForgeProject, mapper: (graph: SceneGraph) => SceneGraph): Record<string, SceneGraph> {
+  const sceneData = { ...(project.sceneData ?? {}) };
+  project.scenes
+    .filter((scene) => !scene.isStart && !scene.special)
+    .forEach((scene) => {
+      sceneData[scene.name] = mapper(sceneData[scene.name] ?? createEmptySceneGraph(scene.name));
+    });
+  return sceneData;
+}
+
+function renameNodeVariable(node: StoryNode, from: string, to: string): StoryNode {
+  return {
+    ...node,
+    body: node.body ? renameVariableReferences(node.body, from, to) : node.body,
+    inputVar: node.inputVar === from ? to : node.inputVar,
+    sets: node.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+    options: node.options?.map((option) => ({
+      ...option,
+      cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
+      sets: option.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+    })),
+    fakeOptions: node.fakeOptions?.map((option) => ({
+      ...option,
+      cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
+      sets: option.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+    })),
+    branches: node.branches?.map((branch) => ({
+      ...branch,
+      expr: branch.expr ? renameExpressionName(branch.expr, from, to) : branch.expr,
+      sets: branch.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+    })),
+  };
+}
+
+function removeNodeVariable(node: StoryNode, name: string, inputFallback: VariableSummary | undefined): StoryNode {
+  const inputPatch = node.inputVar === name
+    ? {
+        inputVar: inputFallback?.name,
+        title: inputFallback ? replaceInputTitle(node, inputFallback.name) : node.title,
+      }
+    : {};
+  return {
+    ...node,
+    ...inputPatch,
+    sets: node.sets?.filter((set) => set.var !== name),
+    options: node.options?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
+    fakeOptions: node.fakeOptions?.map((option) => ({ ...option, sets: option.sets?.filter((set) => set.var !== name) })),
+    branches: node.branches?.map((branch) => ({ ...branch, sets: branch.sets?.filter((set) => set.var !== name) })),
+  };
 }
 
 function nextAvailableName(base: string, existing: Set<string>): string {
