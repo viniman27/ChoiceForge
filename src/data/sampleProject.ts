@@ -209,17 +209,26 @@ const final: SceneGraph = {
   ],
 };
 
+function graphWords(graph: SceneGraph): number {
+  return graph.nodes
+    .flatMap((node) => [node.body, node.prompt, ...(node.options?.map((option) => option.text) ?? []), ...(node.fakeOptions?.map((option) => option.text) ?? [])])
+    .join(" ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+}
+
 const pt: ChoiceForgeProject = {
   title: "Farol_de_Bruma",
   author: "ChoiceForge",
   sceneTitle: "intro",
-  sceneSubtitle: "intro.txt - 78 palavras",
+  sceneSubtitle: `intro.txt - ${graphWords(intro)} palavras`,
   scenes: [
     { id: "startup", name: "startup", words: 22, nodes: 4, isStart: true },
-    { id: "intro", name: "intro", words: 78, nodes: intro.nodes.length, current: true },
-    { id: "sala_maquinas", name: "sala_maquinas", words: 70, nodes: salaMaquinas.nodes.length },
-    { id: "praia_neblina", name: "praia_neblina", words: 62, nodes: praiaNeblina.nodes.length },
-    { id: "final", name: "final", words: 45, nodes: final.nodes.length },
+    { id: "intro", name: "intro", words: graphWords(intro), nodes: intro.nodes.length, current: true },
+    { id: "sala_maquinas", name: "sala_maquinas", words: graphWords(salaMaquinas), nodes: salaMaquinas.nodes.length },
+    { id: "praia_neblina", name: "praia_neblina", words: graphWords(praiaNeblina), nodes: praiaNeblina.nodes.length },
+    { id: "final", name: "final", words: graphWords(final), nodes: final.nodes.length },
     { id: "stats", name: "choicescript_stats", words: 18, nodes: 1, special: true },
   ],
   variables: [
@@ -274,7 +283,7 @@ const pt: ChoiceForgeProject = {
 const en: ChoiceForgeProject = {
   ...pt,
   title: "Mist_Lighthouse",
-  sceneSubtitle: "intro.txt - 78 words",
+  sceneSubtitle: `intro.txt - ${graphWords(intro)} words`,
 };
 
 export const sampleProjects: Record<Language, ChoiceForgeProject> = { pt, en };
