@@ -175,7 +175,7 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
     },
     files: [
       {
-        path: "project.json",
+        path: "_choiceforge/project.json",
         encoding: "utf-8",
         content: generateProjectJson(project),
       },
