@@ -28,6 +28,8 @@ export interface ProjectActions {
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
   replaceCurrentSceneText: (content: string) => void;
+  replaceStartupText: (content: string) => void;
+  replaceStatsText: (content: string) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
@@ -118,6 +120,12 @@ export function useProjectStore() {
           },
         });
       });
+    },
+    replaceStartupText: (content) => {
+      setTrackedProjectState((current) => commitProject(applyStartupText(current, content)));
+    },
+    replaceStatsText: (content) => {
+      setTrackedProjectState((current) => commitProject(applyStatsText(current, content)));
     },
     resetProject: (language) => {
       const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
@@ -500,6 +508,184 @@ function nextAvailableName(base: string, existing: Set<string>): string {
   let index = 2;
   while (existing.has(`${base}_${index}`)) index += 1;
   return `${base}_${index}`;
+}
+
+function applyStartupText(project: ChoiceForgeProject, content: string): ChoiceForgeProject {
+  const lines = content.split(/\r?\n/);
+  const title = commandValue(lines.find((line) => commandName(line) === "title") ?? "", "*title") || project.title;
+  const author = commandValue(lines.find((line) => commandName(line) === "author") ?? "", "*author") || project.author;
+  const sceneNames = parseSceneList(lines);
+  const variables = parseCreates(lines, project.variables);
+  const achievements = parseAchievements(lines, project.achievements);
+  const scenes = reorderScenesFromStartup(project.scenes, sceneNames, project.sceneTitle);
+  const sceneData = { ...(project.sceneData ?? {}) };
+
+  scenes
+    .filter((scene) => !scene.isStart && !scene.special)
+    .forEach((scene) => {
+      if (!sceneData[scene.name]) sceneData[scene.name] = createEmptySceneGraph(scene.name);
+    });
+
+  const activeSceneName = scenes.some((scene) => scene.name === project.sceneTitle && !scene.isStart && !scene.special)
+    ? project.sceneTitle
+    : scenes.find((scene) => !scene.isStart && !scene.special)?.name ?? project.sceneTitle;
+  const activeGraph = sceneData[activeSceneName] ?? createEmptySceneGraph(activeSceneName);
+
+  return {
+    ...project,
+    title,
+    author,
+    scenes: scenes.map((scene) => ({ ...scene, current: scene.name === activeSceneName })),
+    variables,
+    achievements,
+    sceneTitle: activeSceneName,
+    sceneSubtitle: `${activeSceneName}.txt - ${activeGraph.nodes.length} nodes`,
+    sceneData,
+    nodes: activeGraph.nodes,
+    edges: activeGraph.edges,
+  };
+}
+
+function applyStatsText(project: ChoiceForgeProject, content: string): ChoiceForgeProject {
+  const chartRows = parseStatChartRows(content.split(/\r?\n/));
+  if (!chartRows.length) return project;
+  const rows = new Map(chartRows.map((row) => [row.name, row]));
+  return {
+    ...project,
+    variables: project.variables.map((variable) => {
+      const row = rows.get(variable.name);
+      if (!row) return variable;
+      return {
+        ...variable,
+        desc: row.label || variable.desc,
+        fairmath: variable.type === "number" ? row.chartType === "percent" : false,
+      };
+    }),
+  };
+}
+
+function parseSceneList(lines: string[]): string[] {
+  const scenes: string[] = [];
+  let inSceneList = false;
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (commandName(line) === "scene_list") {
+      inSceneList = true;
+      return;
+    }
+    if (!inSceneList) return;
+    if (!trimmed) return;
+    if (trimmed.startsWith("*")) {
+      inSceneList = false;
+      return;
+    }
+    scenes.push(normalizeIdentifier(trimmed));
+  });
+  return [...new Set(scenes)];
+}
+
+function parseCreates(lines: string[], currentVariables: VariableSummary[]): VariableSummary[] {
+  const current = new Map(currentVariables.map((variable) => [variable.name, variable]));
+  return lines
+    .filter((line) => commandName(line) === "create")
+    .map((line) => {
+      const [, rawName = "variable", ...rest] = line.trim().split(/\s+/);
+      const name = normalizeIdentifier(rawName) || "variable";
+      const initial = rest.join(" ") || "0";
+      const previous = current.get(name);
+      const type = inferVariableType(initial);
+      return {
+        name,
+        type,
+        initial,
+        desc: previous?.desc ?? name,
+        uses: previous?.uses ?? 0,
+        fairmath: type === "number" ? previous?.fairmath : false,
+      };
+    });
+}
+
+function parseAchievements(lines: string[], currentAchievements: AchievementSummary[]): AchievementSummary[] {
+  const current = new Map(currentAchievements.map((achievement) => [achievement.id, achievement]));
+  const achievements: AchievementSummary[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (commandName(lines[index]) !== "achievement") continue;
+    const parts = lines[index].trim().split(/\s+/);
+    const id = normalizeIdentifier(parts[1] ?? `achievement_${achievements.length + 1}`);
+    const visibility = parts[2] ?? "visible";
+    const points = Number(parts[3] ?? "0");
+    const title = parts.slice(4).join(" ") || current.get(id)?.title || id;
+    const preDesc = lines[index + 1]?.trim() || current.get(id)?.preDesc || title;
+    const postDesc = lines[index + 2]?.trim() || current.get(id)?.postDesc || preDesc;
+    achievements.push({
+      id,
+      title,
+      points: Number.isFinite(points) ? points : current.get(id)?.points ?? 0,
+      desc: current.get(id)?.desc || postDesc,
+      preDesc,
+      postDesc,
+      hidden: visibility === "hidden",
+    });
+  }
+  return achievements;
+}
+
+function parseStatChartRows(lines: string[]): Array<{ chartType: "percent" | "text"; name: string; label: string }> {
+  const rows: Array<{ chartType: "percent" | "text"; name: string; label: string }> = [];
+  let inChart = false;
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (commandName(line) === "stat_chart") {
+      inChart = true;
+      return;
+    }
+    if (!inChart || !trimmed) return;
+    if (trimmed.startsWith("*")) {
+      inChart = false;
+      return;
+    }
+    const [chartType, name, ...labelParts] = trimmed.split(/\s+/);
+    if ((chartType === "percent" || chartType === "text") && name) {
+      rows.push({ chartType, name, label: labelParts.join(" ") });
+    }
+  });
+  return rows;
+}
+
+function reorderScenesFromStartup(scenes: SceneSummary[], sceneNames: string[], activeSceneName: string): SceneSummary[] {
+  const startup = scenes.find((scene) => scene.isStart) ?? { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true };
+  const stats = scenes.find((scene) => scene.special) ?? { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true };
+  const existing = new Map(scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => [scene.name, scene]));
+  const orderedNames = sceneNames.length ? sceneNames : [...existing.keys()];
+  existing.forEach((_scene, name) => {
+    if (!orderedNames.includes(name)) orderedNames.push(name);
+  });
+  return [
+    startup,
+    ...orderedNames.map((name) => ({
+      ...(existing.get(name) ?? { id: name, name, words: 0, nodes: 1 }),
+      id: name,
+      name,
+      current: name === activeSceneName,
+      isStart: false,
+      special: false,
+    })),
+    stats,
+  ];
+}
+
+function commandName(line: string): string | null {
+  return line.trim().match(/^\*([a-z_]+)/i)?.[1].toLowerCase() ?? null;
+}
+
+function commandValue(line: string, command: string): string {
+  return line.trim().replace(command, "").trim();
+}
+
+function inferVariableType(value: string): VariableSummary["type"] {
+  if (/^(true|false)$/i.test(value)) return "boolean";
+  if (/^-?\d+(\.\d+)?$/.test(value)) return "number";
+  return "string";
 }
 
 function hydrateProject(project: ChoiceForgeProject): ChoiceForgeProject {

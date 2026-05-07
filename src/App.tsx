@@ -200,10 +200,14 @@ export default function App() {
       ) : generatedDocument ? (
         <GeneratedDocumentView
           {...generatedDocument}
-          editable={generatedDocumentId === "scene"}
+          editable
           onSave={(content) => {
-            actions.replaceCurrentSceneText(content);
-            setSelectedId("n1");
+            if (generatedDocumentId === "startup") actions.replaceStartupText(content);
+            if (generatedDocumentId === "stats") actions.replaceStatsText(content);
+            if (generatedDocumentId === "scene") {
+              actions.replaceCurrentSceneText(content);
+              setSelectedId("n1");
+            }
           }}
         />
       ) : (
