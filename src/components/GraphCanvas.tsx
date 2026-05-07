@@ -20,6 +20,9 @@ interface GraphCanvasProps {
 }
 
 const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "input_text", "input_number", "page_break", "checkpoint", "comment", "ending"];
+const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
+const TOOLBAR_MIN_WIDTH = 260;
+const TOOLBAR_DEFAULT_WIDTH = 760;
 
 export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -28,6 +31,8 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   const [connecting, setConnecting] = useState<{ from: string; x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 700 });
   const [space, setSpace] = useState(false);
+  const [toolbarWidth, setToolbarWidth] = useState(loadToolbarWidth);
+  const [toolbarResize, setToolbarResize] = useState<{ startX: number; startWidth: number } | null>(null);
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
 
   useEffect(() => {
@@ -62,6 +67,30 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("keyup", keyUp);
     };
   }, [onDeleteNode, selectedId, setSelectedId]);
+
+  useEffect(() => {
+    window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
+  }, [toolbarWidth]);
+
+  useEffect(() => {
+    if (!toolbarResize) return;
+    const move = (event: PointerEvent) => {
+      const maxWidth = Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64);
+      setToolbarWidth(clamp(toolbarResize.startWidth + event.clientX - toolbarResize.startX, TOOLBAR_MIN_WIDTH, maxWidth));
+    };
+    const up = () => setToolbarResize(null);
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [toolbarResize, viewport.width]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -125,7 +154,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       style={{ cursor: panning ? "grabbing" : "grab" }}
     >
       <div className="canvas-grid" />
-      <div className="canvas-toolbar">
+      <div className={`canvas-toolbar ${toolbarResize ? "is-resizing" : ""}`} style={{ width: Math.min(toolbarWidth, Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64)) }}>
         <span className="canvas-toolbar-label">{labels.addNode}</span>
         {creatableNodeTypes.map((type) => (
           <button
@@ -149,6 +178,17 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         <button className="canvas-tool" onClick={onLayoutNodes} title={labels.autoLayout}>
           {labels.autoLayout}
         </button>
+        <button
+          className="canvas-toolbar-resize"
+          type="button"
+          aria-label="resize node toolbar"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            setToolbarResize({ startX: event.clientX, startWidth: toolbarWidth });
+          }}
+        />
       </div>
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         <svg className="edges" width="3000" height="2000">
@@ -216,6 +256,15 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
   );
+}
+
+function loadToolbarWidth(): number {
+  const saved = Number(window.localStorage.getItem(TOOLBAR_WIDTH_KEY));
+  return Number.isFinite(saved) && saved > 0 ? saved : TOOLBAR_DEFAULT_WIDTH;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {

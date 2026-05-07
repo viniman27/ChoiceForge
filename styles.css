@@ -154,13 +154,15 @@ input, select, textarea { font-family: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: calc(100% - 210px);
+  max-width: calc(100% - 64px);
   padding: 5px;
+  padding-right: 13px;
   background: var(--paper-2);
   border: 1px solid var(--paper-edge);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-1);
   overflow-x: auto;
+  overflow-y: hidden;
 }
 .canvas-toolbar-label {
   padding: 0 6px;
@@ -192,6 +194,31 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .canvas-tool.danger:hover:not(:disabled) {
   color: var(--err);
+}
+.canvas-toolbar-resize {
+  position: sticky;
+  right: -8px;
+  flex: 0 0 8px;
+  align-self: stretch;
+  min-width: 8px;
+  margin: -5px -13px -5px 4px;
+  border: 0;
+  border-left: 1px solid var(--paper-edge);
+  background: linear-gradient(90deg, transparent, var(--paper-3));
+  cursor: col-resize;
+}
+.canvas-toolbar-resize::after {
+  content: "";
+  display: block;
+  width: 2px;
+  height: 18px;
+  margin: 9px auto;
+  border-left: 1px solid var(--ink-faint);
+  border-right: 1px solid var(--ink-faint);
+}
+.canvas-toolbar.is-resizing,
+.canvas-toolbar-resize:hover {
+  border-color: var(--accent-1);
 }
 
 /* ─── Left panel ─────────────────────────────── */
