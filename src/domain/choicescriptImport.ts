@@ -1,4 +1,4 @@
-import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
+import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
   name: string;
@@ -160,6 +160,19 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       continue;
     }
 
+    if (command === "fake_choice") {
+      flushPassage();
+      const block = collectIndentedBlock(lines, index);
+      index += block.length - 1;
+      const parsedFakeChoice = parseFakeChoiceBlock(block, nodes.length + 1);
+      if (parsedFakeChoice) {
+        addNode(parsedFakeChoice);
+      } else {
+        addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+      }
+      continue;
+    }
+
     if (isComplexCommand(command)) {
       flushPassage();
       const block = collectIndentedBlock(lines, index);
@@ -262,7 +275,7 @@ function parseSet(value: string): VariableSet | null {
 }
 
 function isComplexCommand(command: string): boolean {
-  return ["fake_choice", "if", "elseif", "else", "selectable_if"].includes(command);
+  return ["if", "elseif", "else", "selectable_if"].includes(command);
 }
 
 function canAutoFlow(node: StoryNode): boolean {
@@ -327,6 +340,40 @@ function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNod
       w: 360,
     },
     options,
+  };
+}
+
+function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
+  const options: FakeChoiceOption[] = [];
+  let current: FakeChoiceOption | null = null;
+
+  for (const line of block.slice(1)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const header = parseChoiceHeader(trimmed);
+    if (header) {
+      if (current) options.push(current);
+      current = { text: header.text, cond: header.cond ?? null, hideReuse: header.hideReuse, sets: [] };
+      continue;
+    }
+    if (!current) return null;
+    if (trimmed.startsWith("*set ")) {
+      const set = parseSet(commandValue(trimmed, "*set"));
+      if (set) current.sets = [...(current.sets ?? []), set];
+      continue;
+    }
+    if (trimmed.startsWith("*comment")) continue;
+    return null;
+  }
+
+  if (current) options.push(current);
+  if (!options.length) return null;
+  return {
+    type: "fake_choice",
+    title: `imported_fake_choice_${index}`,
+    prompt: "Choose:",
+    fakeOptions: options,
+    w: 360,
   };
 }
 
