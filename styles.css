@@ -425,6 +425,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
   padding: 1px 4px;
 }
 .mini-action:hover { color: var(--ink); background: var(--paper-3); }
+.mini-action:disabled { opacity: 0.38; cursor: default; }
+.mini-action:disabled:hover { color: var(--ink-mute); background: var(--paper-1); }
 .mini-action.danger:hover { color: var(--err); }
 
 /* Variables table */

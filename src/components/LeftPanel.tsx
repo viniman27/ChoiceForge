@@ -10,6 +10,7 @@ interface LeftPanelProps {
   onAddScene: () => void;
   onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  onMoveScene: (id: string, direction: "up" | "down") => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
   onAddVariable: () => void;
@@ -32,6 +33,7 @@ export function LeftPanel({
   onAddScene,
   onSelectScene,
   onUpdateScene,
+  onMoveScene,
   onDuplicateScene,
   onDeleteScene,
   onAddVariable,
@@ -80,6 +82,7 @@ export function LeftPanel({
             onAddScene={onAddScene}
             onSelectScene={onSelectScene}
             onUpdateScene={onUpdateScene}
+            onMoveScene={onMoveScene}
             onDuplicateScene={onDuplicateScene}
             onDeleteScene={onDeleteScene}
           />
@@ -219,6 +222,7 @@ function ScenesList({
   onAddScene,
   onSelectScene,
   onUpdateScene,
+  onMoveScene,
   onDuplicateScene,
   onDeleteScene,
 }: {
@@ -228,9 +232,11 @@ function ScenesList({
   onAddScene: () => void;
   onSelectScene: (id: string) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  onMoveScene: (id: string, direction: "up" | "down") => void;
   onDuplicateScene: (id: string) => void;
   onDeleteScene: (id: string) => void;
 }) {
+  const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
   return (
     <div className="scene-list">
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
@@ -252,6 +258,8 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>up</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>down</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>dup</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>del</button>}
                 </span>

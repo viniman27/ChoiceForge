@@ -38,6 +38,7 @@ export interface ProjectActions {
   deleteFlowEdge: (from: string, to: string) => void;
   addScene: () => void;
   updateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  moveScene: (id: string, direction: "up" | "down") => void;
   duplicateScene: (id: string) => void;
   deleteScene: (id: string) => void;
   addVariable: () => void;
@@ -259,6 +260,24 @@ export function useProjectStore() {
           scenes: saved.scenes.map((scene) => (scene.id === id ? { ...scene, ...patch, id: nextName || scene.id, name: nextName || scene.name } : scene)),
           sceneData: nextSceneData,
           nodes,
+        });
+      });
+    },
+    moveScene: (id, direction) => {
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        const movable = saved.scenes.filter((scene) => !scene.isStart && !scene.special);
+        const currentIndex = movable.findIndex((scene) => scene.id === id);
+        const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= movable.length) return current;
+
+        const reorderedMovable = [...movable];
+        [reorderedMovable[currentIndex], reorderedMovable[targetIndex]] = [reorderedMovable[targetIndex], reorderedMovable[currentIndex]];
+        const queue = [...reorderedMovable];
+
+        return commitProject({
+          ...saved,
+          scenes: saved.scenes.map((scene) => (scene.isStart || scene.special ? scene : queue.shift() ?? scene)),
         });
       });
     },

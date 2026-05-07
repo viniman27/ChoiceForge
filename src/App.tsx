@@ -170,6 +170,7 @@ export default function App() {
           setSelectedId("n1");
         }}
         onUpdateScene={actions.updateScene}
+        onMoveScene={actions.moveScene}
         onDuplicateScene={actions.duplicateScene}
         onDeleteScene={actions.deleteScene}
         onAddVariable={actions.addVariable}
