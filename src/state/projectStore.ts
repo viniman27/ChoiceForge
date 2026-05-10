@@ -957,6 +957,10 @@ function replaceInputTitle(node: StoryNode, variableName: string): string {
 
 function layoutStoryNodes(project: ChoiceForgeProject): StoryNode[] {
   const nodes = project.nodes;
+  const horizontalGap = 150;
+  const verticalGap = 90;
+  const startX = 70;
+  const startY = 70;
   const nodeIds = new Set(nodes.map((node) => node.id));
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
@@ -996,14 +1000,32 @@ function layoutStoryNodes(project: ChoiceForgeProject): StoryNode[] {
 
   const orderedColumns = [...columns.entries()].sort(([a], [b]) => a - b);
   const positions = new Map<string, { x: number; y: number }>();
-  orderedColumns.forEach(([column, columnNodes]) => {
+  let columnX = startX;
+  orderedColumns.forEach(([, columnNodes]) => {
     const sortedNodes = [...columnNodes].sort((a, b) => a.y - b.y || a.x - b.x);
-    sortedNodes.forEach((node, row) => {
-      positions.set(node.id, { x: 70 + column * 360, y: 70 + row * 210 });
+    let nodeY = startY;
+    sortedNodes.forEach((node) => {
+      positions.set(node.id, { x: columnX, y: nodeY });
+      nodeY += estimateLayoutNodeHeight(node) + verticalGap;
     });
+    const maxWidth = Math.max(...sortedNodes.map((node) => node.w), 260);
+    columnX += maxWidth + horizontalGap;
   });
 
   return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
+}
+
+function estimateLayoutNodeHeight(node: StoryNode): number {
+  let height = 58 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
+  if (node.body) height += 90;
+  if (node.prompt) height += 28;
+  if (node.options) height += node.options.length * 38 + 8;
+  if (node.fakeOptions) height += node.fakeOptions.length * 38 + 8;
+  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (branch.sets?.length ?? 0) * 22, 8);
+  if (node.sets?.length) height += 30;
+  if (node.target) height += 22;
+  if (node.inputVar) height += 22;
+  return Math.max(80, height);
 }
 
 function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {
