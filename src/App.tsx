@@ -288,14 +288,19 @@ export default function App() {
       <BottomBar
         data={lintedProject}
         labels={i18n[lang]}
-        onSelectIssue={(sceneName, nodeId) => {
-          const scene = lintedProject.scenes.find((candidate) => candidate.name === sceneName);
+        onSelectIssue={(lint) => {
+          const scene = lintedProject.scenes.find((candidate) => candidate.name === lint.scene);
           setGeneratedDocumentId(null);
           setPlayOpen(false);
           if (scene && !scene.isStart && !scene.special && scene.name !== lintedProject.sceneTitle) {
             actions.selectScene(scene.id);
           }
-          setSelectedId(nodeId);
+          if (lint.node) {
+            setSelectedId(lint.node);
+            return;
+          }
+          setSelectedId(null);
+          setActiveTab(tabForLintMessage(lint.msg));
         }}
       />
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
@@ -333,6 +338,13 @@ function formatSaveStatus(lang: Language): string {
     second: "2-digit",
   }).format(new Date());
   return lang === "pt" ? `Salvo localmente ${time}` : `Saved locally ${time}`;
+}
+
+function tabForLintMessage(message: string): string {
+  if (/variable/i.test(message)) return "variables";
+  if (/achievement/i.test(message)) return "achievements";
+  if (/asset/i.test(message)) return "assets";
+  return "scenes";
 }
 
 function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgeProject) {

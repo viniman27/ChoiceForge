@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, I18nLabels } from "../domain/types";
+import type { ChoiceForgeProject, I18nLabels, LintIssue } from "../domain/types";
 
 export function BottomBar({
   data,
@@ -7,7 +7,7 @@ export function BottomBar({
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
-  onSelectIssue: (scene: string | null | undefined, node: string) => void;
+  onSelectIssue: (lint: LintIssue) => void;
 }) {
   const errors = data.lints.filter((lint) => lint.level === "error").length;
   const warnings = data.lints.filter((lint) => lint.level === "warning").length;
@@ -25,8 +25,8 @@ export function BottomBar({
             {data.lints.map((lint, index) => (
               <li
                 key={index}
-                className={`con-row con-${lint.level} ${lint.node ? "is-clickable" : ""}`}
-                onClick={() => lint.node && onSelectIssue(lint.scene, lint.node)}
+                className={`con-row con-${lint.level} ${isNavigableIssue(lint) ? "is-clickable" : ""}`}
+                onClick={() => isNavigableIssue(lint) && onSelectIssue(lint)}
               >
                 <span className={`con-dot dot-${lint.level}`} />
                 <span className="con-msg">{lint.msg}</span>
@@ -41,4 +41,8 @@ export function BottomBar({
       </div>
     </footer>
   );
+}
+
+function isNavigableIssue(lint: LintIssue): boolean {
+  return Boolean(lint.node || lint.scene || /scene|variable|achievement|asset/i.test(lint.msg));
 }
