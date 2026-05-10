@@ -28,6 +28,8 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
+- Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
+- Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
 - Sample project in both PT and EN (`src/data/sampleProject.ts`)
 - Bilingual UI (PT/EN) via `I18nLabels` type in `types.ts`
 
@@ -35,8 +37,6 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
 - Inline text editor with syntax highlighting (CodeMirror/Monaco — not yet integrated)
 - Play-test with the official ChoiceScript runtime
-- Global search (Ctrl+Shift+F)
-- `*disable_reuse` / `*allow_reuse` on choice options (only `*hide_reuse` is modeled)
 - Git integration, version history, snapshots
 - Desktop packaging (Tauri/Electron)
 
@@ -222,8 +222,7 @@ In rough order of value:
 1. **Full ChoiceScript parser/AST** — current import is useful but incomplete for complex existing projects.
 2. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
 3. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
-4. **Global search/navigation** — Ctrl+Shift+F across scenes, variables, achievements, and assets.
-5. **More complete ChoiceScript commands** — reuse modes beyond `*hide_reuse`, more expression helpers, subroutine ergonomics.
+4. **More complete ChoiceScript commands** — more expression helpers, subroutine ergonomics.
 
 ---
 
@@ -275,7 +274,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 | Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
 | Import parser | Handles common/simple ChoiceScript commands, not a full AST or full language roundtrip |
-| Global search | Not implemented |
+| Global search | Implemented for scenes, nodes, variables, achievements, and assets |
 | Git/version history | Not implemented beyond browser undo history |
 
 ---

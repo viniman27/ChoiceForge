@@ -74,10 +74,13 @@ export interface ChoiceCondition {
   expr: string;
 }
 
+export type ChoiceReuse = "hide" | "disable" | "allow";
+
 export interface ChoiceOption {
   text: string;
   to: string;
   cond?: ChoiceCondition | null;
+  reuse?: ChoiceReuse;
   hideReuse?: boolean;
   sets?: VariableSet[];
 }
@@ -85,6 +88,7 @@ export interface ChoiceOption {
 export interface FakeChoiceOption {
   text: string;
   cond?: ChoiceCondition | null;
+  reuse?: ChoiceReuse;
   hideReuse?: boolean;
   sets?: VariableSet[];
 }

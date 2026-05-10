@@ -60,6 +60,11 @@ function highlightInline(text: string) {
   });
 }
 
+function choiceReuseLabel(option: { reuse?: "hide" | "disable" | "allow"; hideReuse?: boolean }): string {
+  const reuse = option.reuse ?? (option.hideReuse ? "hide" : undefined);
+  return reuse ? `*${reuse}_reuse` : "";
+}
+
 function VarDelta({ set }: { set: VariableSet }) {
   const positive = set.op === "+" || set.op === "%+";
   const negative = set.op === "-" || set.op === "%-";
@@ -118,7 +123,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
               <span className="opt-num">#{index + 1}</span>
               <span className="opt-text">{highlightInline(option.text)}</span>
               {isRich && option.cond && <span className="cond-badge"><span className="cond-key">*{option.cond.type}</span><code>{option.cond.expr}</code></span>}
-              {isRich && option.hideReuse && <span className="opt-tag">*hide_reuse</span>}
+              {isRich && choiceReuseLabel(option) && <span className="opt-tag">{choiceReuseLabel(option)}</span>}
             </li>
           ))}
         </ul>
@@ -131,7 +136,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
               <span className="opt-num">#{index + 1}</span>
               <span className="opt-text">{highlightInline(option.text)}</span>
               {isRich && option.cond && <span className="cond-badge"><span className="cond-key">*{option.cond.type}</span><code>{option.cond.expr}</code></span>}
-              {isRich && option.hideReuse && <span className="opt-tag">*hide_reuse</span>}
+              {isRich && choiceReuseLabel(option) && <span className="opt-tag">{choiceReuseLabel(option)}</span>}
             </li>
           ))}
         </ul>

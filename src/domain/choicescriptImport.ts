@@ -1,4 +1,4 @@
-import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, ConditionalBranch, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
+import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, ChoiceReuse, ConditionalBranch, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
   name: string;
@@ -288,6 +288,7 @@ function updateChoiceForgeNode(node: StoryNode, section: string[], labelToNodeId
         text: option.text,
         to: labelToNodeId.get(option.targetLabel) ?? node.options?.[index]?.to ?? node.id,
         cond: option.cond ?? null,
+        reuse: option.reuse,
         hideReuse: option.hideReuse,
         sets: option.sets,
       })),
@@ -490,6 +491,7 @@ interface ImportedChoiceOption {
   text: string;
   targetLabel: string;
   cond?: ChoiceCondition | null;
+  reuse?: ChoiceReuse;
   hideReuse?: boolean;
   sets: VariableSet[];
 }
@@ -580,7 +582,7 @@ function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, 
     const header = parseChoiceHeader(trimmed);
     if (header) {
       if (current) options.push(current);
-      current = { text: header.text, cond: header.cond ?? null, hideReuse: header.hideReuse, sets: [] };
+      current = { text: header.text, cond: header.cond ?? null, reuse: header.reuse, hideReuse: header.hideReuse, sets: [] };
       continue;
     }
     if (!current) return null;
@@ -657,17 +659,18 @@ function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" 
   return null;
 }
 
-function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" | "cond" | "hideReuse"> | null {
-  if (trimmed.startsWith("#")) return { text: trimmed.replace(/^#+/, "").trim(), cond: null };
+function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" | "cond" | "reuse" | "hideReuse"> | null {
+  const reuse = trimmed.match(/^\*(hide|disable|allow)_reuse\s+(.+)$/i);
+  const reuseMode = reuse?.[1]?.toLowerCase() as ChoiceReuse | undefined;
+  const optionText = reuse?.[2]?.trim() ?? trimmed;
 
-  const selectable = trimmed.match(/^\*selectable_if\s+\((.+)\)\s+#(.+)$/i);
-  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: selectable[1].trim() } };
+  if (optionText.startsWith("#")) return { text: optionText.replace(/^#+/, "").trim(), cond: null, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
-  const conditional = trimmed.match(/^\*if\s+\((.+)\)\s+#(.+)$/i);
-  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: conditional[1].trim() } };
+  const selectable = optionText.match(/^\*selectable_if\s+\((.+)\)\s+#(.+)$/i);
+  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: selectable[1].trim() }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
-  const hideReuse = trimmed.match(/^\*hide_reuse\s+#(.+)$/i);
-  if (hideReuse) return { text: hideReuse[1].trim(), cond: null, hideReuse: true };
+  const conditional = optionText.match(/^\*if\s+\((.+)\)\s+#(.+)$/i);
+  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: conditional[1].trim() }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
   return null;
 }
@@ -691,6 +694,7 @@ function resolveImportedChoices(nodes: StoryNode[], edges: StoryEdge[], pendingC
           text: option.text,
           to: target,
           cond: option.cond ?? null,
+          reuse: option.reuse,
           hideReuse: option.hideReuse,
           sets: option.sets,
         };

@@ -391,7 +391,8 @@ function getSceneGraph(project: ChoiceForgeProject, sceneName: string): SceneGra
 }
 
 function generateOptionHeader(option: ChoiceOption | FakeChoiceOption): string {
-  const reuse = option.hideReuse ? "*hide_reuse " : "";
+  const reuseMode = option.reuse ?? (option.hideReuse ? "hide" : undefined);
+  const reuse = reuseMode ? `*${reuseMode}_reuse ` : "";
   const condition = option.cond ? `*${option.cond.type} (${option.cond.expr}) ` : "";
   return `${reuse}${condition}#${option.text}`;
 }

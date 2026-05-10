@@ -127,10 +127,7 @@ function ContentTab({
                 </select>
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
-              <label className="toggle-row">
-                <input type="checkbox" checked={Boolean(option.hideReuse)} onChange={(event) => updateOption(node, index, { hideReuse: event.target.checked }, onUpdateNode)} />
-                *hide_reuse
-              </label>
+              <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
               <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -163,10 +160,7 @@ function ContentTab({
                 </select>
               </div>
               {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
-              <label className="toggle-row">
-                <input type="checkbox" checked={Boolean(option.hideReuse)} onChange={(event) => updateFakeOption(node, index, { hideReuse: event.target.checked }, onUpdateNode)} />
-                *hide_reuse
-              </label>
+              <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateFakeOptionReuse(node, index, reuse, onUpdateNode)} />
               <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -373,6 +367,22 @@ function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: C
         <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ effect</button></li>
       </ul>
     </>
+  );
+}
+
+type ChoiceReuseValue = "default" | "hide" | "disable" | "allow";
+
+function ChoiceReuseSelect({ value, onChange }: { value: ChoiceReuseValue; onChange: (value: ChoiceReuseValue) => void }) {
+  return (
+    <label className="reuse-row">
+      <span>reuse</span>
+      <select value={value} onChange={(event) => onChange(event.target.value as ChoiceReuseValue)}>
+        <option value="default">default</option>
+        <option value="hide">*hide_reuse</option>
+        <option value="disable">*disable_reuse</option>
+        <option value="allow">*allow_reuse</option>
+      </select>
+    </label>
   );
 }
 
@@ -680,6 +690,14 @@ function updateOption(node: StoryNode, index: number, patch: Partial<ChoiceOptio
   onUpdateNode(node.id, { options: node.options?.map((option, optionIndex) => (optionIndex === index ? { ...option, ...patch } : option)) });
 }
 
+function choiceReuseValue(option: ChoiceOption | FakeChoiceOption): ChoiceReuseValue {
+  return option.reuse ?? (option.hideReuse ? "hide" : "default");
+}
+
+function updateOptionReuse(node: StoryNode, index: number, reuse: ChoiceReuseValue, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  updateOption(node, index, { reuse: reuse === "default" ? undefined : reuse, hideReuse: reuse === "hide" }, onUpdateNode);
+}
+
 function updateOptionCondition(node: StoryNode, index: number, value: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   const cond = value === "none" ? null : { type: value as ChoiceCondition["type"], expr: node.options?.[index]?.cond?.expr || "true" };
   updateOption(node, index, { cond }, onUpdateNode);
@@ -713,6 +731,10 @@ function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string,
 
 function updateFakeOption(node: StoryNode, index: number, patch: Partial<FakeChoiceOption>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   onUpdateNode(node.id, { fakeOptions: node.fakeOptions?.map((option, optionIndex) => (optionIndex === index ? { ...option, ...patch } : option)) });
+}
+
+function updateFakeOptionReuse(node: StoryNode, index: number, reuse: ChoiceReuseValue, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  updateFakeOption(node, index, { reuse: reuse === "default" ? undefined : reuse, hideReuse: reuse === "hide" }, onUpdateNode);
 }
 
 function updateFakeOptionCondition(node: StoryNode, index: number, value: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
