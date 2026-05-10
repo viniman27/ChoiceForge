@@ -155,7 +155,10 @@ export default function App() {
           setGeneratedDocumentId(null);
           setSelectedId("n1");
         }, lang)}
-        onExport={() => downloadGeneratedProject(lintedProject)}
+        onExport={() => {
+          if (!confirmExportWithLintErrors(lintedProject, lang)) return;
+          downloadGeneratedProject(lintedProject);
+        }}
         onResetProject={() => {
           const confirmed = window.confirm(lang === "pt"
             ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
@@ -368,6 +371,14 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   anchor.download = `${project.title}.zip`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function confirmExportWithLintErrors(project: ChoiceForgeProject, lang: Language): boolean {
+  const errors = project.lints.filter((lint) => lint.level === "error");
+  if (!errors.length) return true;
+  return window.confirm(lang === "pt"
+    ? `O projeto tem ${errors.length} erro(s) de linter. Exportar mesmo assim?`
+    : `The project has ${errors.length} linter error(s). Export anyway?`);
 }
 
 async function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
