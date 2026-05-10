@@ -284,6 +284,8 @@ function updateChoiceForgeNode(node: StoryNode, section: string[], labelToNodeId
     if (!parsed) return base;
     return {
       ...base,
+      body: undefined,
+      prompt: body || node.prompt,
       options: parsed.options.map((option, index) => ({
         text: option.text,
         to: labelToNodeId.get(option.targetLabel) ?? node.options?.[index]?.to ?? node.id,
@@ -298,7 +300,7 @@ function updateChoiceForgeNode(node: StoryNode, section: string[], labelToNodeId
   if (node.type === "fake_choice") {
     const block = extractChoiceForgeCommandBlock(section, "fake_choice");
     const parsed = block ? parseFakeChoiceBlock(block, 1) : null;
-    return parsed ? { ...base, fakeOptions: parsed.fakeOptions } : base;
+    return parsed ? { ...base, body: undefined, prompt: body || node.prompt, fakeOptions: parsed.fakeOptions } : base;
   }
 
   if (node.type === "if") {

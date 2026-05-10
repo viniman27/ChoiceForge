@@ -28,6 +28,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   node.sets?.forEach((set) => lines.push(generateSet(set)));
 
   if (node.type === "choice") {
+    if (node.prompt?.trim()) lines.push(node.prompt);
     lines.push("*choice");
     node.options?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
@@ -37,6 +38,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   }
 
   if (node.type === "fake_choice") {
+    if (node.prompt?.trim()) lines.push(node.prompt);
     lines.push("*fake_choice");
     node.fakeOptions?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
