@@ -291,24 +291,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if (!achievements.has(id)) issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, scene: sceneName, node: node.id });
     });
 
-    node.options?.forEach((option, index) => {
-      if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
-      if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
-      lintCondition(option.cond, variables, issues, sceneName, node.id);
-      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
-    });
-
-    node.fakeOptions?.forEach((option, index) => {
-      if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
-      lintCondition(option.cond, variables, issues, sceneName, node.id);
-      option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
-    });
-
-    node.branches?.forEach((branch) => {
-      if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: sceneName, node: node.id });
-      lintExpression(branch.expr, variables, issues, sceneName, node.id);
-      branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
-    });
+    if (node.type === "choice") lintChoiceNode(node, nodeIds, variables, variableTypes, issues, sceneName);
+    if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName);
+    if (node.type === "if") lintIfNode(node, nodeIds, variables, variableTypes, issues, sceneName);
 
     if (node.type === "goto_scene" && node.target && !scenes.has(node.target)) {
       issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${node.target}`, scene: sceneName, node: node.id });
@@ -322,6 +307,66 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
+  });
+}
+
+function lintChoiceNode(
+  node: StoryNode,
+  nodeIds: Set<string>,
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  issues: LintIssue[],
+  sceneName: string,
+) {
+  if (!node.options?.length) {
+    issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+  }
+  node.options?.forEach((option, index) => {
+    if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
+    if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
+    lintCondition(option.cond, variables, issues, sceneName, node.id);
+    option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+  });
+}
+
+function lintFakeChoiceNode(
+  node: StoryNode,
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  issues: LintIssue[],
+  sceneName: string,
+) {
+  if (!node.fakeOptions?.length) {
+    issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+  }
+  node.fakeOptions?.forEach((option, index) => {
+    if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
+    lintCondition(option.cond, variables, issues, sceneName, node.id);
+    option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+  });
+}
+
+function lintIfNode(
+  node: StoryNode,
+  nodeIds: Set<string>,
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  issues: LintIssue[],
+  sceneName: string,
+) {
+  if (!node.branches?.length) {
+    issues.push({ level: "error", msg: `*if node "${node.title}" has no branches`, scene: sceneName, node: node.id });
+  }
+  node.branches?.forEach((branch) => {
+    if (branch.kind === "else" && branch.expr?.trim()) {
+      issues.push({ level: "error", msg: "*else branch cannot have a condition", scene: sceneName, node: node.id });
+    }
+    if ((branch.kind === "if" || branch.kind === "elseif") && !branch.expr?.trim()) {
+      issues.push({ level: "error", msg: `*${branch.kind} branch needs a condition`, scene: sceneName, node: node.id });
+    }
+    if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: sceneName, node: node.id });
+    lintExpression(branch.expr, variables, issues, sceneName, node.id);
+    branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
   });
 }
 
