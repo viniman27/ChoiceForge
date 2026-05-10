@@ -239,12 +239,41 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     .filter((scene) => !scene.isStart && !scene.special)
     .map((scene) => scene.name);
 
+  lintProjectMetadata(project, issues);
   sceneNames.forEach((sceneName) => {
     lintSceneGraph(project, getSceneGraph(project, sceneName), sceneName, issues);
   });
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
   return issues;
+}
+
+function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
+  findDuplicates(project.scenes.map((scene) => scene.name))
+    .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, scene: null }));
+  findDuplicates(project.variables.map((variable) => variable.name))
+    .forEach((name) => issues.push({ level: "error", msg: `duplicate variable name: ${name}`, scene: null }));
+  findDuplicates(project.achievements.map((achievement) => achievement.id))
+    .forEach((id) => issues.push({ level: "error", msg: `duplicate achievement id: ${id}`, scene: null }));
+  findDuplicates((project.assets ?? []).map((asset) => asset.path))
+    .forEach((path) => issues.push({ level: "warning", msg: `duplicate asset path: ${path}`, scene: null }));
+
+  project.scenes.forEach((scene) => {
+    if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", scene: null });
+  });
+  project.variables.forEach((variable) => {
+    if (!variable.name.trim()) issues.push({ level: "error", msg: "variable has an empty name", scene: null });
+    if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, scene: null });
+  });
+  project.achievements.forEach((achievement) => {
+    if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", scene: null });
+    if (!Number.isFinite(achievement.points) || achievement.points < 0) {
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, scene: null });
+    }
+  });
+  (project.assets ?? []).forEach((asset) => {
+    if (!asset.path.trim()) issues.push({ level: "warning", msg: `asset "${asset.id}" has an empty path`, scene: null });
+  });
 }
 
 function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {
@@ -386,6 +415,19 @@ function mergeGraphEdges(...edgeGroups: StoryEdge[][]): StoryEdge[] {
     seen.add(key);
     return true;
   });
+}
+
+function findDuplicates(values: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  values
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => {
+      if (seen.has(value)) duplicates.add(value);
+      seen.add(value);
+    });
+  return [...duplicates];
 }
 
 function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
