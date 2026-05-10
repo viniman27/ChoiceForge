@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
@@ -51,6 +51,7 @@ export function LeftPanel({
   onSelectNode,
 }: LeftPanelProps) {
   const [search, setSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchResults = useMemo(() => searchProject(data, search), [data, search]);
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
@@ -59,14 +60,25 @@ export function LeftPanel({
     { id: "assets", label: labels.leftTabs[3] },
   ];
 
+  useEffect(() => {
+    const keyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.key.toLowerCase() !== "f") return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    };
+    window.addEventListener("keydown", keyDown);
+    return () => window.removeEventListener("keydown", keyDown);
+  }, []);
+
   return (
     <aside className="left-panel">
       <div className="search-bar">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
           <circle cx="6" cy="6" r="4" /><path d="M9 9l3 3" />
         </svg>
-        <input type="text" placeholder={labels.search} value={search} onChange={(event) => setSearch(event.target.value)} />
-        <kbd>Cmd F</kbd>
+        <input ref={searchInputRef} type="text" placeholder={labels.search} value={search} onChange={(event) => setSearch(event.target.value)} />
+        <kbd>Ctrl Shift F</kbd>
       </div>
       <div className="left-tabs">
         {tabs.map((tab) => (
@@ -77,7 +89,19 @@ export function LeftPanel({
       </div>
       <div className="left-content">
         {search.trim() ? (
-          <SearchResults results={searchResults} labels={labels} onSelectNode={onSelectNode} onSelectScene={onSelectScene} />
+          <SearchResults
+            results={searchResults}
+            labels={labels}
+            onOpenResult={(result) => {
+              if (result.sceneId) onSelectScene(result.sceneId);
+              if (result.nodeId) onSelectNode(result.nodeId);
+              if (result.kind === "variable") setActiveTab("variables");
+              if (result.kind === "achievement") setActiveTab("achievements");
+              if (result.kind === "asset") setActiveTab("assets");
+              if (result.kind === "scene") setActiveTab("scenes");
+              setSearch("");
+            }}
+          />
         ) : activeTab === "scenes" && (
           <ScenesList
             data={data}
@@ -117,7 +141,7 @@ interface SearchResult {
   sceneId?: string;
 }
 
-function SearchResults({ results, labels, onSelectNode, onSelectScene }: { results: SearchResult[]; labels: I18nLabels; onSelectNode: (id: string) => void; onSelectScene: (id: string) => void }) {
+function SearchResults({ results, labels, onOpenResult }: { results: SearchResult[]; labels: I18nLabels; onOpenResult: (result: SearchResult) => void }) {
   return (
     <div className="search-results">
       <div className="section-title"><span>{labels.words === "words" ? "results" : "resultados"}</span><span>{results.length}</span></div>
@@ -128,11 +152,8 @@ function SearchResults({ results, labels, onSelectNode, onSelectScene }: { resul
           {results.map((result) => (
             <li key={result.id}>
               <button
-                className={`search-result ${result.nodeId || result.sceneId ? "is-clickable" : ""}`}
-                onClick={() => {
-                  if (result.sceneId) onSelectScene(result.sceneId);
-                  if (result.nodeId) onSelectNode(result.nodeId);
-                }}
+                className="search-result is-clickable"
+                onClick={() => onOpenResult(result)}
               >
                 <span className={`result-kind result-${result.kind}`}>{result.kind}</span>
                 <span className="result-main">
@@ -159,6 +180,7 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
       kind: "scene",
       title: `${scene.name}.txt`,
       detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes`,
+      sceneId: scene.id,
     });
   });
   data.variables.forEach((variable) => {
