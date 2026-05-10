@@ -21,9 +21,9 @@ const intro: SceneGraph = {
       title: "primeira_investigacao",
       prompt: "Por onde voce comeca?",
       options: [
-        { text: "Subir direto para a sala da lente.", to: "n3", cond: null, sets: [{ var: "coragem", op: "%+", val: "5" }] },
+        { text: "Subir direto para a sala da lente.", to: "n3", cond: null, reuse: "hide", sets: [{ var: "coragem", op: "%+", val: "5" }] },
         { text: "Procurar marcas na praia.", to: "n4", cond: null, sets: [{ var: "pistas", op: "+", val: "1" }] },
-        { text: "Ligar para a capitania antes de entrar.", to: "n5", cond: { type: "selectable_if", expr: "sinal_radio" }, sets: [{ var: "sinal_radio", op: "=", val: "false" }] },
+        { text: "Ligar para a capitania antes de entrar.", to: "n5", cond: { type: "selectable_if", expr: "sinal_radio" }, reuse: "disable", sets: [{ var: "sinal_radio", op: "=", val: "false" }] },
       ],
     },
     {

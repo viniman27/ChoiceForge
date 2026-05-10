@@ -234,8 +234,8 @@ function nodeSearchTargets(node: StoryNode): string[] {
   return [
     node.body ?? "",
     node.prompt ?? "",
-    ...(node.options?.map((option) => `${option.text} ${option.cond?.expr ?? ""}`) ?? []),
-    ...(node.fakeOptions?.map((option) => `${option.text} ${option.cond?.expr ?? ""}`) ?? []),
+    ...(node.options?.map((option) => `${option.text} ${option.cond?.expr ?? ""} ${option.reuse ? `*${option.reuse}_reuse` : ""}`) ?? []),
+    ...(node.fakeOptions?.map((option) => `${option.text} ${option.cond?.expr ?? ""} ${option.reuse ? `*${option.reuse}_reuse` : ""}`) ?? []),
     ...(node.branches?.map((branch) => `${branch.kind} ${branch.expr ?? ""}`) ?? []),
     ...(node.sets?.map((set) => `${set.var} ${set.op} ${set.val}`) ?? []),
     node.target ?? "",
