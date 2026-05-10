@@ -251,7 +251,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         <button onClick={() => setZoom((current) => Math.max(0.25, current - 0.1))}>-</button>
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
-        <button onClick={() => fitGraphToViewport(data, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
+        <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
       </div>
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
@@ -286,6 +286,7 @@ function clientPointToWorld(clientX: number, clientY: number, canvas: HTMLDivEle
 
 function fitGraphToViewport(
   project: ChoiceForgeProject,
+  density: Density,
   viewport: { width: number; height: number },
   setZoom: React.Dispatch<React.SetStateAction<number>>,
   onPan: (pan: { x: number; y: number }) => void,
@@ -295,7 +296,7 @@ function fitGraphToViewport(
   const minX = Math.min(...project.nodes.map((node) => node.x));
   const minY = Math.min(...project.nodes.map((node) => node.y));
   const maxX = Math.max(...project.nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...project.nodes.map((node) => node.y + 200));
+  const maxY = Math.max(...project.nodes.map((node) => node.y + estimateNodeHeight(project, node.id, density)));
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
   const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
