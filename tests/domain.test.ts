@@ -154,6 +154,24 @@ test("does not lint words inside quoted condition strings as variables", () => {
   assert.ok(!warnings.some((message) => message.includes("Alex") || message.includes("Hunter")));
 });
 
+test("lints gosub nodes that point to missing labels", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub missing_subroutine" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+
+  assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub points to a missing label")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),

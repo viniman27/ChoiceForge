@@ -333,6 +333,11 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: sceneName, node: node.id });
     }
 
+    if (node.type === "gosub") {
+      const label = stripCommandPrefix(node.title, "*gosub");
+      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
+    }
+
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
