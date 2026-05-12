@@ -60,12 +60,18 @@ test("imports ChoiceScript archives with startup metadata", () => {
       "The next scene.",
       "*ending",
     ].join("\n")),
+    textEntry("mygame/choicescript_stats.txt", [
+      "*stat_chart",
+      "  percent courage Courage Score",
+    ].join("\n")),
   ]);
 
   assert.equal(project.title, "Imported");
   assert.equal(project.author, "Writer");
   assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup", "chapter_two"]);
   assert.equal(project.variables[0]?.name, "courage");
+  assert.equal(project.variables[0]?.desc, "Courage Score");
+  assert.equal(project.variables[0]?.fairmath, true);
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
 });
 

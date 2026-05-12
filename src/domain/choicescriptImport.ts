@@ -22,6 +22,7 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
 
   const startupText = decoder.decode(startup.bytes);
   const startupData = parseStartup(startupText);
+  const stats = textFiles.find((entry) => basename(entry.path).toLowerCase() === "choicescript_stats.txt");
   const sceneTextFiles = textFiles.filter((entry) => !["startup.txt", "choicescript_stats.txt"].includes(basename(entry.path).toLowerCase()));
   const sceneFileMap = new Map(sceneTextFiles.map((entry) => [normalizeIdentifier(basename(entry.path).replace(/\.txt$/i, "")), decoder.decode(entry.bytes)]));
   const startupSceneText = extractStartupSceneText(startupText);
@@ -47,7 +48,7 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
       ...scenes,
       { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
     ],
-    variables: startupData.variables,
+    variables: applyImportedStatsText(startupData.variables, stats ? decoder.decode(stats.bytes) : ""),
     achievements: startupData.achievements,
     assets: importAssets(entries),
     nodes: sceneData[activeScene].nodes,
@@ -55,6 +56,44 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
     sceneData,
     lints: [],
   };
+}
+
+function applyImportedStatsText(variables: VariableSummary[], content: string): VariableSummary[] {
+  const chartRows = parseStatChartRows(content.split(/\r?\n/));
+  if (!chartRows.length) return variables;
+  const rows = new Map(chartRows.map((row) => [row.name, row]));
+  return variables.map((variable) => {
+    const row = rows.get(variable.name);
+    if (!row) return variable;
+    return {
+      ...variable,
+      desc: row.label || variable.desc,
+      fairmath: variable.type === "number" ? row.chartType === "percent" : false,
+    };
+  });
+}
+
+function parseStatChartRows(lines: string[]): Array<{ chartType: "percent" | "text"; name: string; label: string }> {
+  const rows: Array<{ chartType: "percent" | "text"; name: string; label: string }> = [];
+  let inChart = false;
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (commandName(line) === "stat_chart") {
+      inChart = true;
+      return;
+    }
+    if (!inChart || !trimmed) return;
+    if (trimmed.startsWith("*")) {
+      inChart = false;
+      return;
+    }
+    const [chartType, rawName, ...labelParts] = trimmed.split(/\s+/);
+    const name = normalizeIdentifier(rawName ?? "");
+    if ((chartType === "percent" || chartType === "text") && name) {
+      rows.push({ chartType, name, label: labelParts.join(" ") });
+    }
+  });
+  return rows;
 }
 
 function parseStartup(text: string) {
