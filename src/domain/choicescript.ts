@@ -568,7 +568,11 @@ function extractAchievementCommands(text: string): string[] {
 
 function extractExpressionNames(expression: string): string[] {
   const reserved = new Set(["and", "or", "not", "true", "false"]);
-  return [...expression.matchAll(/\b[a-zA-Z_][\w]*\b/g)]
+  return [...stripQuotedStrings(expression).matchAll(/\b[a-zA-Z_][\w]*\b/g)]
     .map((match) => match[0])
     .filter((name) => !reserved.has(name));
+}
+
+function stripQuotedStrings(expression: string): string {
+  return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/g, " ");
 }

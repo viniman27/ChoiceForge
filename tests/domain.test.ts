@@ -122,6 +122,38 @@ test("generates lint-clean ChoiceScript for a minimal project", () => {
   assert.equal(lintProject(project).filter((issue) => issue.level === "error").length, 0);
 });
 
+test("does not lint words inside quoted condition strings as variables", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "if",
+        x: 0,
+        y: 0,
+        w: 300,
+        title: "name_check",
+        branches: [
+          { kind: "if", expr: "name = \"Alex Hunter\"", to: "n2" },
+          { kind: "else", to: "n3" },
+        ],
+      },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+      { id: "n3", type: "ending", x: 0, y: 320, w: 240, title: "*ending" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "name", type: "string" as const, initial: "\"Alex Hunter\"", desc: "Name", uses: 0 }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+  assert.ok(!warnings.some((message) => message.includes("Alex") || message.includes("Hunter")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),
