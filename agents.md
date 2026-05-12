@@ -25,10 +25,11 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Auto-layout (hierarchical by topological depth)
 - Export package: generates `_choiceforge/project.json`, `startup.txt`, `choicescript_stats.txt`, per-scene `.txt` files, and imported asset files inside a `.zip`
 - Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`
-- Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes
+- Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes and common inline `*choice` / `*if` branch bodies
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
+- Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab
 - Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
 - Sample project in both PT and EN (`src/data/sampleProject.ts`)
 - Bilingual UI (PT/EN) via `I18nLabels` type in `types.ts`
@@ -219,10 +220,11 @@ Imported ChoiceForge zips are restored from `_choiceforge/project.json` when pre
 
 In rough order of value:
 
-1. **Full ChoiceScript parser/AST** — current import is useful but incomplete for complex existing projects.
-2. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
-3. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
-4. **More complete ChoiceScript commands** — more expression helpers, subroutine ergonomics.
+1. **Import/parser hardening** — current import handles common/simple structures, including inline branch bodies for `*choice` and `*if`, but is still not a full AST or full roundtrip parser.
+2. **Automated tests** — no test runner is configured yet; add focused domain/import/generator tests before broad parser work.
+3. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
+4. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
+5. **More complete ChoiceScript commands** — more expression helpers, subroutine ergonomics.
 
 ---
 
@@ -273,8 +275,9 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 |------|--------|
 | Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
-| Import parser | Handles common/simple ChoiceScript commands, not a full AST or full language roundtrip |
+| Import parser | Handles common/simple ChoiceScript commands and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
 | Global search | Implemented for scenes, nodes, variables, achievements, and assets |
+| Lint console | Expandable and navigable; issue text is still not localized |
 | Git/version history | Not implemented beyond browser undo history |
 
 ---
@@ -294,6 +297,8 @@ Things that look wrong but are intentional, or are easy to break silently:
 - **`syncDerivedEdges` runs on every `commitProject` call**, so `choice`, `goto`, and `if` edges are always recomputed from node data. If you add a new node type with derived edges, add a case in `deriveNodeEdges()` — otherwise the edges will never appear even if the data is correct.
 
 - **`estimateNodeHeight` uses `density`**, but the density value itself is not in the project model — it's local UI state in `App.tsx`. Don't try to persist density per project.
+
+- **The ChoiceScript importer is deliberately pragmatic.** It now recognizes common inline `*choice` and `*if` branch bodies by creating intermediate passage/terminal nodes, but unsupported nested structures should degrade conservatively to passage blocks instead of inventing lossy graph semantics.
 
 ---
 

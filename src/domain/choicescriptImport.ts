@@ -163,7 +163,30 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
         const choiceNode = addNode(parsedChoice.node);
         pendingChoices.push({ nodeId: choiceNode.id, options: parsedChoice.options });
       } else {
-        addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+        const inlineChoice = parseInlineChoiceBlock(block, nodes.length + 1);
+        if (inlineChoice) {
+          const choiceNode = addNode(inlineChoice.node);
+          const options = inlineChoice.options.map((option): ChoiceOption => ({
+            text: option.text,
+            to: addInlineOptionNodes(option, addNode, edges),
+            cond: option.cond ?? null,
+            reuse: option.reuse,
+            hideReuse: option.hideReuse,
+            sets: option.sets.length ? option.sets : undefined,
+          }));
+          choiceNode.options = options;
+          options.forEach((option, optionIndex) => {
+            edges.push({
+              from: choiceNode.id,
+              to: option.to,
+              kind: "choice",
+              label: `#${optionIndex + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
+            });
+          });
+          previous = choiceNode;
+        } else {
+          addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+        }
       }
       continue;
     }
@@ -536,6 +559,15 @@ interface InlineConditionalBranch {
   sets: VariableSet[];
 }
 
+interface InlineChoiceOption {
+  text: string;
+  cond?: ChoiceCondition | null;
+  reuse?: ChoiceReuse;
+  hideReuse?: boolean;
+  bodyLines: string[];
+  sets: VariableSet[];
+}
+
 type ImportedNodeDraft = Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number };
 
 function collectIndentedBlock(lines: string[], startIndex: number): string[] {
@@ -595,6 +627,48 @@ function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNod
 
   if (current) options.push(current);
   if (!options.length || options.some((option) => !option.targetLabel)) return null;
+  return {
+    node: {
+      type: "choice",
+      title: `imported_choice_${index}`,
+      prompt: "Choose:",
+      options: [],
+      w: 360,
+    },
+    options,
+  };
+}
+
+function parseInlineChoiceBlock(block: string[], index: number): { node: ImportedNodeDraft; options: InlineChoiceOption[] } | null {
+  const options: InlineChoiceOption[] = [];
+  let current: InlineChoiceOption | null = null;
+
+  for (const line of block.slice(1)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (current) current.bodyLines.push("");
+      continue;
+    }
+    const header = parseChoiceHeader(trimmed);
+    if (header && isChoiceOptionHeaderLine(line)) {
+      if (current) options.push(cleanInlineOption(current));
+      current = { ...header, bodyLines: [], sets: [] };
+      continue;
+    }
+    if (!current) return null;
+    const bodyLine = removeChoiceOptionIndent(line);
+    const bodyCommand = commandName(bodyLine);
+    if (bodyCommand === "set") {
+      const set = parseSet(commandValue(bodyLine.trim(), "*set"));
+      if (set) current.sets.push(set);
+      continue;
+    }
+    current.bodyLines.push(bodyLine);
+  }
+
+  if (current) options.push(cleanInlineOption(current));
+  if (!options.length || options.some((option) => !option.bodyLines.length && !option.sets.length)) return null;
+
   return {
     node: {
       type: "choice",
@@ -752,6 +826,34 @@ function addInlineBranchNodes(
   return addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false).id;
 }
 
+function addInlineOptionNodes(
+  option: InlineChoiceOption,
+  addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
+  edges: StoryEdge[],
+): string {
+  const terminal = extractTerminalCommand(option.bodyLines);
+  const body = terminal ? option.bodyLines.slice(0, terminal.index) : option.bodyLines;
+  const bodyText = body.join("\n").trim();
+  const terminalNode = terminal ? commandNodeFromTerminal(terminal.line) : null;
+
+  if (bodyText) {
+    const bodyNode = addNode({
+      type: "passage",
+      title: "choice_option_body",
+      body: bodyText,
+      w: 420,
+    }, false);
+    if (terminalNode) {
+      const nextNode = addNode(terminalNode, false);
+      edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
+    }
+    return bodyNode.id;
+  }
+
+  if (terminalNode) return addNode(terminalNode, false).id;
+  return addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false).id;
+}
+
 function extractTerminalCommand(lines: string[]): { index: number; line: string } | null {
   for (let index = lines.length - 1; index >= 0; index -= 1) {
     const line = lines[index].trim();
@@ -784,8 +886,31 @@ function cleanInlineBranch(branch: InlineConditionalBranch): InlineConditionalBr
   };
 }
 
+function cleanInlineOption(option: InlineChoiceOption): InlineChoiceOption {
+  const firstContent = option.bodyLines.findIndex((line) => line.trim());
+  let lastContent = -1;
+  for (let index = option.bodyLines.length - 1; index >= 0; index -= 1) {
+    if (option.bodyLines[index].trim()) {
+      lastContent = index;
+      break;
+    }
+  }
+  return {
+    ...option,
+    bodyLines: firstContent >= 0 ? option.bodyLines.slice(firstContent, lastContent + 1) : [],
+  };
+}
+
 function removeOneIndent(line: string): string {
   return line.replace(/^( {2}|\t)/, "");
+}
+
+function removeChoiceOptionIndent(line: string): string {
+  return line.replace(/^( {4}|\t\t| {2}|\t)/, "");
+}
+
+function isChoiceOptionHeaderLine(line: string): boolean {
+  return /^\s{1,3}(#|\*(hide|disable|allow)_reuse\b|\*(selectable_if|if)\b)/i.test(line);
 }
 
 function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" | "expr"> | null {
