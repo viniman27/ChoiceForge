@@ -30,6 +30,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab
+- `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
 - Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
 - Sample project in both PT and EN (`src/data/sampleProject.ts`)
 - Bilingual UI (PT/EN) via `I18nLabels` type in `types.ts`
@@ -293,7 +294,7 @@ Things that look wrong but are intentional, or are easy to break silently:
 
 - **`typeColors` in `NodeCard.tsx` is the single source of truth for node colors.** CSS variables like `--c-passage`, `--c-choice`, etc. are set globally; `typeColors` maps types to those vars. Never hardcode color values for nodes — always go through `typeColors[node.type]`.
 
-- **The `if` node inspector has branch target/effect editing but still limited branch structure controls.** Be careful when changing branch UX because stat effects are intentionally scoped to the branch that wins.
+- **The `if` node inspector normalizes branch order.** The first non-else branch is kept as `*if`, later conditional branches become `*elseif`, and a single `*else` stays at the end. Be careful when changing branch UX because stat effects are intentionally scoped to the branch that wins.
 
 - **`syncDerivedEdges` runs on every `commitProject` call**, so `choice`, `goto`, and `if` edges are always recomputed from node data. If you add a new node type with derived edges, add a case in `deriveNodeEdges()` — otherwise the edges will never appear even if the data is correct.
 

@@ -1254,6 +1254,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-branch.branch-else { border-left-color: var(--ink-faint); }
 .branch-main { display: flex; align-items: center; gap: 8px; }
 .branch-main select { min-width: 120px; }
+.branch-main .mini-action { flex: 0 0 auto; }
+.branch-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
 .branch-effects {
   padding: 7px;
   background: var(--paper-2);

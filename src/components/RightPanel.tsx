@@ -613,23 +613,30 @@ function LogicTab({
   const selectedFlowTarget = project.nodes.some((target) => target.id === flowTarget && target.id !== node.id) ? flowTarget : fallbackTarget;
 
   if (node.type === "if") {
+    const branches = normalizeBranches(node.branches ?? [], fallbackTarget);
+    const hasElseBranch = branches.some((branch) => branch.kind === "else");
     return (
       <div className="ip-logic">
         <label className="ip-label">branches</label>
         <ul className="ip-branches">
-          {node.branches?.map((branch, index) => (
+          {branches.map((branch, index) => (
             <li key={`${branch.kind}-${index}`} className={`ip-branch branch-${branch.kind}`}>
               <div className="branch-main">
                 <span className="branch-key">*{branch.kind}</span>
-                {branch.kind !== "else" && <input className="cond-input wide" value={branch.expr ?? ""} onChange={(event) => updateBranch(node, index, { expr: event.target.value }, onUpdateNode)} />}
-                <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, onUpdateNode)}>
+                {branch.kind !== "else" && <input className="cond-input wide" value={branch.expr ?? ""} onChange={(event) => updateBranch(node, index, { expr: event.target.value }, fallbackTarget, onUpdateNode)} />}
+                <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, fallbackTarget, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
+                <button className="mini-action danger" disabled={branches.length <= 1} onClick={() => removeBranch(node, index, fallbackTarget, onUpdateNode)}>del</button>
               </div>
               <BranchSets node={node} branch={branch} branchIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
+        <div className="branch-actions">
+          <button className="ghost-btn" onClick={() => addBranch(node, "elseif", fallbackTarget, onUpdateNode)}>+ *elseif</button>
+          <button className="ghost-btn" disabled={hasElseBranch} onClick={() => addBranch(node, "else", fallbackTarget, onUpdateNode)}>+ *else</button>
+        </div>
         <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
       </div>
     );
@@ -858,8 +865,49 @@ function extractAchievementCommands(body: string): string[] {
   return [...body.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
 }
 
-function updateBranch(node: StoryNode, index: number, patch: Partial<NonNullable<StoryNode["branches"]>[number]>, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  onUpdateNode(node.id, { branches: node.branches?.map((branch, branchIndex) => (branchIndex === index ? { ...branch, ...patch } : branch)) });
+type Branch = NonNullable<StoryNode["branches"]>[number];
+
+function updateBranch(node: StoryNode, index: number, patch: Partial<Branch>, fallbackTarget: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, { branches: normalizeBranches(node.branches ?? [], fallbackTarget).map((branch, branchIndex) => (branchIndex === index ? normalizeBranch({ ...branch, ...patch }, branchIndex) : branch)) });
+}
+
+function addBranch(node: StoryNode, kind: Branch["kind"], fallbackTarget: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const branches = normalizeBranches(node.branches ?? [], fallbackTarget);
+  const nextBranch: Branch = kind === "else"
+    ? { kind: "else", to: fallbackTarget }
+    : { kind: "elseif", expr: "true", to: fallbackTarget };
+  const elseIndex = branches.findIndex((branch) => branch.kind === "else");
+  const nextBranches = kind === "else"
+    ? [...branches.filter((branch) => branch.kind !== "else"), nextBranch]
+    : elseIndex >= 0
+      ? [...branches.slice(0, elseIndex), nextBranch, ...branches.slice(elseIndex)]
+      : [...branches, nextBranch];
+  onUpdateNode(node.id, { branches: normalizeBranches(nextBranches, fallbackTarget) });
+}
+
+function removeBranch(node: StoryNode, index: number, fallbackTarget: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  const branches = normalizeBranches(node.branches ?? [], fallbackTarget);
+  if (branches.length <= 1) return;
+  onUpdateNode(node.id, { branches: normalizeBranches(branches.filter((_, branchIndex) => branchIndex !== index), fallbackTarget) });
+}
+
+function normalizeBranches(branches: Branch[], fallbackTarget: string): Branch[] {
+  const baseBranches = branches.length ? branches : [{ kind: "if" as const, expr: "true", to: fallbackTarget }];
+  const nonElseBranches = baseBranches.filter((branch) => branch.kind !== "else").map(normalizeBranch);
+  const elseBranch = baseBranches.find((branch) => branch.kind === "else");
+  return [
+    ...nonElseBranches.map((branch, index) => normalizeBranch(branch, index)),
+    ...(elseBranch ? [normalizeBranch(elseBranch, nonElseBranches.length)] : []),
+  ];
+}
+
+function normalizeBranch(branch: Branch, index: number): Branch {
+  if (branch.kind === "else") return { kind: "else", to: branch.to, sets: branch.sets };
+  return {
+    ...branch,
+    kind: index === 0 ? "if" : "elseif",
+    expr: branch.expr?.trim() || "true",
+  };
 }
 
 function updateBranchSet(node: StoryNode, branchIndex: number, setIndex: number, patch: Partial<VariableSet>, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
