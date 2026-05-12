@@ -214,6 +214,54 @@ test("lints variable initial values that do not match their type", () => {
   assert.ok(!errors.some((message) => message.includes("name") && message.includes("invalid string")));
 });
 
+test("lints duplicate and empty node ids", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "first", body: "First." },
+      { id: "n1", type: "passage", x: 0, y: 160, w: 300, title: "duplicate", body: "Duplicate." },
+      { id: "", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("duplicate node id")));
+  assert.ok(errors.some((message) => message.includes("empty id")));
+});
+
+test("lints empty choice conditions", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "choice",
+        x: 0,
+        y: 0,
+        w: 340,
+        title: "choice",
+        prompt: "Choose.",
+        options: [{ text: "Go", to: "n2", cond: { type: "selectable_if", expr: " " } }],
+      },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+
+  assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*selectable_if condition is empty")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),

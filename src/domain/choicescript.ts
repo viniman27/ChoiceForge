@@ -303,6 +303,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
 
+  lintNodeIds(graph.nodes, issues, sceneName);
   edges.forEach((edge) => {
     if (!nodeIds.has(edge.from)) {
       issues.push({ level: "error", msg: `edge starts from a missing node: ${edge.from}`, scene: sceneName });
@@ -356,6 +357,21 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
+  });
+}
+
+function lintNodeIds(nodes: StoryNode[], issues: LintIssue[], sceneName: string) {
+  const seen = new Set<string>();
+  nodes.forEach((node) => {
+    if (!node.id.trim()) {
+      issues.push({ level: "error", msg: `node "${node.title}" has an empty id`, scene: sceneName });
+      return;
+    }
+    if (seen.has(node.id)) {
+      issues.push({ level: "error", msg: `duplicate node id in scene: ${node.id}`, scene: sceneName, node: node.id });
+      return;
+    }
+    seen.add(node.id);
   });
 }
 
@@ -536,6 +552,10 @@ function stripCommandPrefix(value: string, command: string): string {
 
 function lintCondition(condition: ChoiceCondition | null | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!condition) return;
+  if (!condition.expr.trim()) {
+    issues.push({ level: "error", msg: `*${condition.type} condition is empty`, scene, node });
+    return;
+  }
   lintExpression(condition.expr, variables, issues, scene, node);
 }
 
