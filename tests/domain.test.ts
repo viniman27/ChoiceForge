@@ -53,6 +53,7 @@ test("imports ChoiceScript archives with startup metadata", () => {
       "  startup",
       "  chapter_two",
       "*create courage 50",
+      "*create player_name \"Alex\"",
       "Opening.",
       "*finish",
     ].join("\n")),
@@ -63,6 +64,7 @@ test("imports ChoiceScript archives with startup metadata", () => {
     textEntry("mygame/choicescript_stats.txt", [
       "*stat_chart",
       "  percent courage Courage Score",
+      "  text player_name Player Name",
     ].join("\n")),
   ]);
 
@@ -72,6 +74,9 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.equal(project.variables[0]?.name, "courage");
   assert.equal(project.variables[0]?.desc, "Courage Score");
   assert.equal(project.variables[0]?.fairmath, true);
+  assert.equal(project.variables[1]?.name, "player_name");
+  assert.equal(project.variables[1]?.desc, "Player Name");
+  assert.equal(project.variables[1]?.fairmath, false);
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
 });
 
