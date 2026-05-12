@@ -53,8 +53,6 @@ test("imports ChoiceScript archives with startup metadata", () => {
       "  startup",
       "  chapter_two",
       "*create courage 50",
-    ].join("\n")),
-    textEntry("mygame/startup.txt", [
       "Opening.",
       "*finish",
     ].join("\n")),
@@ -68,6 +66,31 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.equal(project.author, "Writer");
   assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup", "chapter_two"]);
   assert.equal(project.variables[0]?.name, "courage");
+  assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
+});
+
+test("imports startup scene content after metadata blocks", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Startup Body",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "*create courage 50",
+      "*achievement first visible 5 First Step",
+      "  Before.",
+      "  After.",
+      "",
+      "The playable opening stays here.",
+      "*finish",
+    ].join("\n")),
+  ]);
+
+  const startupGraph = project.sceneData?.startup;
+  assert.ok(startupGraph);
+  assert.equal(startupGraph.nodes[0]?.type, "passage");
+  assert.match(startupGraph.nodes[0]?.body ?? "", /playable opening/);
+  assert.ok(!startupGraph.nodes.some((node) => node.body?.includes("*create courage")));
 });
 
 test("generates lint-clean ChoiceScript for a minimal project", () => {

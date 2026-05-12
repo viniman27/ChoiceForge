@@ -24,6 +24,8 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   const startupData = parseStartup(startupText);
   const sceneTextFiles = textFiles.filter((entry) => !["startup.txt", "choicescript_stats.txt"].includes(basename(entry.path).toLowerCase()));
   const sceneFileMap = new Map(sceneTextFiles.map((entry) => [basename(entry.path).replace(/\.txt$/i, ""), decoder.decode(entry.bytes)]));
+  const startupSceneText = extractStartupSceneText(startupText);
+  if (startupSceneText.trim() && !sceneFileMap.has("startup")) sceneFileMap.set("startup", startupSceneText);
   const sceneNames = unique([
     ...startupData.sceneNames,
     ...sceneTextFiles.map((entry) => basename(entry.path).replace(/\.txt$/i, "")),
@@ -114,6 +116,37 @@ function parseStartup(text: string) {
   }
 
   return { title, author, variables, achievements, sceneNames: unique(sceneNames) };
+}
+
+function extractStartupSceneText(text: string): string {
+  const lines = text.split(/\r?\n/);
+  const content: string[] = [];
+  let inSceneList = false;
+  let skipAchievementLines = 0;
+
+  lines.forEach((line) => {
+    const command = commandName(line);
+    if (skipAchievementLines > 0) {
+      skipAchievementLines -= 1;
+      return;
+    }
+    if (inSceneList) {
+      if (/^\s+\S/.test(line) && !line.trim().startsWith("*")) return;
+      inSceneList = false;
+    }
+    if (command === "scene_list") {
+      inSceneList = true;
+      return;
+    }
+    if (command === "title" || command === "author" || command === "create") return;
+    if (command === "achievement") {
+      skipAchievementLines = 2;
+      return;
+    }
+    content.push(line);
+  });
+
+  return content.join("\n").trim();
 }
 
 function createImportedSceneGraph(sceneName: string, content: string): SceneGraph {
