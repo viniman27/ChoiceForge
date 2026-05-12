@@ -10,9 +10,10 @@ interface RightPanelProps {
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onAddFlowEdge: (from: string, to: string) => void;
   onDeleteFlowEdge: (from: string, to: string) => void;
+  onSelectNode: (id: string) => void;
 }
 
-export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge }: RightPanelProps) {
+export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge, onSelectNode }: RightPanelProps) {
   const [tab, setTab] = useState<"content" | "logic" | "raw">("content");
 
   if (!node) {
@@ -57,6 +58,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
             onUpdateNode={onUpdateNode}
             onAddFlowEdge={onAddFlowEdge}
             onDeleteFlowEdge={onDeleteFlowEdge}
+            onSelectNode={onSelectNode}
           />
         )}
         {tab === "raw" && <RawTab node={node} project={project} />}
@@ -597,12 +599,14 @@ function LogicTab({
   onUpdateNode,
   onAddFlowEdge,
   onDeleteFlowEdge,
+  onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onAddFlowEdge: (from: string, to: string) => void;
   onDeleteFlowEdge: (from: string, to: string) => void;
+  onSelectNode: (id: string) => void;
 }) {
   const fallbackTarget = project.nodes.find((target) => target.id !== node.id)?.id ?? node.id;
   const [flowTarget, setFlowTarget] = useState(fallbackTarget);
@@ -626,7 +630,7 @@ function LogicTab({
             </li>
           ))}
         </ul>
-        <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} />
+        <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
       </div>
     );
   }
@@ -642,7 +646,7 @@ function LogicTab({
         </select>
         <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ connect</button>
       </div>
-      <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} />
+      <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
     </div>
   );
 }
@@ -651,10 +655,12 @@ function OutgoingEdges({
   node,
   project,
   onDeleteFlowEdge,
+  onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   onDeleteFlowEdge: (from: string, to: string) => void;
+  onSelectNode: (id: string) => void;
 }) {
   const outgoing = project.edges.filter((edge) => edge.from === node.id);
   if (!outgoing.length) return <p className="dim">no outgoing connections</p>;
@@ -664,7 +670,9 @@ function OutgoingEdges({
       {outgoing.map((edge, index) => (
         <li key={`${edge.from}-${edge.to}-${edge.kind}-${index}`} className="flow-row">
           <span className={`flow-kind flow-${edge.kind}`}>{edge.kind}</span>
-          <code>{targetLabel(project, edge)}</code>
+          <button className="flow-target" type="button" onClick={() => onSelectNode(edge.to)}>
+            <code>{targetLabel(project, edge)}</code>
+          </button>
           {edge.label && <span className="dim">{edge.label}</span>}
           {edge.kind === "flow" && <button className="mini-action danger" onClick={() => onDeleteFlowEdge(edge.from, edge.to)}>del</button>}
         </li>

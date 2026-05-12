@@ -40,6 +40,7 @@ export default function App() {
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
+  const [consoleOpen, setConsoleOpen] = useState(false);
   const { lintedProject, actions } = useProjectStore();
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function App() {
   } as CSSProperties;
 
   return (
-    <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open="false" style={appStyle}>
+    <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
       <TopBar
         data={lintedProject}
         lang={lang}
@@ -284,10 +285,13 @@ export default function App() {
         onUpdateNode={actions.updateNode}
         onAddFlowEdge={actions.addFlowEdge}
         onDeleteFlowEdge={actions.deleteFlowEdge}
+        onSelectNode={setSelectedId}
       />
       <BottomBar
         data={lintedProject}
         labels={i18n[lang]}
+        open={consoleOpen}
+        onOpenChange={setConsoleOpen}
         onSelectIssue={(lint) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.name === lint.scene);
           setGeneratedDocumentId(null);

@@ -125,7 +125,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   const lines = content.split(/\r?\n/);
   let previous: StoryNode | null = null;
 
-  const addNode = (node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) => {
+  const addNode = (node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }, autoFlow = true) => {
     const next: StoryNode = {
       ...node,
       id: `n${nodes.length + 1}`,
@@ -133,7 +133,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       y: 70 + Math.floor(nodes.length / 4) * 220,
       w: node.w ?? defaultImportedWidth(node.type),
     };
-    if (previous && canAutoFlow(previous)) edges.push({ from: previous.id, to: next.id, kind: "flow" });
+    if (autoFlow && previous && canAutoFlow(previous)) edges.push({ from: previous.id, to: next.id, kind: "flow" });
     nodes.push(next);
     previous = next;
     return next;
@@ -190,7 +190,31 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
         const ifNode = addNode(parsedIf.node);
         pendingIfs.push({ nodeId: ifNode.id, branches: parsedIf.branches, rawBlock: block.join("\n").trimEnd() });
       } else {
-        addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+        const inlineIf = parseInlineIfBlock(block, nodes.length + 1);
+        if (inlineIf) {
+          const ifNode = addNode(inlineIf.node);
+          const branches = inlineIf.branches.map((branch) => {
+            const target = addInlineBranchNodes(branch, addNode, edges);
+            return {
+              kind: branch.kind,
+              expr: branch.expr,
+              to: target,
+              sets: branch.sets.length ? branch.sets : undefined,
+            };
+          });
+          ifNode.branches = branches;
+          branches.forEach((branch) => {
+            edges.push({
+              from: ifNode.id,
+              to: branch.to,
+              kind: branch.kind,
+              label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
+            });
+          });
+          previous = ifNode;
+        } else {
+          addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+        }
       }
       continue;
     }
@@ -505,6 +529,15 @@ interface ImportedConditionalBranch {
   sets: VariableSet[];
 }
 
+interface InlineConditionalBranch {
+  kind: ConditionalBranch["kind"];
+  expr?: string;
+  bodyLines: string[];
+  sets: VariableSet[];
+}
+
+type ImportedNodeDraft = Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number };
+
 function collectIndentedBlock(lines: string[], startIndex: number): string[] {
   const block = [lines[startIndex]];
   let index = startIndex;
@@ -648,6 +681,111 @@ function parseIfBlock(block: string[], index: number): { node: Omit<StoryNode, "
     },
     branches,
   };
+}
+
+function parseInlineIfBlock(block: string[], index: number): { node: ImportedNodeDraft; branches: InlineConditionalBranch[] } | null {
+  const branches: InlineConditionalBranch[] = [];
+  let current: InlineConditionalBranch | null = null;
+
+  for (const line of block) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (current) current.bodyLines.push("");
+      continue;
+    }
+    const branchHeader = parseIfHeader(trimmed);
+    if (branchHeader && !/^\s/.test(line)) {
+      if (current) branches.push(cleanInlineBranch(current));
+      current = { ...branchHeader, bodyLines: [], sets: [] };
+      continue;
+    }
+    if (!current) return null;
+    const bodyLine = removeOneIndent(line);
+    const bodyCommand = commandName(bodyLine);
+    if (bodyCommand === "set") {
+      const set = parseSet(commandValue(bodyLine.trim(), "*set"));
+      if (set) current.sets.push(set);
+      continue;
+    }
+    current.bodyLines.push(bodyLine);
+  }
+
+  if (current) branches.push(cleanInlineBranch(current));
+  if (!branches.length || branches[0]?.kind !== "if") return null;
+
+  return {
+    node: {
+      type: "if",
+      title: `imported_if_${index}`,
+      branches: [],
+      w: 320,
+    },
+    branches,
+  };
+}
+
+function addInlineBranchNodes(
+  branch: InlineConditionalBranch,
+  addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
+  edges: StoryEdge[],
+): string {
+  const terminal = extractTerminalCommand(branch.bodyLines);
+  const body = terminal ? branch.bodyLines.slice(0, terminal.index) : branch.bodyLines;
+  const bodyText = body.join("\n").trim();
+  const terminalNode = terminal ? commandNodeFromTerminal(terminal.line) : null;
+
+  if (bodyText) {
+    const bodyNode = addNode({
+      type: "passage",
+      title: `if_${branch.kind}_body`,
+      body: bodyText,
+      w: 420,
+    }, false);
+    if (terminalNode) {
+      const nextNode = addNode(terminalNode, false);
+      edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
+    }
+    return bodyNode.id;
+  }
+
+  if (terminalNode) return addNode(terminalNode, false).id;
+  return addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false).id;
+}
+
+function extractTerminalCommand(lines: string[]): { index: number; line: string } | null {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index].trim();
+    if (!line) continue;
+    const command = commandName(line);
+    if (command && ["goto", "goto_scene", "finish", "ending"].includes(command)) return { index, line };
+    return null;
+  }
+  return null;
+}
+
+function commandNodeFromTerminal(line: string): ImportedNodeDraft | null {
+  const command = commandName(line);
+  if (!command) return null;
+  return simpleCommandNode(command, line, 1);
+}
+
+function cleanInlineBranch(branch: InlineConditionalBranch): InlineConditionalBranch {
+  const firstContent = branch.bodyLines.findIndex((line) => line.trim());
+  let lastContent = -1;
+  for (let index = branch.bodyLines.length - 1; index >= 0; index -= 1) {
+    if (branch.bodyLines[index].trim()) {
+      lastContent = index;
+      break;
+    }
+  }
+  return {
+    ...branch,
+    bodyLines: firstContent >= 0 ? branch.bodyLines.slice(firstContent, lastContent + 1) : [],
+  };
+}
+
+function removeOneIndent(line: string): string {
+  return line.replace(/^( {2}|\t)/, "");
 }
 
 function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" | "expr"> | null {

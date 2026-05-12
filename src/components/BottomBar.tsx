@@ -3,10 +3,14 @@ import type { ChoiceForgeProject, I18nLabels, LintIssue } from "../domain/types"
 export function BottomBar({
   data,
   labels,
+  open,
+  onOpenChange,
   onSelectIssue,
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSelectIssue: (lint: LintIssue) => void;
 }) {
   const errors = data.lints.filter((lint) => lint.level === "error").length;
@@ -14,7 +18,7 @@ export function BottomBar({
   return (
     <footer className="bot-bar">
       <div className="bot-left">
-        <details className="console" open>
+        <details className="console" open={open} onToggle={(event) => onOpenChange(event.currentTarget.open)}>
           <summary>
             <span className="con-title">{labels.consoleTitle}</span>
             {errors > 0 && <span className="bot-pill err">{errors} {labels.errors}</span>}

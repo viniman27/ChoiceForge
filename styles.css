@@ -1308,6 +1308,23 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-bottom: 1px solid var(--paper-3);
   font-size: 11px;
 }
+.flow-target {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+}
+.flow-target:hover {
+  color: var(--accent);
+}
+.flow-target code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .flow-kind {
   display: inline-flex;
   justify-content: center;
