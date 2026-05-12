@@ -25,7 +25,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Auto-layout (hierarchical by topological depth)
 - Export package: generates `_choiceforge/project.json`, `startup.txt`, `choicescript_stats.txt`, per-scene `.txt` files, and imported asset files inside a `.zip`
 - Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`
-- Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes, playable `startup.txt` content, and common inline `*choice` / `*if` branch bodies
+- Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes, playable `startup.txt` content, normalized external identifiers, and common inline `*choice` / `*if` branch bodies
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
@@ -221,7 +221,7 @@ Imported ChoiceForge zips are restored from `_choiceforge/project.json` when pre
 
 In rough order of value:
 
-1. **Import/parser hardening** — current import handles common/simple structures, playable `startup.txt` content, and inline branch bodies for `*choice` and `*if`, but is still not a full AST or full roundtrip parser.
+1. **Import/parser hardening** — current import handles common/simple structures, playable `startup.txt` content, normalized external identifiers, and inline branch bodies for `*choice` and `*if`, but is still not a full AST or full roundtrip parser.
 2. **Automated test coverage** — a minimal domain/import/generator suite exists; broaden it before broad parser work.
 3. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
 4. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
@@ -276,7 +276,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 |------|--------|
 | Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
-| Import parser | Handles common/simple ChoiceScript commands, playable `startup.txt` content, and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
+| Import parser | Handles common/simple ChoiceScript commands, playable `startup.txt` content, normalized external identifiers, and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
 | Tests | Minimal domain/import/generator coverage exists via Node's built-in test runner; no UI/browser test coverage yet |
 | Global search | Implemented for scenes, nodes, variables, achievements, and assets |
 | Lint console | Expandable and navigable; issue text is still not localized |

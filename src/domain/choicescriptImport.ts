@@ -23,13 +23,13 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   const startupText = decoder.decode(startup.bytes);
   const startupData = parseStartup(startupText);
   const sceneTextFiles = textFiles.filter((entry) => !["startup.txt", "choicescript_stats.txt"].includes(basename(entry.path).toLowerCase()));
-  const sceneFileMap = new Map(sceneTextFiles.map((entry) => [basename(entry.path).replace(/\.txt$/i, ""), decoder.decode(entry.bytes)]));
+  const sceneFileMap = new Map(sceneTextFiles.map((entry) => [normalizeIdentifier(basename(entry.path).replace(/\.txt$/i, "")), decoder.decode(entry.bytes)]));
   const startupSceneText = extractStartupSceneText(startupText);
   if (startupSceneText.trim() && !sceneFileMap.has("startup")) sceneFileMap.set("startup", startupSceneText);
   const sceneNames = unique([
     ...(startupSceneText.trim() ? ["startup"] : []),
     ...startupData.sceneNames,
-    ...sceneTextFiles.map((entry) => basename(entry.path).replace(/\.txt$/i, "")),
+    ...sceneTextFiles.map((entry) => normalizeIdentifier(basename(entry.path).replace(/\.txt$/i, ""))),
   ]);
   if (!sceneNames.length) throw new Error("no scene files found");
 
@@ -77,7 +77,7 @@ function parseStartup(text: string) {
 
     if (inSceneList) {
       if (/^\s+\S/.test(line) && !line.trim().startsWith("*")) {
-        sceneNames.push(line.trim());
+        sceneNames.push(normalizeIdentifier(line.trim()));
         continue;
       }
       if (line.trim().startsWith("*")) inSceneList = false;
@@ -487,13 +487,17 @@ function generatedNodeLabel(id: string): string {
 }
 
 function createSceneSummaries(sceneNames: string[], activeScene: string, sceneData: Record<string, SceneGraph>): SceneSummary[] {
-  return sceneNames.map((sceneName, index) => ({
-    id: `scene_${index + 1}`,
+  return sceneNames.map((sceneName) => ({
+    id: importedSceneId(sceneName),
     name: sceneName,
     words: countWords(sceneData[sceneName]?.nodes.map((node) => node.body ?? "").join("\n") ?? ""),
     nodes: sceneData[sceneName]?.nodes.length ?? 0,
     current: sceneName === activeScene,
   }));
+}
+
+function importedSceneId(sceneName: string): string {
+  return sceneName === "startup" ? "scene_startup" : sceneName;
 }
 
 function importAssets(entries: ChoiceScriptArchiveEntry[]): AssetSummary[] {

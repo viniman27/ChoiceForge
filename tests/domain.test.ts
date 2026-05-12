@@ -113,6 +113,29 @@ test("normalizes imported startup identifiers", () => {
   assert.equal(project.achievements[0]?.id, "first_step");
 });
 
+test("normalizes imported scene names and keeps scene ids stable", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Scene Names",
+      "*author Writer",
+      "*scene_list",
+      "  Chapter-Two",
+      "",
+      "Opening.",
+      "*finish",
+    ].join("\n")),
+    textEntry("Chapter-Two.txt", [
+      "Chapter two.",
+      "*ending",
+    ].join("\n")),
+  ]);
+  const playableScenes = project.scenes.filter((scene) => !scene.isStart && !scene.special);
+
+  assert.deepEqual(playableScenes.map((scene) => scene.name), ["startup", "chapter_two"]);
+  assert.deepEqual(playableScenes.map((scene) => scene.id), ["scene_startup", "chapter_two"]);
+  assert.ok(project.sceneData?.chapter_two);
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [
