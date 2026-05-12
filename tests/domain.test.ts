@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateSceneChoiceScript, generateStartupChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph } from "../src/domain/types.ts";
 
@@ -115,6 +115,37 @@ test("keeps playable startup even when scene_list omits startup", () => {
 });
 
 test("generates lint-clean ChoiceScript for a minimal project", () => {
+  const project = minimalProject();
+
+  assert.match(generateStartupChoiceScript(project), /\*scene_list\n  intro/);
+  assert.match(generateSceneChoiceScript(project), /\*goto cf_n2/);
+  assert.equal(lintProject(project).filter((issue) => issue.level === "error").length, 0);
+});
+
+test("exports project metadata, scene files, and binary assets", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [{
+      id: "logo",
+      path: "images/logo.txt",
+      kind: "data" as const,
+      desc: "Logo data",
+      dataUrl: "data:text/plain;base64,SGVsbG8=",
+    }],
+  };
+
+  const exported = createExportPackage(project);
+  const paths = exported.files.map((file) => file.path);
+  assert.ok(paths.includes("_choiceforge/project.json"));
+  assert.ok(paths.includes("mygame/startup.txt"));
+  assert.ok(paths.includes("mygame/choicescript_stats.txt"));
+  assert.ok(paths.includes("mygame/intro.txt"));
+  assert.ok(paths.includes("mygame/images/logo.txt"));
+  assert.equal(exported.files.find((file) => file.path === "mygame/images/logo.txt")?.encoding, "binary");
+  assert.deepEqual([...exported.files.find((file) => file.path === "mygame/images/logo.txt")?.content as Uint8Array], [72, 101, 108, 108, 111]);
+});
+
+function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
       { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
@@ -122,7 +153,7 @@ test("generates lint-clean ChoiceScript for a minimal project", () => {
     ],
     edges: [{ from: "n1", to: "n2", kind: "flow" }],
   };
-  const project: ChoiceForgeProject = {
+  return {
     title: "Test",
     author: "Author",
     sceneTitle: "intro",
@@ -140,11 +171,7 @@ test("generates lint-clean ChoiceScript for a minimal project", () => {
     sceneData: { intro: graph },
     lints: [],
   };
-
-  assert.match(generateStartupChoiceScript(project), /\*scene_list\n  intro/);
-  assert.match(generateSceneChoiceScript(project), /\*goto cf_n2/);
-  assert.equal(lintProject(project).filter((issue) => issue.level === "error").length, 0);
-});
+}
 
 function textEntry(name: string, content: string) {
   return { name, bytes: new TextEncoder().encode(content) };
