@@ -198,6 +198,22 @@ test("lints duplicate and empty label nodes", () => {
   assert.ok(errors.some((message) => message.includes("empty label")));
 });
 
+test("lints variable initial values that do not match their type", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "courage", type: "number" as const, initial: "high", desc: "Courage", uses: 0 },
+      { name: "ready", type: "boolean" as const, initial: "maybe", desc: "Ready", uses: 0 },
+      { name: "name", type: "string" as const, initial: "Alex", desc: "Name", uses: 0 },
+    ],
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("courage") && message.includes("invalid number")));
+  assert.ok(errors.some((message) => message.includes("ready") && message.includes("invalid boolean")));
+  assert.ok(!errors.some((message) => message.includes("name") && message.includes("invalid string")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),

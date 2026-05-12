@@ -264,6 +264,9 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   project.variables.forEach((variable) => {
     if (!variable.name.trim()) issues.push({ level: "error", msg: "variable has an empty name", scene: null });
     if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, scene: null });
+    if (variable.initial.trim() && !isValidVariableInitial(variable)) {
+      issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, scene: null });
+    }
   });
   project.achievements.forEach((achievement) => {
     if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", scene: null });
@@ -274,6 +277,13 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   (project.assets ?? []).forEach((asset) => {
     if (!asset.path.trim()) issues.push({ level: "warning", msg: `asset "${asset.id}" has an empty path`, scene: null });
   });
+}
+
+function isValidVariableInitial(variable: ChoiceForgeProject["variables"][number]): boolean {
+  const initial = variable.initial.trim();
+  if (variable.type === "number") return /^-?\d+(\.\d+)?$/.test(initial);
+  if (variable.type === "boolean") return /^(true|false)$/i.test(initial);
+  return true;
 }
 
 function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {
