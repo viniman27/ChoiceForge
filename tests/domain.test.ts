@@ -136,6 +136,28 @@ test("normalizes imported scene names and keeps scene ids stable", () => {
   assert.ok(project.sceneData?.chapter_two);
 });
 
+test("normalizes imported goto_scene targets with scene names", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Scene Jump",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "  Chapter-Two",
+      "",
+      "*goto_scene Chapter-Two",
+    ].join("\n")),
+    textEntry("Chapter-Two.txt", [
+      "Chapter two.",
+      "*ending",
+    ].join("\n")),
+  ]);
+  const gotoScene = project.sceneData?.startup.nodes.find((node) => node.type === "goto_scene");
+
+  assert.equal(gotoScene?.target, "chapter_two");
+  assert.ok(!lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*goto_scene points to a missing scene")));
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [
