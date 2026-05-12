@@ -93,6 +93,26 @@ test("imports startup scene content after metadata blocks", () => {
   assert.ok(!startupGraph.nodes.some((node) => node.body?.includes("*create courage")));
 });
 
+test("normalizes imported startup identifiers", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Identifiers",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "*create Player-Name \"Alex\"",
+      "*achievement First-Step visible 5 First Step",
+      "  Before.",
+      "  After.",
+      "Opening.",
+      "*ending",
+    ].join("\n")),
+  ]);
+
+  assert.equal(project.variables[0]?.name, "player_name");
+  assert.equal(project.achievements[0]?.id, "first_step");
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [

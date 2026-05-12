@@ -85,12 +85,13 @@ function parseStartup(text: string) {
 
     if (command === "create") {
       const [, name = "variable", ...rest] = line.trim().split(/\s+/);
+      const normalizedName = normalizeIdentifier(name || "variable");
       const initial = rest.join(" ") || "0";
       variables.push({
-        name,
+        name: normalizedName,
         type: inferVariableType(initial),
         initial,
-        desc: name,
+        desc: normalizedName,
         uses: 0,
         fairmath: inferVariableType(initial) === "number",
       });
@@ -98,7 +99,7 @@ function parseStartup(text: string) {
 
     if (command === "achievement") {
       const parts = line.trim().split(/\s+/);
-      const id = parts[1] ?? `achievement_${achievements.length + 1}`;
+      const id = normalizeIdentifier(parts[1] ?? `achievement_${achievements.length + 1}`);
       const visibility = parts[2] ?? "visible";
       const points = Number(parts[3] ?? "0");
       const titleText = parts.slice(4).join(" ") || id;
