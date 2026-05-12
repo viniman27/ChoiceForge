@@ -283,6 +283,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     ...graph.nodes.map((node) => generatedNodeLabel(node.id)),
     ...graph.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
   ]);
+  const humanLabels = graph.nodes
+    .filter((node) => node.type === "label")
+    .map((node) => ({ node, label: stripCommandPrefix(node.title, "*label") }));
   const variables = new Set(project.variables.map((variable) => variable.name));
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
@@ -300,6 +303,8 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     outgoing.set(edge.from, (outgoing.get(edge.from) ?? 0) + 1);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   });
+
+  lintLabels(humanLabels, issues, sceneName);
 
   graph.nodes.forEach((node) => {
     if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
@@ -341,6 +346,22 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
+  });
+}
+
+function lintLabels(labels: Array<{ node: StoryNode; label: string }>, issues: LintIssue[], sceneName: string) {
+  const seen = new Map<string, StoryNode>();
+  labels.forEach(({ node, label }) => {
+    if (!label) {
+      issues.push({ level: "error", msg: `*label node "${node.title}" has an empty label`, scene: sceneName, node: node.id });
+      return;
+    }
+    const previous = seen.get(label);
+    if (previous) {
+      issues.push({ level: "error", msg: `duplicate *label in scene: ${label}`, scene: sceneName, node: node.id });
+      return;
+    }
+    seen.set(label, node);
   });
 }
 

@@ -172,6 +172,32 @@ test("lints gosub nodes that point to missing labels", () => {
   assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub points to a missing label")));
 });
 
+test("lints duplicate and empty label nodes", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "label", x: 0, y: 0, w: 240, title: "*label repeated" },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label repeated" },
+      { id: "n3", type: "label", x: 0, y: 320, w: 240, title: "*label" },
+      { id: "n4", type: "finish", x: 0, y: 480, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+      { from: "n3", to: "n4", kind: "flow" },
+    ],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("duplicate *label")));
+  assert.ok(errors.some((message) => message.includes("empty label")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),
