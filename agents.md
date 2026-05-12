@@ -52,7 +52,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 | State | React `useState` + `useMemo` (no external state library) |
 | Persistence | `localStorage` (key: `choiceforge.project.v2`), manual Save, Ctrl/Cmd+S, autosave debounce, pagehide flush |
 | Deployment | Cloudflare Pages (`npm run cf:deploy`) |
-| Tests | None yet |
+| Tests | Node's built-in test runner via `npm test` |
 
 **Node version:** ≥ 24.15.0 (see `.nvmrc`)
 
@@ -221,7 +221,7 @@ Imported ChoiceForge zips are restored from `_choiceforge/project.json` when pre
 In rough order of value:
 
 1. **Import/parser hardening** — current import handles common/simple structures, including inline branch bodies for `*choice` and `*if`, but is still not a full AST or full roundtrip parser.
-2. **Automated tests** — no test runner is configured yet; add focused domain/import/generator tests before broad parser work.
+2. **Automated test coverage** — a minimal domain/import/generator suite exists; broaden it before broad parser work.
 3. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
 4. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
 5. **More complete ChoiceScript commands** — more expression helpers, subroutine ergonomics.
@@ -276,6 +276,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 | Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
 | Import parser | Handles common/simple ChoiceScript commands and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
+| Tests | Minimal domain/import/generator coverage exists via Node's built-in test runner; no UI/browser test coverage yet |
 | Global search | Implemented for scenes, nodes, variables, achievements, and assets |
 | Lint console | Expandable and navigable; issue text is still not localized |
 | Git/version history | Not implemented beyond browser undo history |
@@ -312,7 +313,7 @@ The original design document (`prompt_editor_visual_choicescript (1).md`) descri
 | React Flow or Rete.js for canvas | Custom canvas, no graph library |
 | CodeMirror 6 / Monaco in node editor | Plain `<textarea>` in RightPanel |
 | Zustand or Redux Toolkit | React `useState` + `useMemo` only |
-| Vitest + Playwright tests, 70% coverage | No tests yet |
+| Vitest + Playwright tests, 70% coverage | Minimal Node test runner coverage only; no Vitest/Playwright suite |
 | Parser (import `.txt` → graph) | Partially implemented pragmatic importer, not full AST |
 | Play-test with official runtime | Not implemented; internal graph playtest exists |
 | Stats screen editor | Basic editable generated `choicescript_stats.txt`, no rich stats-screen designer |
@@ -327,6 +328,7 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ```bash
 npm install
+npm test
 npm run dev        # starts Vite dev server
 npm run build      # type-check + build to dist/
 npm run cf:preview # build + run Cloudflare Pages locally (needs wrangler)
