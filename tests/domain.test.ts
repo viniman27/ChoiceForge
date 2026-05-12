@@ -93,6 +93,27 @@ test("imports startup scene content after metadata blocks", () => {
   assert.ok(!startupGraph.nodes.some((node) => node.body?.includes("*create courage")));
 });
 
+test("keeps playable startup even when scene_list omits startup", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Startup First",
+      "*author Writer",
+      "*scene_list",
+      "  chapter_two",
+      "",
+      "The game starts in startup.",
+      "*finish",
+    ].join("\n")),
+    textEntry("chapter_two.txt", [
+      "Chapter two.",
+      "*ending",
+    ].join("\n")),
+  ]);
+
+  assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup", "chapter_two"]);
+  assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /game starts/);
+});
+
 test("generates lint-clean ChoiceScript for a minimal project", () => {
   const graph: SceneGraph = {
     nodes: [

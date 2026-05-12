@@ -27,6 +27,7 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   const startupSceneText = extractStartupSceneText(startupText);
   if (startupSceneText.trim() && !sceneFileMap.has("startup")) sceneFileMap.set("startup", startupSceneText);
   const sceneNames = unique([
+    ...(startupSceneText.trim() ? ["startup"] : []),
     ...startupData.sceneNames,
     ...sceneTextFiles.map((entry) => basename(entry.path).replace(/\.txt$/i, "")),
   ]);
