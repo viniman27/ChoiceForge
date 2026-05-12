@@ -29,7 +29,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
-- Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab
+- Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
 - Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
 - Sample project in both PT and EN (`src/data/sampleProject.ts`)

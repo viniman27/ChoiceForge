@@ -114,6 +114,14 @@ export default function App() {
     "--left-panel-width": `${layout.left}px`,
     "--right-panel-width": `${layout.right}px`,
   } as CSSProperties;
+  const focusNode = (id: string) => {
+    const node = lintedProject.nodes.find((candidate) => candidate.id === id);
+    setSelectedId(id);
+    if (!node) return;
+    setGeneratedDocumentId(null);
+    setPlayOpen(false);
+    setPan(centerPanForNode(node, zoom, layout, consoleOpen));
+  };
 
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
@@ -211,7 +219,7 @@ export default function App() {
         onAddAsset={actions.addAsset}
         onUpdateAsset={actions.updateAsset}
         onDeleteAsset={actions.deleteAsset}
-        onSelectNode={setSelectedId}
+        onSelectNode={focusNode}
       />
       <button
         className="resize-handle resize-handle-left"
@@ -285,7 +293,7 @@ export default function App() {
         onUpdateNode={actions.updateNode}
         onAddFlowEdge={actions.addFlowEdge}
         onDeleteFlowEdge={actions.deleteFlowEdge}
-        onSelectNode={setSelectedId}
+        onSelectNode={focusNode}
       />
       <BottomBar
         data={lintedProject}
@@ -300,7 +308,8 @@ export default function App() {
             actions.selectScene(scene.id);
           }
           if (lint.node) {
-            setSelectedId(lint.node);
+            if (!scene || scene.name === lintedProject.sceneTitle) focusNode(lint.node);
+            else setSelectedId(lint.node);
             return;
           }
           setSelectedId(null);
@@ -342,6 +351,15 @@ function formatSaveStatus(lang: Language): string {
     second: "2-digit",
   }).format(new Date());
   return lang === "pt" ? `Salvo localmente ${time}` : `Saved locally ${time}`;
+}
+
+function centerPanForNode(node: StoryNode, zoom: number, layout: { left: number; right: number }, consoleOpen: boolean) {
+  const canvasWidth = Math.max(BOARD_MIN, window.innerWidth - layout.left - layout.right - RESIZE_GUTTERS);
+  const canvasHeight = Math.max(240, window.innerHeight - 56 - (consoleOpen ? 220 : 36));
+  return {
+    x: Math.round(canvasWidth / 2 - (node.x + node.w / 2) * zoom),
+    y: Math.round(canvasHeight / 2 - (node.y + 110) * zoom),
+  };
 }
 
 function tabForLintMessage(message: string): string {
