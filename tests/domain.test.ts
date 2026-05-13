@@ -220,6 +220,32 @@ test("preserves imported scene source for safe export", () => {
   assert.match(createExportPackage(project).files.find((file) => file.path === "mygame/ch1.txt")?.content.toString() ?? "", /\*line_break/);
 });
 
+test("lints preserved source without graph approximation false positives", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Preserve Lint",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+      "*create score 0",
+    ].join("\n")),
+    textEntry("ch1.txt", [
+      "*choice",
+      "  #One",
+      "    *set score +1",
+      "  #Two",
+      "    *set missing +1",
+      "*goto_scene missing_scene",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 5 && issue.msg.includes("undeclared variable: missing")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 6 && issue.msg.includes("missing scene")));
+  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.node && issue.msg.includes("incoming connection")));
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",

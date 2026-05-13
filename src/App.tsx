@@ -308,11 +308,16 @@ export default function App() {
         onOpenChange={setConsoleOpen}
         onSelectIssue={(lint) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.name === lint.scene);
-          setGeneratedDocumentId(null);
           setPlayOpen(false);
           if (scene && !scene.isStart && !scene.special && scene.name !== lintedProject.sceneTitle) {
             actions.selectScene(scene.id);
           }
+          if (lint.line && scene && !scene.isStart && !scene.special) {
+            setGeneratedDocumentId("scene");
+            setSelectedId(null);
+            return;
+          }
+          setGeneratedDocumentId(null);
           if (lint.node) {
             if (!scene || scene.name === lintedProject.sceneTitle) focusNode(lint.node);
             else setSelectedId(lint.node);

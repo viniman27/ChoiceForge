@@ -15,6 +15,7 @@ export function BottomBar({
 }) {
   const errors = data.lints.filter((lint) => lint.level === "error").length;
   const warnings = data.lints.filter((lint) => lint.level === "warning").length;
+  const visibleLints = [...data.lints].sort((a, b) => lintSeverityRank(a.level) - lintSeverityRank(b.level));
   return (
     <footer className="bot-bar">
       <div className="bot-left">
@@ -23,16 +24,17 @@ export function BottomBar({
             <span className="con-title">{labels.consoleTitle}</span>
             {errors > 0 && <span className="bot-pill err">{errors} {labels.errors}</span>}
             {warnings > 0 && <span className="bot-pill warn">{warnings} {labels.warnings}</span>}
-            <span className="bot-pill ok">{labels.linterPasses}</span>
+            {errors === 0 && warnings === 0 && <span className="bot-pill ok">{labels.linterPasses}</span>}
           </summary>
           <ul className="con-list">
-            {data.lints.map((lint, index) => (
+            {visibleLints.map((lint, index) => (
               <li
                 key={index}
                 className={`con-row con-${lint.level} ${isNavigableIssue(lint) ? "is-clickable" : ""}`}
                 onClick={() => isNavigableIssue(lint) && onSelectIssue(lint)}
               >
                 <span className={`con-dot dot-${lint.level}`} />
+                <span className="con-level">{lint.level}</span>
                 <span className="con-msg">{lint.msg}</span>
                 <span className="con-loc dim">{lint.scene && <code>{lint.scene}</code>}{lint.node && <code>{lint.node}</code>}{lint.line && <span> :{lint.line}</span>}</span>
               </li>
@@ -48,5 +50,11 @@ export function BottomBar({
 }
 
 function isNavigableIssue(lint: LintIssue): boolean {
-  return Boolean(lint.node || lint.scene || /scene|variable|achievement|asset/i.test(lint.msg));
+  return Boolean(lint.node || lint.scene || lint.line || /scene|variable|achievement|asset/i.test(lint.msg));
+}
+
+function lintSeverityRank(level: LintIssue["level"]): number {
+  if (level === "error") return 0;
+  if (level === "warning") return 1;
+  return 2;
 }

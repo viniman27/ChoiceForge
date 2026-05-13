@@ -244,7 +244,12 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   lintProjectMetadata(project, issues);
   sceneNames.forEach((sceneName) => {
-    lintSceneGraph(project, getSceneGraph(project, sceneName), sceneName, issues);
+    const graph = getSceneGraph(project, sceneName);
+    if (graph.sourceText !== undefined) {
+      lintPreservedSceneSource(project, graph.sourceText, sceneName, issues);
+      return;
+    }
+    lintSceneGraph(project, graph, sceneName, issues);
   });
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
@@ -410,6 +415,56 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
     }
+  });
+}
+
+function lintPreservedSceneSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, issues: LintIssue[]) {
+  const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
+  const variables = new Set(project.variables.map((variable) => variable.name));
+  const achievements = new Set(project.achievements.map((achievement) => achievement.id));
+  const labels = new Set<string>();
+  const referencedLabels: Array<{ label: string; line: number }> = [];
+  const lines = sourceText.split(/\r?\n/);
+
+  issues.push({ level: "info", msg: "scene exports preserved ChoiceScript source", scene: sceneName, line: 1 });
+
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1;
+    const trimmed = line.trim();
+    const command = sourceCommand(trimmed);
+    if (command === "label") {
+      const label = sourceCommandValue(trimmed, "*label").split(/\s+/)[0] ?? "";
+      if (label) labels.add(label);
+    }
+    if (command === "goto") {
+      const label = sourceCommandValue(trimmed, "*goto").split(/\s+/)[0] ?? "";
+      if (label) referencedLabels.push({ label, line: lineNumber });
+    }
+    if (command === "gosub") {
+      const label = sourceCommandValue(trimmed, "*gosub").split(/\s+/)[0] ?? "";
+      if (label) referencedLabels.push({ label, line: lineNumber });
+    }
+    if (command === "goto_scene") {
+      const target = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "");
+      if (!target) issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, line: lineNumber });
+      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
+    }
+    if (command === "set") {
+      const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
+      if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+    }
+    if (command === "input_text" || command === "input_number" || command === "rand") {
+      const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
+      if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+    }
+    const achievement = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i)?.[1]?.trim();
+    if (achievement && !achievements.has(normalizeSourceIdentifier(achievement))) {
+      issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${normalizeSourceIdentifier(achievement)}`, scene: sceneName, line: lineNumber });
+    }
+  });
+
+  referencedLabels.forEach(({ label, line }) => {
+    if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
   });
 }
 
@@ -750,4 +805,16 @@ function extractExpressionNames(expression: string): string[] {
 
 function stripQuotedStrings(expression: string): string {
   return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/g, " ");
+}
+
+function sourceCommand(line: string): string | null {
+  return line.match(/^\*([a-z_]+)/i)?.[1].toLowerCase() ?? null;
+}
+
+function sourceCommandValue(line: string, command: string): string {
+  return line.replace(command, "").trim();
+}
+
+function normalizeSourceIdentifier(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
 }

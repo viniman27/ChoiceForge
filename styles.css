@@ -1473,7 +1473,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .bot-pill.warn { background: color-mix(in oklch, var(--warn) 25%, var(--paper-2)); color: oklch(45% 0.16 75); }
 .bot-pill.ok { background: color-mix(in oklch, var(--ok) 18%, var(--paper-2)); color: var(--ok); }
 .con-list { list-style: none; padding: 4px 0; margin: 0; flex: 1; overflow: auto; }
-.con-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; padding: 4px 16px; align-items: center; }
+.con-row { display: grid; grid-template-columns: 12px 58px 1fr auto; gap: 10px; padding: 4px 16px; align-items: center; }
 .con-row:hover { background: var(--paper-3); }
 .con-row.is-clickable { cursor: pointer; }
 .con-row.is-clickable:hover .con-msg { color: var(--ink); }
@@ -1482,6 +1482,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .dot-warning { background: var(--warn); }
 .dot-info { background: var(--ink-faint); }
 .con-msg { color: var(--ink-2); }
+.con-level {
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.con-error .con-level { color: var(--err); }
+.con-warning .con-level { color: var(--warn); }
+.con-info .con-level { color: var(--ink-faint); }
 .con-loc { display: flex; gap: 4px; align-items: center; }
 .con-loc code { font-size: 10px; color: var(--ink-2); }
 
