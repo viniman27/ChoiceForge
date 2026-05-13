@@ -137,6 +137,7 @@ interface SearchResult {
   kind: "node" | "scene" | "variable" | "achievement" | "asset";
   title: string;
   detail: string;
+  searchText?: string;
   nodeId?: string;
   sceneId?: string;
 }
@@ -175,11 +176,14 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
 
   const results: SearchResult[] = [];
   data.scenes.forEach((scene) => {
+    const sourceStatus = sceneSourceStatus(data, scene);
+    const preservedText = scene.isStart ? data.startupSource : scene.special ? data.statsSource : data.sceneData?.[scene.name]?.sourceText;
     addResult(results, normalized, {
       id: `scene-${scene.id}`,
       kind: "scene",
       title: `${scene.name}.txt`,
-      detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes`,
+      detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes - ${sourceStatus}`,
+      searchText: preservedText,
       sceneId: scene.id,
     });
   });
@@ -227,7 +231,7 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
 }
 
 function addResult(results: SearchResult[], query: string, result: SearchResult) {
-  if (`${result.title} ${result.detail}`.toLowerCase().includes(query)) results.push(result);
+  if (`${result.title} ${result.detail} ${result.searchText ?? ""}`.toLowerCase().includes(query)) results.push(result);
 }
 
 function nodeSearchTargets(node: StoryNode): string[] {
@@ -268,12 +272,25 @@ function ScenesList({
   const [draggedSceneId, setDraggedSceneId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
+  const preservedScenes = data.scenes.filter((scene) => sceneHasPreservedSource(data, scene)).length;
+  const generatedScenes = data.scenes.length - preservedScenes;
   return (
     <div className="scene-list">
+      <div className="source-summary">
+        <div>
+          <span className="source-summary-label">source files</span>
+          <strong>{preservedScenes} preserved</strong>
+        </div>
+        <div>
+          <span className="source-summary-label">generated</span>
+          <strong>{generatedScenes}</strong>
+        </div>
+      </div>
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
         {data.scenes.map((scene) => {
           const movable = !scene.isStart && !scene.special;
+          const sourceStatus = sceneSourceStatus(data, scene);
           return (
           <li
             key={scene.id}
@@ -315,6 +332,7 @@ function ScenesList({
                 )}
                 {scene.isStart && <span className="scene-tag">start</span>}
                 {scene.special && <span className="scene-tag">stats</span>}
+                <span className={`scene-tag source-${sourceStatus}`}>{sourceStatus}</span>
                 {scene.warning && <span className="scene-tag warn">!</span>}
               </div>
               <div className="scene-stats">
@@ -589,4 +607,16 @@ function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function sceneHasPreservedSource(data: ChoiceForgeProject, scene: SceneSummary): boolean {
+  if (scene.isStart) return data.startupSource !== undefined;
+  if (scene.special) return data.statsSource !== undefined;
+  return data.sceneData?.[scene.name]?.sourceText !== undefined;
+}
+
+function sceneSourceStatus(data: ChoiceForgeProject, scene: SceneSummary): "source" | "graph" | "generated" {
+  if (sceneHasPreservedSource(data, scene)) return "source";
+  if (scene.isStart || scene.special) return "generated";
+  return "graph";
 }
