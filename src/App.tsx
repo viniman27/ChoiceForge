@@ -159,7 +159,7 @@ export default function App() {
           setGeneratedDocumentId(null);
           setSelectedId(null);
         }}
-        onImport={(file) => importChoiceForgeProject(file, actions.setProject, () => {
+        onImport={(files) => importChoiceForgeProject(files, actions.setProject, () => {
           setPlayOpen(false);
           setGeneratedDocumentId(null);
           setSelectedId("n1");
@@ -422,9 +422,11 @@ function confirmExportWithLintErrors(project: ChoiceForgeProject, lang: Language
     : `The project has ${errors.length} linter error(s). Export anyway?`);
 }
 
-async function importChoiceForgeProject(file: File, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
+async function importChoiceForgeProject(files: File[], setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
   try {
-    if (file.name.toLowerCase().endsWith(".zip")) {
+    if (files.length === 0) return;
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith(".zip")) {
+      const file = files[0];
       const entries = await extractZipEntries(new Uint8Array(await file.arrayBuffer()));
       const projectJson = entries.find((entry) => entry.name === "project.json" || entry.name.endsWith("/project.json"));
       if (projectJson) {
@@ -434,15 +436,30 @@ async function importChoiceForgeProject(file: File, setProject: (project: Choice
       } else {
         setProject(importChoiceScriptArchive(entries));
       }
-    } else {
+    } else if (files.length === 1 && files[0].name.toLowerCase().endsWith(".json")) {
+      const file = files[0];
       const parsed = JSON.parse(await file.text()) as ChoiceForgeProject;
       assertChoiceForgeProject(parsed);
       setProject(parsed);
+    } else {
+      const entries = await Promise.all(files
+        .filter((file) => file.name.toLowerCase().endsWith(".txt"))
+        .map(async (file) => ({
+          name: selectedImportPath(file),
+          bytes: new Uint8Array(await file.arrayBuffer()),
+        })));
+      if (entries.length !== files.length) throw new Error("mixed import files");
+      setProject(importChoiceScriptArchive(entries));
     }
     onDone();
-  } catch {
-    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge ou o project.json." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip or project.json.");
+  } catch (error) {
+    console.error("ChoiceForge import failed", error);
+    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge, project.json, ou selecione todos os arquivos .txt do projeto juntos." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip, project.json, or select all project .txt files together.");
   }
+}
+
+function selectedImportPath(file: File): string {
+  return (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
 }
 
 function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {

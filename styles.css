@@ -1072,7 +1072,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   z-index: 2;
 }
 .anchor-in { left: -8px; cursor: crosshair; }
-.anchor-out { right: -8px; cursor: grab; }
+.anchor-out { right: -8px; cursor: crosshair; }
 .anchor-out::after {
   content: "";
   position: absolute;
@@ -1083,6 +1083,15 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-top: 2px solid var(--accent);
   border-right: 2px solid var(--accent);
   transform: rotate(45deg);
+}
+.canvas-wrap.is-connecting .anchor-in,
+.canvas-wrap.is-connecting .anchor-out,
+.canvas-wrap.is-connecting .node {
+  cursor: crosshair;
+}
+.anchor-out:hover {
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 18%, transparent), var(--shadow-1);
 }
 .anchor:hover {
   opacity: 1;

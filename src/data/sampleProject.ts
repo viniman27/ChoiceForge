@@ -71,7 +71,21 @@ const intro: SceneGraph = {
     },
     { id: "n8", type: "goto_scene", x: 1200, y: 590, w: 280, title: "*goto_scene praia_neblina", target: "praia_neblina" },
     { id: "n7", type: "checkpoint", x: 1200, y: 390, w: 280, title: "*save_checkpoint antes_da_maquina" },
-    { id: "n6", type: "goto_scene", x: 1540, y: 390, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
+    {
+      id: "n13",
+      type: "choice",
+      x: 1540,
+      y: 390,
+      w: 360,
+      title: "checkpoint_teste",
+      prompt: "Antes de abrir a porta da sala de maquinas, voce testa o ponto de retorno.",
+      options: [
+        { text: "Entrar na sala de maquinas.", to: "n6", cond: null },
+        { text: "Restaurar o checkpoint antes de seguir.", to: "n14", cond: null },
+      ],
+    },
+    { id: "n6", type: "goto_scene", x: 1980, y: 340, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
+    { id: "n14", type: "restore_checkpoint", x: 1980, y: 540, w: 280, title: "*restore_checkpoint antes_da_maquina" },
   ],
   edges: [
     { from: "n1", to: "n9", kind: "flow" },
@@ -81,7 +95,7 @@ const intro: SceneGraph = {
     { from: "n3", to: "n7", kind: "flow" },
     { from: "n4", to: "n8", kind: "flow" },
     { from: "n5", to: "n7", kind: "flow" },
-    { from: "n7", to: "n6", kind: "flow" },
+    { from: "n7", to: "n13", kind: "flow" },
   ],
 };
 

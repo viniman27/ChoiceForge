@@ -93,6 +93,16 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   }, [toolbarResize, viewport.width]);
 
   useEffect(() => {
+    if (!connecting) return;
+    document.body.style.cursor = "crosshair";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [connecting]);
+
+  useEffect(() => {
     const move = (event: PointerEvent) => {
       if (drag) {
         onMoveNode(drag.nodeId, drag.origX + (event.clientX - drag.startX) / zoom, drag.origY + (event.clientY - drag.startY) / zoom);
@@ -127,7 +137,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   return (
     <div
       ref={canvasRef}
-      className="canvas-wrap"
+      className={`canvas-wrap ${connecting ? "is-connecting" : ""}`}
       onWheel={(event) => {
         event.preventDefault();
         if (event.ctrlKey || event.metaKey) {
@@ -151,7 +161,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
           setPanning({ startX: event.clientX, startY: event.clientY, origX: pan.x, origY: pan.y });
         }
       }}
-      style={{ cursor: panning ? "grabbing" : "grab" }}
+      style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : "grab" }}
     >
       <div className="canvas-grid" />
       <div className={`canvas-toolbar ${toolbarResize ? "is-resizing" : ""}`} style={{ width: Math.min(toolbarWidth, Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64)) }}>

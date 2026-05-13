@@ -18,7 +18,7 @@ interface TopBarProps {
   saveStatus: string;
   onTextMode: () => void;
   onPlay: () => void;
-  onImport: (file: File) => void;
+  onImport: (files: File[]) => void;
   onExport: () => void;
   onResetProject: () => void;
 }
@@ -108,12 +108,12 @@ interface WindowWithFilePicker extends Window {
   }) => Promise<FilePickerHandle[]>;
 }
 
-async function openImportPicker(onImport: (file: File) => void) {
+async function openImportPicker(onImport: (files: File[]) => void) {
   const showOpenFilePicker = (window as WindowWithFilePicker).showOpenFilePicker;
   if (showOpenFilePicker) {
     try {
-      const [handle] = await showOpenFilePicker({
-        multiple: false,
+      const handles = await showOpenFilePicker({
+        multiple: true,
         excludeAcceptAllOption: false,
         types: [
           {
@@ -121,12 +121,13 @@ async function openImportPicker(onImport: (file: File) => void) {
             accept: {
               "application/json": [".json"],
               "application/zip": [".zip"],
+              "text/plain": [".txt"],
             },
           },
         ],
       });
-      const file = await handle?.getFile();
-      if (file) onImport(file);
+      const files = await Promise.all(handles.map((handle) => handle.getFile()));
+      if (files.length > 0) onImport(files);
     } catch (error) {
       if (isAbortError(error)) return;
       window.setTimeout(() => openImportInputFallback(onImport), 0);
@@ -137,10 +138,11 @@ async function openImportPicker(onImport: (file: File) => void) {
   openImportInputFallback(onImport);
 }
 
-function openImportInputFallback(onImport: (file: File) => void) {
+function openImportInputFallback(onImport: (files: File[]) => void) {
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = "application/json,application/zip,.json,.zip";
+  input.multiple = true;
+  input.accept = "application/json,application/zip,text/plain,.json,.zip,.txt";
   input.style.position = "fixed";
   input.style.left = "-10000px";
   input.style.top = "0";
@@ -156,9 +158,9 @@ function openImportInputFallback(onImport: (file: File) => void) {
   };
 
   input.addEventListener("change", () => {
-    const file = input.files?.[0];
+    const files = Array.from(input.files ?? []);
     cleanup();
-    if (file) onImport(file);
+    if (files.length > 0) onImport(files);
   }, { once: true });
   window.addEventListener("focus", handleFocus, { once: true });
 
