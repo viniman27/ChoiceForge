@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { GeneratedDocumentView } from "./components/GeneratedDocumentView";
@@ -486,54 +487,11 @@ function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeP
   if (!Array.isArray(project.scenes) || !Array.isArray(project.variables) || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) throw new Error("invalid collections");
 }
 
-async function extractZipEntries(bytes: Uint8Array) {
-  const decoder = new TextDecoder();
-  const entries: { name: string; bytes: Uint8Array }[] = [];
-  const directoryOffset = findCentralDirectoryOffset(bytes);
-  let offset = directoryOffset;
-
-  while (offset + 46 <= bytes.length && readU32(bytes, offset) === 0x02014b50) {
-    const flags = readU16(bytes, offset + 8);
-    const method = readU16(bytes, offset + 10);
-    const compressedSize = readU32(bytes, offset + 20);
-    const fileNameLength = readU16(bytes, offset + 28);
-    const extraLength = readU16(bytes, offset + 30);
-    const commentLength = readU16(bytes, offset + 32);
-    const localHeaderOffset = readU32(bytes, offset + 42);
-    const nameStart = offset + 46;
-    const nameEnd = nameStart + fileNameLength;
-    const name = decoder.decode(bytes.slice(nameStart, nameEnd));
-
-    if ((flags & 0x01) !== 0) throw new Error("unsupported encrypted zip");
-    if (readU32(bytes, localHeaderOffset) !== 0x04034b50) throw new Error("invalid zip local header");
-    const localNameLength = readU16(bytes, localHeaderOffset + 26);
-    const localExtraLength = readU16(bytes, localHeaderOffset + 28);
-    const contentStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
-    const contentEnd = contentStart + compressedSize;
-    if (contentEnd > bytes.length) throw new Error("invalid zip entry");
-    const content = bytes.slice(contentStart, contentEnd);
-    if (!name.endsWith("/")) {
-      if (method === 0) entries.push({ name, bytes: content });
-      else if (method === 8) entries.push({ name, bytes: await inflateRaw(content) });
-      else throw new Error("unsupported compressed zip");
-    }
-
-    offset = nameEnd + extraLength + commentLength;
-  }
-
-  return entries;
-}
-
-function findCentralDirectoryOffset(bytes: Uint8Array): number {
-  for (let offset = bytes.length - 22; offset >= 0; offset -= 1) {
-    if (readU32(bytes, offset) === 0x06054b50) return readU32(bytes, offset + 16);
-  }
-  throw new Error("zip central directory not found");
-}
-
-async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([toArrayBuffer(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+function extractZipEntries(bytes: Uint8Array) {
+  const files = unzipSync(bytes);
+  return Object.entries(files)
+    .filter(([name]) => !name.endsWith("/"))
+    .map(([name, fileBytes]) => ({ name, bytes: fileBytes }));
 }
 
 function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]): Uint8Array {
@@ -608,14 +566,6 @@ function u16(value: number): Uint8Array {
 
 function u32(value: number): Uint8Array {
   return new Uint8Array([value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]);
-}
-
-function readU16(bytes: Uint8Array, offset: number): number {
-  return bytes[offset] | (bytes[offset + 1] << 8);
-}
-
-function readU32(bytes: Uint8Array, offset: number): number {
-  return (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
 }
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
