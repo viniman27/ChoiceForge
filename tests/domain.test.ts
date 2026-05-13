@@ -368,6 +368,36 @@ test("lints label nodes that collide with generated labels", () => {
   assert.ok(errors.some((message) => message.includes("collides with a generated ChoiceForge label")));
 });
 
+test("lints invalid ChoiceScript identifiers", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "label", x: 0, y: 0, w: 240, title: "*label Bad Label" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "bad", name: "Bad Scene", words: 0, nodes: 2, current: true },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneTitle: "Bad Scene",
+    variables: [{ name: "1score", type: "number" as const, initial: "0", desc: "Score", uses: 0 }],
+    achievements: [{ id: "First-Step", title: "First", points: 5, desc: "First", preDesc: "Before", postDesc: "After" }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { "Bad Scene": graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("scene has an invalid identifier")));
+  assert.ok(errors.some((message) => message.includes("variable has an invalid identifier")));
+  assert.ok(errors.some((message) => message.includes("achievement has an invalid identifier")));
+  assert.ok(errors.some((message) => message.includes("*label has an invalid identifier")));
+});
+
 test("lints variable initial values that do not match their type", () => {
   const project = {
     ...minimalProject(),

@@ -260,9 +260,15 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
 
   project.scenes.forEach((scene) => {
     if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", scene: null });
+    if (scene.name.trim() && !isValidChoiceScriptIdentifier(scene.name)) {
+      issues.push({ level: "error", msg: `scene has an invalid identifier: ${scene.name}`, scene: null });
+    }
   });
   project.variables.forEach((variable) => {
     if (!variable.name.trim()) issues.push({ level: "error", msg: "variable has an empty name", scene: null });
+    if (variable.name.trim() && !isValidChoiceScriptIdentifier(variable.name)) {
+      issues.push({ level: "error", msg: `variable has an invalid identifier: ${variable.name}`, scene: null });
+    }
     if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, scene: null });
     if (variable.initial.trim() && !isValidVariableInitial(variable)) {
       issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, scene: null });
@@ -270,6 +276,9 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   });
   project.achievements.forEach((achievement) => {
     if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", scene: null });
+    if (achievement.id.trim() && !isValidChoiceScriptIdentifier(achievement.id)) {
+      issues.push({ level: "error", msg: `achievement has an invalid identifier: ${achievement.id}`, scene: null });
+    }
     if (!Number.isFinite(achievement.points) || achievement.points < 0) {
       issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, scene: null });
     }
@@ -284,6 +293,10 @@ function isValidVariableInitial(variable: ChoiceForgeProject["variables"][number
   if (variable.type === "number") return /^-?\d+(\.\d+)?$/.test(initial);
   if (variable.type === "boolean") return /^(true|false)$/i.test(initial);
   return true;
+}
+
+function isValidChoiceScriptIdentifier(value: string): boolean {
+  return /^[a-z_][a-z0-9_]*$/.test(value);
 }
 
 function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {
@@ -386,6 +399,10 @@ function lintLabels(
   labels.forEach(({ node, label }) => {
     if (!label) {
       issues.push({ level: "error", msg: `*label node "${node.title}" has an empty label`, scene: sceneName, node: node.id });
+      return;
+    }
+    if (!isValidChoiceScriptIdentifier(label)) {
+      issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, scene: sceneName, node: node.id });
       return;
     }
     if (generatedLabels.has(label)) {
