@@ -70,6 +70,26 @@ test("normalizes imported input and rand variable names", () => {
   assert.equal(graph.nodes.find((node) => node.type === "rand")?.inputVar, "random_value");
 });
 
+test("normalizes imported condition identifiers", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Conditions",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "*create Player-Score 5",
+      "*if Player-Score > 3",
+      "  *finish",
+      "*else",
+      "  *ending",
+    ].join("\n")),
+  ]);
+  const condition = project.sceneData?.startup.nodes.find((node) => node.type === "if");
+
+  assert.equal(condition?.branches?.[0]?.expr, "player_score > 3");
+  assert.ok(!lintProject(project).some((issue) => issue.level === "warning" && issue.msg.includes("Player")));
+});
+
 test("imports ChoiceScript archives with startup metadata", () => {
   const project = importChoiceScriptArchive([
     textEntry("mygame/startup.txt", [

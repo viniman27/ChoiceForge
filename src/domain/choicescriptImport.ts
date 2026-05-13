@@ -994,10 +994,10 @@ function isChoiceOptionHeaderLine(line: string): boolean {
 
 function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" | "expr"> | null {
   const conditional = trimmed.match(/^\*if\s+\(?(.+?)\)?$/i);
-  if (conditional) return { kind: "if", expr: stripOuterParens(conditional[1].trim()) };
+  if (conditional) return { kind: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(conditional[1].trim())) };
 
   const elseif = trimmed.match(/^\*elseif\s+\(?(.+?)\)?$/i);
-  if (elseif) return { kind: "elseif", expr: stripOuterParens(elseif[1].trim()) };
+  if (elseif) return { kind: "elseif", expr: normalizeExpressionIdentifiers(stripOuterParens(elseif[1].trim())) };
 
   if (/^\*else$/i.test(trimmed)) return { kind: "else" };
   return null;
@@ -1011,10 +1011,10 @@ function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" |
   if (optionText.startsWith("#")) return { text: optionText.replace(/^#+/, "").trim(), cond: null, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
   const selectable = optionText.match(/^\*selectable_if\s+\((.+)\)\s+#(.+)$/i);
-  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: selectable[1].trim() }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
+  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: normalizeExpressionIdentifiers(selectable[1].trim()) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
   const conditional = optionText.match(/^\*if\s+\((.+)\)\s+#(.+)$/i);
-  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: conditional[1].trim() }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
+  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: normalizeExpressionIdentifiers(conditional[1].trim()) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
   return null;
 }
@@ -1116,6 +1116,15 @@ function stripOuterParens(value: string): string {
   const trimmed = value.trim();
   if (trimmed.startsWith("(") && trimmed.endsWith(")")) return trimmed.slice(1, -1).trim();
   return trimmed;
+}
+
+function normalizeExpressionIdentifiers(expression: string): string {
+  const reserved = new Set(["and", "or", "not", "true", "false"]);
+  return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[a-zA-Z_][a-zA-Z0-9_-]*/g, (match) => {
+    if (match.startsWith("\"") || match.startsWith("'")) return match;
+    const lower = match.toLowerCase();
+    return reserved.has(lower) ? lower : normalizeIdentifier(match);
+  });
 }
 
 function defaultImportedWidth(type: NodeType): number {
