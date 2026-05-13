@@ -338,6 +338,36 @@ test("lints preserved startup scene list against project scenes", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 1 && issue.msg.includes("omits project scene: intro")));
 });
 
+test("lints preserved startup global declarations", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "Score", fairmath: false }],
+    achievements: [{ id: "first", title: "First", desc: "First step", points: 10, hidden: false }],
+    startupSource: [
+      "*title Globals",
+      "*author Writer",
+      "*scene_list",
+      "  intro",
+      "*create score 0",
+      "*create score 1",
+      "*create bad-name 0",
+      "*create extra 0",
+      "*achievement first visible 10 First",
+      "*achievement first visible 10 First Again",
+      "*achievement bad-ach visible -1 Broken",
+      "*achievement extra hidden 5 Extra",
+    ].join("\n"),
+  };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 6 && issue.msg.includes("repeats *create variable: score")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 7 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 8 && issue.msg.includes("missing from project metadata: extra")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 10 && issue.msg.includes("repeats *achievement: first")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 11 && issue.msg.includes("invalid identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 12 && issue.msg.includes("missing from project metadata: extra")));
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",

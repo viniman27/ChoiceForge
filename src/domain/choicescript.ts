@@ -481,6 +481,10 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
 
   const playableScenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const listedScenes = new Map<string, number>();
+  const declaredVariables = new Map<string, number>();
+  const declaredAchievements = new Map<string, number>();
+  const projectVariables = new Set(project.variables.map((variable) => variable.name));
+  const projectAchievements = new Set(project.achievements.map((achievement) => achievement.id));
   let foundSceneList = false;
   let inSceneList = false;
 
@@ -488,6 +492,14 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
     const lineNumber = index + 1;
     const trimmed = line.trim();
     const command = sourceCommand(trimmed);
+
+    if (command === "create") {
+      lintPreservedCreateLine(projectVariables, declaredVariables, trimmed, lineNumber, issues);
+    }
+    if (command === "achievement") {
+      lintPreservedAchievementLine(projectAchievements, declaredAchievements, trimmed, lineNumber, issues);
+    }
+
     if (command === "scene_list") {
       foundSceneList = true;
       inSceneList = true;
@@ -527,6 +539,73 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
       issues.push({ level: "warning", msg: `*scene_list omits project scene: ${sceneName}`, scene: "startup", line: 1 });
     }
   });
+  project.variables.forEach((variable) => {
+    if (!declaredVariables.has(variable.name)) {
+      issues.push({ level: "warning", msg: `startup.txt omits project variable: ${variable.name}`, scene: "startup", line: 1 });
+    }
+  });
+  project.achievements.forEach((achievement) => {
+    if (!declaredAchievements.has(achievement.id)) {
+      issues.push({ level: "warning", msg: `startup.txt omits project achievement: ${achievement.id}`, scene: "startup", line: 1 });
+    }
+  });
+}
+
+function lintPreservedCreateLine(
+  projectVariables: Set<string>,
+  declaredVariables: Map<string, number>,
+  line: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const [, rawName = "", ...rest] = line.split(/\s+/);
+  const normalizedName = normalizeSourceIdentifier(rawName);
+  const initial = rest.join(" ");
+
+  if (!rawName || !isValidChoiceScriptIdentifier(rawName)) {
+    issues.push({ level: "error", msg: `*create has an invalid variable identifier: ${rawName || "(empty)"}`, scene: "startup", line: lineNumber });
+    return;
+  }
+  if (!initial.trim()) {
+    issues.push({ level: "error", msg: `*create has an empty initial value: ${normalizedName}`, scene: "startup", line: lineNumber });
+  }
+  if (declaredVariables.has(normalizedName)) {
+    issues.push({ level: "error", msg: `startup.txt repeats *create variable: ${normalizedName}`, scene: "startup", line: lineNumber });
+  }
+  declaredVariables.set(normalizedName, lineNumber);
+  if (!projectVariables.has(normalizedName)) {
+    issues.push({ level: "warning", msg: `*create declares a variable missing from project metadata: ${normalizedName}`, scene: "startup", line: lineNumber });
+  }
+}
+
+function lintPreservedAchievementLine(
+  projectAchievements: Set<string>,
+  declaredAchievements: Map<string, number>,
+  line: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const [, rawId = "", visibility = "", rawPoints = ""] = line.split(/\s+/, 4);
+  const normalizedId = normalizeSourceIdentifier(rawId);
+  const points = Number(rawPoints);
+
+  if (!rawId || !isValidChoiceScriptIdentifier(rawId)) {
+    issues.push({ level: "error", msg: `*achievement has an invalid identifier: ${rawId || "(empty)"}`, scene: "startup", line: lineNumber });
+    return;
+  }
+  if (visibility && visibility !== "visible" && visibility !== "hidden") {
+    issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility}`, scene: "startup", line: lineNumber });
+  }
+  if (!rawPoints || !Number.isFinite(points) || points < 0) {
+    issues.push({ level: "error", msg: `*achievement has invalid points: ${rawPoints || "(empty)"}`, scene: "startup", line: lineNumber });
+  }
+  if (declaredAchievements.has(normalizedId)) {
+    issues.push({ level: "error", msg: `startup.txt repeats *achievement: ${normalizedId}`, scene: "startup", line: lineNumber });
+  }
+  declaredAchievements.set(normalizedId, lineNumber);
+  if (!projectAchievements.has(normalizedId)) {
+    issues.push({ level: "warning", msg: `*achievement declares an achievement missing from project metadata: ${normalizedId}`, scene: "startup", line: lineNumber });
+  }
 }
 
 function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
