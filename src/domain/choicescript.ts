@@ -24,7 +24,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
   lines.push(`*label ${nodeLabel}`);
   if (node.type === "label") lines.push(`*label ${stripCommandPrefix(node.title, "*label")}`);
-  if (node.body?.trim()) lines.push(node.body);
+  if (node.type !== "comment" && node.body?.trim()) lines.push(node.body);
   node.sets?.forEach((set) => lines.push(generateSet(set)));
 
   if (node.type === "choice") {
@@ -381,7 +381,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     }
 
     if (node.type === "gosub") {
-      const label = stripCommandPrefix(node.title, "*gosub");
+      const label = gosubTarget(node.title);
       if (!label) {
         issues.push({ level: "error", msg: "*gosub needs a label target", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(label)) {
@@ -597,7 +597,7 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
     }
 
     if (node.type === "gosub") {
-      const target = labels.get(stripCommandPrefix(node.title, "*gosub"));
+      const target = labels.get(gosubTarget(node.title));
       return target ? [{ from: node.id, to: target, kind: "goto", label: "*gosub" }] : [];
     }
 
@@ -626,6 +626,10 @@ function formatStatsLabel(value: string): string {
 
 function stripCommandPrefix(value: string, command: string): string {
   return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function gosubTarget(value: string): string {
+  return stripCommandPrefix(value, "*gosub").split(/\s+/)[0] ?? "";
 }
 
 function checkpointSlot(value: string, command: "*save_checkpoint" | "*restore_checkpoint"): string {

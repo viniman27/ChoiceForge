@@ -28,6 +28,26 @@ test("imports inline choice option bodies as choice targets", () => {
   assert.ok(graph.nodes.some((node) => node.type === "ending"));
 });
 
+test("links inline choice bodies back to the following passage", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Open the door",
+    "    You open it.",
+    "  #Leave",
+    "    You leave.",
+    "After the choice.",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((node) => node.type === "choice");
+  const after = graph.nodes.find((node) => node.body?.includes("After the choice"));
+
+  assert.ok(choice);
+  assert.ok(after);
+  choice.options?.forEach((option) => {
+    assert.ok(graph.edges.some((edge) => edge.kind === "flow" && edge.from === option.to && edge.to === after.id));
+  });
+});
+
 test("imports inline if branch bodies as branch targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*if courage > 50",
@@ -153,6 +173,52 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
 });
 
+test("imports startup body as prologue without duplicating startup scene", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Prologue",
+      "*author Writer",
+      "*scene_list",
+      "  ch1_lobby",
+      "Opening in startup.",
+      "*goto_scene ch1_lobby",
+    ].join("\n")),
+    textEntry("ch1_lobby.txt", [
+      "Chapter one.",
+      "*ending",
+    ].join("\n")),
+  ]);
+  const playableScenes = project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name);
+
+  assert.deepEqual(playableScenes, ["startup_prologue", "ch1_lobby"]);
+  assert.equal(project.scenes.filter((scene) => scene.name === "startup").length, 1);
+  assert.match(project.sceneData?.startup_prologue.nodes[0]?.body ?? "", /Opening in startup/);
+});
+
+test("imports gosub arguments and params without corrupting label targets", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*gosub add_truth_fragment \"SPINE\"",
+    "*finish",
+    "*label add_truth_fragment",
+    "*params frag",
+    "*return",
+  ].join("\n"));
+  const gosub = graph.nodes.find((node) => node.type === "gosub");
+  const label = graph.nodes.find((node) => node.type === "label");
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const generated = generateSceneChoiceScript(project);
+
+  assert.equal(gosub?.title, "*gosub add_truth_fragment \"SPINE\"");
+  assert.equal(label?.body, "*params frag");
+  assert.match(generated, /\*label add_truth_fragment\n\*params frag/);
+  assert.ok(!lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub")));
+});
+
 test("imports startup scene content after metadata blocks", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [
@@ -215,8 +281,8 @@ test("normalizes imported scene names and keeps scene ids stable", () => {
   ]);
   const playableScenes = project.scenes.filter((scene) => !scene.isStart && !scene.special);
 
-  assert.deepEqual(playableScenes.map((scene) => scene.name), ["startup", "chapter_two"]);
-  assert.deepEqual(playableScenes.map((scene) => scene.id), ["scene_startup", "chapter_two"]);
+  assert.deepEqual(playableScenes.map((scene) => scene.name), ["startup_prologue", "chapter_two"]);
+  assert.deepEqual(playableScenes.map((scene) => scene.id), ["startup_prologue", "chapter_two"]);
   assert.ok(project.sceneData?.chapter_two);
 });
 
@@ -382,8 +448,8 @@ test("keeps playable startup even when scene_list omits startup", () => {
     ].join("\n")),
   ]);
 
-  assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup", "chapter_two"]);
-  assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /game starts/);
+  assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup_prologue", "chapter_two"]);
+  assert.match(project.sceneData?.startup_prologue.nodes[0]?.body ?? "", /game starts/);
 });
 
 test("generates lint-clean ChoiceScript for a minimal project", () => {

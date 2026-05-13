@@ -136,7 +136,7 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
     }
 
     if (node.type === "gosub") {
-      const target = labels.get(stripCommandPrefix(node.title, "*gosub"));
+      const target = labels.get(gosubTarget(node.title));
       return target ? [{ from: node.id, to: target, kind: "goto", label: "*gosub" }] : [];
     }
 
@@ -146,6 +146,10 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
 
 function stripCommandPrefix(value: string, command: string): string {
   return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function gosubTarget(value: string): string {
+  return stripCommandPrefix(value, "*gosub").split(/\s+/)[0] ?? "";
 }
 
 function estimateLayoutNodeHeight(node: StoryNode): number {

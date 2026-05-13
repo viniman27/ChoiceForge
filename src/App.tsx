@@ -10,7 +10,7 @@ import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
-import { importChoiceScriptArchive } from "./domain/choicescriptImport";
+import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 
@@ -160,7 +160,7 @@ export default function App() {
           setGeneratedDocumentId(null);
           setSelectedId(null);
         }}
-        onImport={(files) => importChoiceForgeProject(files, actions.setProject, () => {
+        onImport={(files) => importChoiceForgeProject(files, lintedProject, actions.setProject, () => {
           setPlayOpen(false);
           setGeneratedDocumentId(null);
           setSelectedId("n1");
@@ -423,10 +423,12 @@ function confirmExportWithLintErrors(project: ChoiceForgeProject, lang: Language
     : `The project has ${errors.length} linter error(s). Export anyway?`);
 }
 
-async function importChoiceForgeProject(files: File[], setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
+async function importChoiceForgeProject(files: File[], currentProject: ChoiceForgeProject, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
   try {
     if (files.length === 0) return;
-    if (files.length === 1 && files[0].name.toLowerCase().endsWith(".zip")) {
+    if (files.length === 1 && isSceneTextFile(files[0])) {
+      setProject(await importSingleSceneFile(currentProject, files[0]));
+    } else if (files.length === 1 && files[0].name.toLowerCase().endsWith(".zip")) {
       const file = files[0];
       const entries = await extractZipEntries(new Uint8Array(await file.arrayBuffer()));
       const projectJson = entries.find((entry) => entry.name === "project.json" || entry.name.endsWith("/project.json"));
@@ -463,6 +465,50 @@ async function importChoiceForgeProject(files: File[], setProject: (project: Cho
   }
 }
 
+function isSceneTextFile(file: File): boolean {
+  if (!file.name.toLowerCase().endsWith(".txt")) return false;
+  const name = file.name.toLowerCase();
+  return name !== "startup.txt" && name !== "choicescript_stats.txt";
+}
+
+async function importSingleSceneFile(project: ChoiceForgeProject, file: File): Promise<ChoiceForgeProject> {
+  const sceneName = normalizeImportIdentifier(file.name.replace(/\.txt$/i, ""));
+  const graph = importChoiceScriptSceneText(sceneName, await file.text(), project.sceneData?.[sceneName]);
+  const existingScene = project.scenes.find((scene) => scene.name === sceneName && !scene.isStart && !scene.special);
+  const sceneSummary = existingScene ?? { id: nextImportedSceneId(sceneName, project), name: sceneName, words: 0, nodes: graph.nodes.length };
+  const scenes = existingScene
+    ? project.scenes.map((scene) => (scene.id === existingScene.id ? { ...sceneSummary, current: true } : { ...scene, current: false }))
+    : [
+      ...project.scenes.filter((scene) => !scene.special).map((scene) => ({ ...scene, current: false })),
+      { ...sceneSummary, current: true },
+      ...project.scenes.filter((scene) => scene.special).map((scene) => ({ ...scene, current: false })),
+    ];
+
+  return {
+    ...project,
+    sceneTitle: sceneName,
+    sceneSubtitle: `${sceneName}.txt - imported ChoiceScript`,
+    scenes,
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: {
+      ...(project.sceneData ?? {}),
+      [sceneName]: graph,
+    },
+  };
+}
+
+function nextImportedSceneId(sceneName: string, project: ChoiceForgeProject): string {
+  const existing = new Set(project.scenes.map((scene) => scene.id));
+  let id = sceneName;
+  let suffix = 2;
+  while (existing.has(id)) {
+    id = `${sceneName}_${suffix}`;
+    suffix += 1;
+  }
+  return id;
+}
+
 async function selectedImportEntries(files: File[]) {
   return Promise.all(files.map(async (file) => ({
     name: selectedImportPath(file),
@@ -478,6 +524,11 @@ function selectedImportPath(file: File): string {
 function isChoiceForgeProjectJsonPath(path: string): boolean {
   const normalized = path.replace(/\\/g, "/").toLowerCase();
   return normalized === "_choiceforge/project.json" || normalized.endsWith("/_choiceforge/project.json");
+}
+
+function normalizeImportIdentifier(value: string): string {
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+  return normalized.match(/^[a-z_]/) ? normalized : `_${normalized || "scene"}`;
 }
 
 function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {

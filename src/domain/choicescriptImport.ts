@@ -26,9 +26,10 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   const sceneTextFiles = textFiles.filter((entry) => !["startup.txt", "choicescript_stats.txt"].includes(basename(entry.path).toLowerCase()));
   const sceneFileMap = new Map(sceneTextFiles.map((entry) => [normalizeIdentifier(basename(entry.path).replace(/\.txt$/i, "")), decoder.decode(entry.bytes)]));
   const startupSceneText = extractStartupSceneText(startupText);
-  if (startupSceneText.trim() && !sceneFileMap.has("startup")) sceneFileMap.set("startup", startupSceneText);
+  const startupContentScene = startupSceneText.trim() ? startupContentSceneName(startupData.sceneNames, sceneFileMap) : null;
+  if (startupContentScene) sceneFileMap.set(startupContentScene, startupSceneText);
   const sceneNames = unique([
-    ...(startupSceneText.trim() ? ["startup"] : []),
+    ...(startupContentScene ? [startupContentScene] : []),
     ...startupData.sceneNames,
     ...sceneTextFiles.map((entry) => normalizeIdentifier(basename(entry.path).replace(/\.txt$/i, ""))),
   ]);
@@ -94,6 +95,18 @@ function parseStatChartRows(lines: string[]): Array<{ chartType: "percent" | "te
     }
   });
   return rows;
+}
+
+function startupContentSceneName(sceneNames: string[], sceneFileMap: Map<string, string>): string {
+  if (sceneNames.includes("startup") || sceneFileMap.has("startup")) return "startup";
+  const existing = new Set([...sceneNames, ...sceneFileMap.keys()]);
+  let candidate = "startup_prologue";
+  let suffix = 2;
+  while (existing.has(candidate)) {
+    candidate = `startup_prologue_${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
 }
 
 function parseStartup(text: string) {
@@ -196,6 +209,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   const pending: string[] = [];
   const pendingChoices: Array<{ nodeId: string; options: ImportedChoiceOption[] }> = [];
   const pendingIfs: Array<{ nodeId: string; branches: ImportedConditionalBranch[]; rawBlock: string }> = [];
+  const pendingContinuations = new Set<string>();
   const lines = content.split(/\r?\n/);
   let previous: StoryNode | null = null;
 
@@ -209,6 +223,15 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
     };
     if (autoFlow && previous && canAutoFlow(previous)) edges.push({ from: previous.id, to: next.id, kind: "flow" });
     nodes.push(next);
+    if (autoFlow && pendingContinuations.size) {
+      [...pendingContinuations].forEach((sourceId) => {
+        const source = nodes.find((candidate) => candidate.id === sourceId);
+        if (source && canAutoFlow(source) && !edges.some((edge) => edge.kind === "flow" && edge.from === sourceId)) {
+          edges.push({ from: sourceId, to: next.id, kind: "flow" });
+        }
+      });
+      pendingContinuations.clear();
+    }
     previous = next;
     return next;
   };
@@ -240,9 +263,10 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
         const inlineChoice = parseInlineChoiceBlock(block, nodes.length + 1);
         if (inlineChoice) {
           const choiceNode = addNode(inlineChoice.node);
-          const options = inlineChoice.options.map((option): ChoiceOption => ({
+          const inlineTargets = inlineChoice.options.map((option) => addInlineOptionNodes(option, addNode, edges));
+          const options = inlineChoice.options.map((option, optionIndex): ChoiceOption => ({
             text: option.text,
-            to: addInlineOptionNodes(option, addNode, edges),
+            to: inlineTargets[optionIndex].targetId,
             cond: option.cond ?? null,
             reuse: option.reuse,
             hideReuse: option.hideReuse,
@@ -256,6 +280,9 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
               kind: "choice",
               label: `#${optionIndex + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
             });
+          });
+          inlineTargets.forEach((target) => {
+            if (target.continuationId) pendingContinuations.add(target.continuationId);
           });
           previous = choiceNode;
         } else {
@@ -290,12 +317,12 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
         const inlineIf = parseInlineIfBlock(block, nodes.length + 1);
         if (inlineIf) {
           const ifNode = addNode(inlineIf.node);
-          const branches = inlineIf.branches.map((branch) => {
-            const target = addInlineBranchNodes(branch, addNode, edges);
+          const inlineTargets = inlineIf.branches.map((branch) => addInlineBranchNodes(branch, addNode, edges));
+          const branches = inlineIf.branches.map((branch, branchIndex) => {
             return {
               kind: branch.kind,
               expr: branch.expr,
-              to: target,
+              to: inlineTargets[branchIndex].targetId,
               sets: branch.sets.length ? branch.sets : undefined,
             };
           });
@@ -307,6 +334,9 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
               kind: branch.kind,
               label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
             });
+          });
+          inlineTargets.forEach((target) => {
+            if (target.continuationId) pendingContinuations.add(target.continuationId);
           });
           previous = ifNode;
         } else {
@@ -321,6 +351,14 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       const block = collectIndentedBlock(lines, index);
       index += block.length - 1;
       addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
+      continue;
+    }
+
+    if (command === "label" && commandName(lines[index + 1] ?? "") === "params") {
+      flushPassage();
+      const labelNode = simpleCommandNode(command, line, nodes.length + 1);
+      if (labelNode) addNode({ ...labelNode, body: lines[index + 1].trim() });
+      index += 1;
       continue;
     }
 
@@ -453,7 +491,7 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
     return { ...node, title: `*goto_scene ${target}`, target };
   }
   if (node.type === "goto" && name === "goto") return { ...node, title: `*goto ${normalizeIdentifier(commandValue(command, "*goto"))}` };
-  if (node.type === "gosub" && name === "gosub") return { ...node, title: `*gosub ${normalizeIdentifier(commandValue(command, "*gosub"))}` };
+  if (node.type === "gosub" && name === "gosub") return { ...node, title: `*gosub ${normalizeGosubValue(commandValue(command, "*gosub"))}` };
   if (node.type === "return" && name === "return") return { ...node, title: "*return" };
   if (node.type === "ending" && name === "ending") return { ...node, title: "*ending" };
   if (node.type === "finish" && name === "finish") return { ...node, title: "*finish" };
@@ -582,7 +620,7 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   if (command === "label") return { type: "label", title: `*label ${normalizeIdentifier(value || `label_${index}`)}` };
   if (command === "goto") return { type: "goto", title: `*goto ${normalizeIdentifier(value || "label")}` };
   if (command === "goto_scene") return { type: "goto_scene", title: `*goto_scene ${normalizeIdentifier(value || "scene")}`, target: normalizeIdentifier(value || "scene") };
-  if (command === "gosub") return { type: "gosub", title: `*gosub ${normalizeIdentifier(value || "subroutine")}` };
+  if (command === "gosub") return { type: "gosub", title: `*gosub ${normalizeGosubValue(value || "subroutine")}` };
   if (command === "return") return { type: "return", title: "*return" };
   if (command === "ending") return { type: "ending", title: "*ending" };
   if (command === "finish") return { type: "finish", title: "*finish" };
@@ -615,6 +653,11 @@ function parseSet(value: string): VariableSet | null {
     return setValue ? { var: normalizedVariable, op: maybeOp as VariableSet["op"], val: setValue } : null;
   }
   return { var: normalizedVariable, op: "=", val: [maybeOp, ...rest].join(" ").trim() };
+}
+
+function normalizeGosubValue(value: string): string {
+  const [target = "subroutine", ...args] = value.trim().split(/\s+/);
+  return [normalizeIdentifier(target), ...args].join(" ").trim();
 }
 
 function isComplexCommand(command: string): boolean {
@@ -893,7 +936,7 @@ function addInlineBranchNodes(
   branch: InlineConditionalBranch,
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
-): string {
+): { targetId: string; continuationId: string | null } {
   const terminal = extractTerminalCommand(branch.bodyLines);
   const body = terminal ? branch.bodyLines.slice(0, terminal.index) : branch.bodyLines;
   const bodyText = body.join("\n").trim();
@@ -910,18 +953,19 @@ function addInlineBranchNodes(
       const nextNode = addNode(terminalNode, false);
       edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
     }
-    return bodyNode.id;
+    return { targetId: bodyNode.id, continuationId: terminalNode ? null : bodyNode.id };
   }
 
-  if (terminalNode) return addNode(terminalNode, false).id;
-  return addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false).id;
+  if (terminalNode) return { targetId: addNode(terminalNode, false).id, continuationId: null };
+  const emptyNode = addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false);
+  return { targetId: emptyNode.id, continuationId: emptyNode.id };
 }
 
 function addInlineOptionNodes(
   option: InlineChoiceOption,
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
-): string {
+): { targetId: string; continuationId: string | null } {
   const terminal = extractTerminalCommand(option.bodyLines);
   const body = terminal ? option.bodyLines.slice(0, terminal.index) : option.bodyLines;
   const bodyText = body.join("\n").trim();
@@ -938,11 +982,12 @@ function addInlineOptionNodes(
       const nextNode = addNode(terminalNode, false);
       edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
     }
-    return bodyNode.id;
+    return { targetId: bodyNode.id, continuationId: terminalNode ? null : bodyNode.id };
   }
 
-  if (terminalNode) return addNode(terminalNode, false).id;
-  return addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false).id;
+  if (terminalNode) return { targetId: addNode(terminalNode, false).id, continuationId: null };
+  const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
+  return { targetId: emptyNode.id, continuationId: emptyNode.id };
 }
 
 function extractTerminalCommand(lines: string[]): { index: number; line: string } | null {
