@@ -629,8 +629,20 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
       return;
     }
     if (!inStatChart || !trimmed) return;
-    const [, rawVariable = ""] = trimmed.split(/\s+/, 2);
+    if (!/^\s+\S/.test(line)) {
+      inStatChart = false;
+      return;
+    }
+    const [chartType = "", rawVariable = ""] = trimmed.split(/\s+/, 2);
+    if (!["percent", "text", "opposed_pair"].includes(chartType)) {
+      issues.push({ level: "error", msg: `*stat_chart has an invalid row type: ${chartType || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
+      return;
+    }
     const variable = normalizeSourceIdentifier(rawVariable);
+    if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
+      issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
+      return;
+    }
     if (variable && !variables.has(variable)) {
       issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
     }

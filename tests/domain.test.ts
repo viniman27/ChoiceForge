@@ -316,6 +316,9 @@ test("lints preserved startup and stats source by line", () => {
       "*stat_chart",
       "  percent missing Missing",
       "  percent score Score",
+      "  slider score Bad",
+      "  text bad-name Bad",
+      "Plain stats prose.",
     ].join("\n")),
     textEntry("ch1.txt", "Chapter one.\n*ending"),
   ]);
@@ -325,6 +328,9 @@ test("lints preserved startup and stats source by line", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 6 && issue.msg.includes("missing scene")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 2 && issue.msg.includes("undeclared variable: missing")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 4 && issue.msg.includes("invalid row type: slider")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 5 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 6));
 });
 
 test("lints preserved startup scene list against project scenes", () => {
