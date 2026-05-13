@@ -401,10 +401,11 @@ function tabForLintMessage(message: string): string {
 
 function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgeProject) {
   if (id === "startup") {
+    const preserved = project.startupSource !== undefined;
     return {
       title: "startup.txt",
       path: "mygame/startup.txt",
-      description: "Title, author, scene_list, variables, achievements, and exported initial scene.",
+      description: preserved ? "Imported startup source preserved for safe export." : "Title, author, scene_list, variables, achievements, and exported initial scene.",
       content: generateStartupChoiceScript(project),
     };
   }

@@ -138,18 +138,19 @@ test("normalizes imported set variables inside choices and branches", () => {
 });
 
 test("imports ChoiceScript archives with startup metadata", () => {
+  const startupSource = [
+    "*title Imported",
+    "*author Writer",
+    "*scene_list",
+    "  startup",
+    "  chapter_two",
+    "*create courage 50",
+    "*create player_name \"Alex\"",
+    "Opening.",
+    "*finish",
+  ].join("\n");
   const project = importChoiceScriptArchive([
-    textEntry("mygame/startup.txt", [
-      "*title Imported",
-      "*author Writer",
-      "*scene_list",
-      "  startup",
-      "  chapter_two",
-      "*create courage 50",
-      "*create player_name \"Alex\"",
-      "Opening.",
-      "*finish",
-    ].join("\n")),
+    textEntry("mygame/startup.txt", startupSource),
     textEntry("mygame/chapter_two.txt", [
       "The next scene.",
       "*ending",
@@ -171,6 +172,8 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.equal(project.variables[1]?.desc, "Player Name");
   assert.equal(project.variables[1]?.fairmath, false);
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
+  assert.equal(project.startupSource, startupSource);
+  assert.equal(generateStartupChoiceScript(project), `${startupSource}\n`);
 });
 
 test("imports startup body as prologue without duplicating startup scene", () => {
@@ -218,6 +221,26 @@ test("preserves imported scene source for safe export", () => {
   assert.equal(project.sceneData?.ch1.sourceText, source);
   assert.equal(generateSceneChoiceScript(project, "ch1"), source);
   assert.match(createExportPackage(project).files.find((file) => file.path === "mygame/ch1.txt")?.content.toString() ?? "", /\*line_break/);
+});
+
+test("preserves imported startup source in export package", () => {
+  const startupSource = [
+    "*comment original startup heading",
+    "*title Preserve Startup",
+    "*author Writer",
+    "*scene_list",
+    "  ch1",
+    "*create score 0",
+    "*goto_scene ch1",
+  ].join("\n");
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", startupSource),
+    textEntry("ch1.txt", "Chapter one.\n*ending"),
+  ]);
+  const startupFile = createExportPackage(project).files.find((file) => file.path === "mygame/startup.txt");
+
+  assert.equal(project.startupSource, startupSource);
+  assert.equal(startupFile?.content, `${startupSource}\n`);
 });
 
 test("lints preserved source without graph approximation false positives", () => {

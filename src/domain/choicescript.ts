@@ -101,6 +101,7 @@ export function generateSceneChoiceScript(project: ChoiceForgeProject, sceneName
 }
 
 export function generateStartupChoiceScript(project: ChoiceForgeProject): string {
+  if (project.startupSource !== undefined) return `${project.startupSource.replace(/\s+$/g, "")}\n`;
   const lines: string[] = [
     `*title ${project.title}`,
     `*author ${project.author}`,

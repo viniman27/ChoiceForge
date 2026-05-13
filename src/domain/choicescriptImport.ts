@@ -59,6 +59,7 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
     nodes: sceneData[activeScene].nodes,
     edges: sceneData[activeScene].edges,
     sceneData,
+    startupSource: startupText,
     lints: [],
   };
 }
