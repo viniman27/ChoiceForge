@@ -8,10 +8,12 @@ interface GeneratedDocumentViewProps {
   content: string;
   editable?: boolean;
   targetLine?: number | null;
+  sourcePreserved?: boolean;
   onSave?: (content: string) => string | void;
+  onConvertSource?: () => void;
 }
 
-export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, onSave }: GeneratedDocumentViewProps) {
+export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, onSave, onConvertSource }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
   const [saveStatus, setSaveStatus] = useState("");
   const visibleContent = editable ? draft : content;
@@ -43,6 +45,11 @@ export function GeneratedDocumentView({ title, path, description, content, edita
         </div>
         <div className="generated-doc-actions">
           <code>{path}</code>
+          {sourcePreserved && onConvertSource && (
+            <button className="ghost-btn" disabled={dirty} title={dirty ? "Save changes before converting." : "Convert this imported source into visual graph editing."} onClick={onConvertSource}>
+              Convert to visual editing
+            </button>
+          )}
           {editable && (
             <button className="ghost-btn" disabled={!dirty} onClick={saveDraft}>
               {dirty ? "Save to project" : "Saved"}

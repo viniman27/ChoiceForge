@@ -263,6 +263,8 @@ export default function App() {
             {...generatedDocument}
             editable
             targetLine={generatedDocumentLine}
+            sourcePreserved={generatedDocumentId === "scene" && currentSceneSourcePreserved}
+            onConvertSource={confirmVisualConversion}
             onSave={(content) => {
               if (generatedDocumentId === "startup") {
                 actions.replaceStartupText(content);
