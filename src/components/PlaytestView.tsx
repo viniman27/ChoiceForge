@@ -10,6 +10,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
   const [sceneName, setSceneName] = useState(project.sceneTitle);
   const [nodeId, setNodeId] = useState("n1");
   const [stats, setStats] = useState(() => initialStats(project.variables));
+  const [returnStack, setReturnStack] = useState<string[]>([]);
   const graph = getSceneGraph(project, sceneName);
   const node = graph.nodes.find((candidate) => candidate.id === nodeId) ?? graph.nodes[0] ?? null;
 
@@ -17,6 +18,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
     setSceneName(project.sceneTitle);
     setNodeId("n1");
     setStats(initialStats(project.variables));
+    setReturnStack([]);
   }, [project]);
 
   useEffect(() => {
@@ -39,11 +41,26 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
         setNodeId("n1");
       }
     }
-    if (node.type === "goto" || node.type === "gosub") {
+    if (node.type === "goto") {
       const target = graph.edges.find((edge) => edge.from === node.id && edge.kind === "goto")?.to;
       if (target) setNodeId(target);
     }
-  }, [graph.edges, node, project, project.variables, sceneName, stats]);
+    if (node.type === "gosub") {
+      const target = graph.edges.find((edge) => edge.from === node.id && edge.kind === "goto")?.to;
+      const returnTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (target) {
+        if (returnTarget) setReturnStack((current) => [...current, returnTarget]);
+        setNodeId(target);
+      }
+    }
+    if (node.type === "return") {
+      const target = returnStack.at(-1);
+      if (target) {
+        setReturnStack((current) => current.slice(0, -1));
+        setNodeId(target);
+      }
+    }
+  }, [graph.edges, node, project, project.variables, returnStack, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];
   const flowTarget = useMemo(() => (node ? graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to : undefined), [graph.edges, node]);
@@ -56,7 +73,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
           <h1>{sceneName}.txt</h1>
         </div>
         <div className="playtest-actions">
-          <button className="ghost-btn" onClick={() => { setSceneName(project.sceneTitle); setNodeId("n1"); setStats(initialStats(project.variables)); }}>Restart</button>
+          <button className="ghost-btn" onClick={() => { setSceneName(project.sceneTitle); setNodeId("n1"); setStats(initialStats(project.variables)); setReturnStack([]); }}>Restart</button>
           <button className="ghost-btn" onClick={onClose}>Close</button>
         </div>
       </header>
