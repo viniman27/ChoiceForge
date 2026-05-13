@@ -465,6 +465,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "temp") {
       lintPreservedTempLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
     }
+    if (command === "params") {
+      lintPreservedParamsLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
+    }
     if (command === "input_text" || command === "input_number" || command === "rand") {
       const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
       if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
@@ -506,6 +509,33 @@ function lintPreservedTempLine(
   }
   localVariables.set(normalizedName, lineNumber);
   variables.add(normalizedName);
+}
+
+function lintPreservedParamsLine(
+  variables: Set<string>,
+  localVariables: Map<string, number>,
+  line: string,
+  sceneName: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const params = sourceCommandValue(line, "*params").split(/\s+/).filter(Boolean);
+  if (!params.length) {
+    issues.push({ level: "error", msg: "*params needs at least one parameter", scene: sceneName, line: lineNumber });
+    return;
+  }
+  params.forEach((rawName) => {
+    const normalizedName = normalizeSourceIdentifier(rawName);
+    if (!isValidChoiceScriptIdentifier(rawName)) {
+      issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${rawName}`, scene: sceneName, line: lineNumber });
+      return;
+    }
+    if (localVariables.has(normalizedName)) {
+      issues.push({ level: "warning", msg: `*params repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
+    }
+    localVariables.set(normalizedName, lineNumber);
+    variables.add(normalizedName);
+  });
 }
 
 function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
