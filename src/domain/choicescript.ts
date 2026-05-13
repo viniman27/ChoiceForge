@@ -346,9 +346,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
 
-    extractAchievementCommands(node.body ?? "").forEach((id) => {
-      if (!achievements.has(id)) issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, scene: sceneName, node: node.id });
-    });
+    lintAchievementCommands(node.body ?? "", achievements, issues, sceneName, node.id);
 
     if (node.type === "choice") lintChoiceNode(node, nodeIds, variables, variableTypes, issues, sceneName);
     if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName);
@@ -663,6 +661,22 @@ function lintInputNode(
   }
 }
 
+function lintAchievementCommands(text: string, achievements: Set<string>, issues: LintIssue[], scene: string, node: string) {
+  extractAchievementCommandTargets(text).forEach((id) => {
+    if (!id) {
+      issues.push({ level: "error", msg: "*achieve needs an achievement id", scene, node });
+      return;
+    }
+    if (!isValidChoiceScriptIdentifier(id)) {
+      issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${id}`, scene, node });
+      return;
+    }
+    if (!achievements.has(id)) {
+      issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, scene, node });
+    }
+  });
+}
+
 function lintExpression(expression: string | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!expression) return;
   extractExpressionNames(expression).forEach((name) => {
@@ -674,8 +688,8 @@ function extractVariableReferences(text: string): string[] {
   return [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((match) => match[1]);
 }
 
-function extractAchievementCommands(text: string): string[] {
-  return [...text.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
+function extractAchievementCommandTargets(text: string): string[] {
+  return [...text.matchAll(/^\s*\*achieve(?:\s+(.+?))?\s*$/gim)].map((match) => match[1]?.trim() ?? "");
 }
 
 function extractExpressionNames(expression: string): string[] {

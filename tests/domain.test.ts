@@ -442,6 +442,34 @@ test("lints invalid ChoiceScript identifiers", () => {
   assert.ok(errors.some((message) => message.includes("*label has an invalid identifier")));
 });
 
+test("lints malformed achievement commands in node text", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "empty", body: "*achieve" },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "invalid", body: "*achieve Bad Id" },
+      { id: "n3", type: "passage", x: 0, y: 320, w: 300, title: "missing", body: "*achieve missing_id" },
+      { id: "n4", type: "finish", x: 0, y: 480, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+      { from: "n3", to: "n4", kind: "flow" },
+    ],
+  };
+  const project = {
+    ...minimalProject(),
+    achievements: [{ id: "known_id", title: "Known", points: 5, desc: "Known", preDesc: "Before", postDesc: "After" }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*achieve needs an achievement id")));
+  assert.ok(errors.some((message) => message.includes("*achieve has an invalid achievement identifier")));
+  assert.ok(errors.some((message) => message.includes("*achieve uses an undeclared achievement")));
+});
+
 test("lints variable initial values that do not match their type", () => {
   const project = {
     ...minimalProject(),
