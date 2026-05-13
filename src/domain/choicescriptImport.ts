@@ -597,11 +597,12 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
 function parseSet(value: string): VariableSet | null {
   const [variable, maybeOp, ...rest] = value.trim().split(/\s+/);
   if (!variable || !maybeOp) return null;
+  const normalizedVariable = normalizeIdentifier(variable);
   if (["=", "+", "-", "%+", "%-"].includes(maybeOp)) {
     const setValue = rest.join(" ").trim();
-    return setValue ? { var: variable, op: maybeOp as VariableSet["op"], val: setValue } : null;
+    return setValue ? { var: normalizedVariable, op: maybeOp as VariableSet["op"], val: setValue } : null;
   }
-  return { var: variable, op: "=", val: [maybeOp, ...rest].join(" ").trim() };
+  return { var: normalizedVariable, op: "=", val: [maybeOp, ...rest].join(" ").trim() };
 }
 
 function isComplexCommand(command: string): boolean {

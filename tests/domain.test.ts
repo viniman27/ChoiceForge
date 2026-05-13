@@ -46,14 +46,14 @@ test("imports inline if branch bodies as branch targets", () => {
 
 test("imports top-level set commands as set nodes", () => {
   const graph = importChoiceScriptSceneText("startup", [
-    "*set courage + 5",
+    "*set Player-Score + 5",
     "*finish",
   ].join("\n"));
   const setNode = graph.nodes.find((node) => node.type === "set");
 
   assert.ok(setNode);
-  assert.equal(setNode.title, "*set courage");
-  assert.deepEqual(setNode.sets, [{ var: "courage", op: "+", val: "5" }]);
+  assert.equal(setNode.title, "*set player_score");
+  assert.deepEqual(setNode.sets, [{ var: "player_score", op: "+", val: "5" }]);
   assert.equal(graph.edges.find((edge) => edge.from === setNode.id)?.kind, "flow");
 });
 
