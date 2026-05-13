@@ -210,7 +210,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             <strong>Imported source preserved</strong>
             <span>The canvas is a preview. Export uses the original .txt until you convert this scene to visual editing.</span>
           </div>
-          <button className="ghost-btn" onClick={onConvertSource}>Convert to visual</button>
+          <button className="ghost-btn" onClick={onConvertSource}>Convert to visual editing</button>
         </div>
       )}
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>

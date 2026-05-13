@@ -126,7 +126,15 @@ export default function App() {
       setGeneratedDocumentId(null);
       setGeneratedDocumentLine(null);
       setPlayOpen(false);
-      setPan(centerPanForNode(node, zoom, layout, consoleOpen));
+    setPan(centerPanForNode(node, zoom, layout, consoleOpen));
+  };
+  const confirmVisualConversion = () => {
+    const confirmed = window.confirm(
+      "Convert this imported scene to visual editing?\n\nExport will stop using the preserved .txt source and will use the current visual graph instead. The preserved source remains in undo history, but this conversion can lose ChoiceScript constructs the visual importer does not fully model.",
+    );
+    if (!confirmed) return;
+    actions.convertCurrentSceneToVisual();
+    setSelectedId(null);
   };
 
   return (
@@ -295,7 +303,7 @@ export default function App() {
             setSelectedId(null);
           }}
           sourcePreserved={currentSceneSourcePreserved}
-          onConvertSource={actions.convertCurrentSceneToVisual}
+          onConvertSource={confirmVisualConversion}
         />
       )}
       <button
@@ -312,7 +320,7 @@ export default function App() {
         project={lintedProject}
         labels={i18n[lang]}
         sourcePreserved={currentSceneSourcePreserved}
-        onConvertSource={actions.convertCurrentSceneToVisual}
+        onConvertSource={confirmVisualConversion}
         onUpdateNode={currentSceneSourcePreserved ? noopUpdateNode : actions.updateNode}
         onAddFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.addFlowEdge}
         onDeleteFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.deleteFlowEdge}
