@@ -455,21 +455,27 @@ function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeP
 async function extractZipEntries(bytes: Uint8Array) {
   const decoder = new TextDecoder();
   const entries: { name: string; bytes: Uint8Array }[] = [];
-  let offset = 0;
+  const directoryOffset = findCentralDirectoryOffset(bytes);
+  let offset = directoryOffset;
 
-  while (offset + 30 <= bytes.length) {
-    if (readU32(bytes, offset) !== 0x04034b50) break;
-    const flags = readU16(bytes, offset + 6);
-    const method = readU16(bytes, offset + 8);
-    const compressedSize = readU32(bytes, offset + 18);
-    const fileNameLength = readU16(bytes, offset + 26);
-    const extraLength = readU16(bytes, offset + 28);
-    const nameStart = offset + 30;
-    const contentStart = nameStart + fileNameLength + extraLength;
+  while (offset + 46 <= bytes.length && readU32(bytes, offset) === 0x02014b50) {
+    const flags = readU16(bytes, offset + 8);
+    const method = readU16(bytes, offset + 10);
+    const compressedSize = readU32(bytes, offset + 20);
+    const fileNameLength = readU16(bytes, offset + 28);
+    const extraLength = readU16(bytes, offset + 30);
+    const commentLength = readU16(bytes, offset + 32);
+    const localHeaderOffset = readU32(bytes, offset + 42);
+    const nameStart = offset + 46;
+    const nameEnd = nameStart + fileNameLength;
+    const name = decoder.decode(bytes.slice(nameStart, nameEnd));
+
+    if ((flags & 0x01) !== 0) throw new Error("unsupported encrypted zip");
+    if (readU32(bytes, localHeaderOffset) !== 0x04034b50) throw new Error("invalid zip local header");
+    const localNameLength = readU16(bytes, localHeaderOffset + 26);
+    const localExtraLength = readU16(bytes, localHeaderOffset + 28);
+    const contentStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
     const contentEnd = contentStart + compressedSize;
-    const name = decoder.decode(bytes.slice(nameStart, nameStart + fileNameLength));
-
-    if ((flags & 0x08) !== 0) throw new Error("unsupported streamed zip");
     if (contentEnd > bytes.length) throw new Error("invalid zip entry");
     const content = bytes.slice(contentStart, contentEnd);
     if (!name.endsWith("/")) {
@@ -478,10 +484,17 @@ async function extractZipEntries(bytes: Uint8Array) {
       else throw new Error("unsupported compressed zip");
     }
 
-    offset = contentEnd;
+    offset = nameEnd + extraLength + commentLength;
   }
 
   return entries;
+}
+
+function findCentralDirectoryOffset(bytes: Uint8Array): number {
+  for (let offset = bytes.length - 22; offset >= 0; offset -= 1) {
+    if (readU32(bytes, offset) === 0x06054b50) return readU32(bytes, offset + 16);
+  }
+  throw new Error("zip central directory not found");
 }
 
 async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
