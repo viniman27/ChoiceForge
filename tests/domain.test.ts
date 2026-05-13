@@ -240,6 +240,25 @@ test("normalizes imported goto_scene targets with scene names", () => {
   assert.ok(!lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*goto_scene points to a missing scene")));
 });
 
+test("normalizes imported gosub targets with label names", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*gosub Sub-Routine",
+    "*finish",
+    "*label Sub-Routine",
+    "*return",
+  ].join("\n"));
+  const gosub = graph.nodes.find((node) => node.type === "gosub");
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+
+  assert.equal(gosub?.title, "*gosub sub_routine");
+  assert.ok(!lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub")));
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [

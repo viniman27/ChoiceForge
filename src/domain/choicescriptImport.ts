@@ -572,7 +572,7 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   if (command === "label") return { type: "label", title: `*label ${normalizeIdentifier(value || `label_${index}`)}` };
   if (command === "goto") return { type: "goto", title: `*goto ${normalizeIdentifier(value || "label")}` };
   if (command === "goto_scene") return { type: "goto_scene", title: `*goto_scene ${normalizeIdentifier(value || "scene")}`, target: normalizeIdentifier(value || "scene") };
-  if (command === "gosub") return { type: "gosub", title: `*gosub ${value || "subroutine"}` };
+  if (command === "gosub") return { type: "gosub", title: `*gosub ${normalizeIdentifier(value || "subroutine")}` };
   if (command === "ending") return { type: "ending", title: "*ending" };
   if (command === "finish") return { type: "finish", title: "*finish" };
   if (command === "save_checkpoint") return { type: "checkpoint", title: `*save_checkpoint ${normalizeIdentifier(value || `checkpoint_${index}`)}` };
