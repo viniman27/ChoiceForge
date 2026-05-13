@@ -613,6 +613,14 @@ function lintSet(
   scene: string,
   node: string,
 ) {
+  if (!set.var.trim()) {
+    issues.push({ level: "error", msg: "*set needs a variable target", scene, node });
+    return;
+  }
+  if (!isValidChoiceScriptIdentifier(set.var)) {
+    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${set.var}`, scene, node });
+    return;
+  }
   const variable = variableTypes.get(set.var);
   if (!variables.has(set.var) || !variable) {
     issues.push({ level: "error", msg: `*set uses an undeclared variable: ${set.var}`, scene, node });

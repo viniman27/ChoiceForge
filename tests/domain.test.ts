@@ -489,6 +489,30 @@ test("lints malformed achievement commands in node text", () => {
   assert.ok(errors.some((message) => message.includes("*achieve uses an undeclared achievement")));
 });
 
+test("lints empty and invalid set targets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set empty", sets: [{ var: "", op: "=", val: "1" }] },
+      { id: "n2", type: "set", x: 0, y: 160, w: 240, title: "*set invalid", sets: [{ var: "Bad Score", op: "=", val: "1" }] },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+    ],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*set needs a variable target")));
+  assert.ok(errors.some((message) => message.includes("*set has an invalid variable identifier")));
+});
+
 test("lints variable initial values that do not match their type", () => {
   const project = {
     ...minimalProject(),
