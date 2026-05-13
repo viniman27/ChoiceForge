@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CodeEditor } from "./CodeEditor";
 
 interface GeneratedDocumentViewProps {
   title: string;
@@ -54,18 +55,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           {lines.map((_, index) => <span key={index}>{index + 1}</span>)}
         </div>
         {editable ? (
-          <textarea
-            className="generated-doc-editor"
-            value={draft}
-            spellCheck={false}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "s") return;
-              event.preventDefault();
-              event.stopPropagation();
-              saveDraft();
-            }}
-          />
+          <CodeEditor value={draft} onChange={setDraft} onSave={saveDraft} />
         ) : (
           <pre><code>{lines.join("\n")}</code></pre>
         )}

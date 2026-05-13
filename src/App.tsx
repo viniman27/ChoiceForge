@@ -1,8 +1,7 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useState, type CSSProperties } from "react";
 import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
-import { GeneratedDocumentView } from "./components/GeneratedDocumentView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
 import { PlaytestView } from "./components/PlaytestView";
@@ -13,6 +12,8 @@ import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceSc
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
+
+const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
 
 type GeneratedDocumentId = "startup" | "stats" | "scene";
 type ResizeTarget = "left" | "right";
@@ -236,25 +237,27 @@ export default function App() {
       {playOpen ? (
         <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} />
       ) : generatedDocument ? (
-        <GeneratedDocumentView
-          {...generatedDocument}
-          editable
-          onSave={(content) => {
-            if (generatedDocumentId === "startup") {
-              actions.replaceStartupText(content);
-              return "startup.txt applied to project metadata.";
-            }
-            if (generatedDocumentId === "stats") {
-              actions.replaceStatsText(content);
-              return "choicescript_stats.txt applied to stat settings.";
-            }
-            if (generatedDocumentId === "scene") {
-              actions.replaceCurrentSceneText(content);
-              setSelectedId("n1");
-              return `${lintedProject.sceneTitle}.txt parsed into the board.`;
-            }
-          }}
-        />
+        <Suspense fallback={<section className="generated-doc generated-doc-loading">Loading editor...</section>}>
+          <GeneratedDocumentView
+            {...generatedDocument}
+            editable
+            onSave={(content) => {
+              if (generatedDocumentId === "startup") {
+                actions.replaceStartupText(content);
+                return "startup.txt applied to project metadata.";
+              }
+              if (generatedDocumentId === "stats") {
+                actions.replaceStatsText(content);
+                return "choicescript_stats.txt applied to stat settings.";
+              }
+              if (generatedDocumentId === "scene") {
+                actions.replaceCurrentSceneText(content);
+                setSelectedId("n1");
+                return `${lintedProject.sceneTitle}.txt parsed into the board.`;
+              }
+            }}
+          />
+        </Suspense>
       ) : (
         <GraphCanvas
           data={lintedProject}
