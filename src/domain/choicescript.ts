@@ -315,6 +315,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
+  const hasGosub = graph.nodes.some((node) => node.type === "gosub");
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
 
@@ -384,6 +385,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!labels.has(label)) {
         issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
       }
+    }
+
+    if (node.type === "return" && !hasGosub) {
+      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub nodes", scene: sceneName, node: node.id });
     }
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {

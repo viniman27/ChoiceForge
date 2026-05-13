@@ -279,6 +279,24 @@ test("imports and exports return command nodes", () => {
   assert.ok(!graph.edges.some((edge) => edge.from === returnNode.id && edge.kind === "flow"));
 });
 
+test("warns about return nodes without gosub nodes", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "return", x: 0, y: 0, w: 240, title: "*return" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("no *gosub nodes")));
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [
