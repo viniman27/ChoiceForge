@@ -429,6 +429,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const variables = new Set(project.variables.map((variable) => variable.name));
+  const localVariables = new Map<string, number>();
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const labels = new Set<string>();
   const referencedLabels: Array<{ label: string; line: number }> = [];
@@ -461,6 +462,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
       if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
     }
+    if (command === "temp") {
+      lintPreservedTempLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
+    }
     if (command === "input_text" || command === "input_number" || command === "rand") {
       const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
       if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
@@ -477,6 +481,31 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
   });
+}
+
+function lintPreservedTempLine(
+  variables: Set<string>,
+  localVariables: Map<string, number>,
+  line: string,
+  sceneName: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const [, rawName = "", ...rest] = line.split(/\s+/);
+  const normalizedName = normalizeSourceIdentifier(rawName);
+
+  if (!rawName || !isValidChoiceScriptIdentifier(rawName)) {
+    issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${rawName || "(empty)"}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (!rest.join(" ").trim()) {
+    issues.push({ level: "error", msg: `*temp has an empty initial value: ${normalizedName}`, scene: sceneName, line: lineNumber });
+  }
+  if (localVariables.has(normalizedName)) {
+    issues.push({ level: "warning", msg: `*temp repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
+  }
+  localVariables.set(normalizedName, lineNumber);
+  variables.add(normalizedName);
 }
 
 function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
