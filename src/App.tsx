@@ -30,7 +30,7 @@ export default function App() {
   const [lang, setLang] = useState<Language>("en");
   const [theme, setTheme] = useState<Theme>("light");
   const [density, setDensity] = useState<Density>("rich");
-  const [selectedId, setSelectedId] = useState<string | null>("n3");
+  const [selectedId, setSelectedId] = useState<string | null>("n1");
   const [activeTab, setActiveTab] = useState("scenes");
   const [pan, setPan] = useState({ x: 20, y: 20 });
   const [zoom, setZoom] = useState(0.85);
@@ -177,7 +177,7 @@ export default function App() {
           setSaveStatus(formatSaveStatus(lang));
           setGeneratedDocumentId(null);
           setPlayOpen(false);
-          setSelectedId("n3");
+          setSelectedId("n1");
         }}
       />
       <LeftPanel
