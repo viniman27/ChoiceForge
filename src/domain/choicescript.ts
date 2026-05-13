@@ -246,7 +246,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   lintProjectMetadata(project, issues);
   if (project.startupSource !== undefined) {
-    lintPreservedScriptSource(project, project.startupSource, "startup", "startup exports preserved ChoiceScript source", issues);
+    lintPreservedStartupSource(project, project.startupSource, issues);
   }
   if (project.statsSource !== undefined) {
     lintPreservedStatsSource(project, project.statsSource, issues);
@@ -473,6 +473,59 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
 
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
+  });
+}
+
+function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
+  lintPreservedScriptSource(project, sourceText, "startup", "startup exports preserved ChoiceScript source", issues);
+
+  const playableScenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
+  const listedScenes = new Map<string, number>();
+  let foundSceneList = false;
+  let inSceneList = false;
+
+  sourceText.split(/\r?\n/).forEach((line, index) => {
+    const lineNumber = index + 1;
+    const trimmed = line.trim();
+    const command = sourceCommand(trimmed);
+    if (command === "scene_list") {
+      foundSceneList = true;
+      inSceneList = true;
+      return;
+    }
+    if (!inSceneList) return;
+    if (!trimmed) return;
+    if (trimmed.startsWith("*")) {
+      inSceneList = false;
+      return;
+    }
+    if (!/^\s+\S/.test(line)) {
+      inSceneList = false;
+      return;
+    }
+
+    const rawSceneName = trimmed.split(/\s+/)[0] ?? "";
+    const sceneName = normalizeSourceIdentifier(rawSceneName);
+    if (!rawSceneName || !isValidChoiceScriptIdentifier(rawSceneName)) {
+      issues.push({ level: "error", msg: `*scene_list has an invalid scene identifier: ${rawSceneName || "(empty)"}`, scene: "startup", line: lineNumber });
+      return;
+    }
+    if (listedScenes.has(sceneName)) {
+      issues.push({ level: "warning", msg: `*scene_list repeats scene: ${sceneName}`, scene: "startup", line: lineNumber });
+    }
+    listedScenes.set(sceneName, lineNumber);
+    if (!playableScenes.has(sceneName)) {
+      issues.push({ level: "error", msg: `*scene_list points to a missing scene: ${sceneName}`, scene: "startup", line: lineNumber });
+    }
+  });
+
+  if (!foundSceneList) {
+    issues.push({ level: "error", msg: "startup.txt needs a *scene_list", scene: "startup", line: 1 });
+  }
+  playableScenes.forEach((sceneName) => {
+    if (!listedScenes.has(sceneName)) {
+      issues.push({ level: "warning", msg: `*scene_list omits project scene: ${sceneName}`, scene: "startup", line: 1 });
+    }
   });
 }
 

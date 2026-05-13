@@ -320,6 +320,24 @@ test("lints preserved startup and stats source by line", () => {
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 2 && issue.msg.includes("undeclared variable: missing")));
 });
 
+test("lints preserved startup scene list against project scenes", () => {
+  const project = {
+    ...minimalProject(),
+    startupSource: [
+      "*title Scene List",
+      "*author Writer",
+      "*scene_list",
+      "  missing_scene",
+      "  invalid-scene",
+    ].join("\n"),
+  };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 4 && issue.msg.includes("missing scene: missing_scene")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 5 && issue.msg.includes("invalid scene identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 1 && issue.msg.includes("omits project scene: intro")));
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",
