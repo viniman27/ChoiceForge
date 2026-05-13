@@ -15,7 +15,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ### Done
 - Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
-- Real-time linter (`lintProject`) runs across every playable scene and covers orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, invalid `*goto_scene` targets, input bounds, and invalid stat operators
+- Real-time linter (`lintProject`) runs across every playable scene and covers orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, invalid `*goto_scene` targets, input bounds, invalid stat operators, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
 - Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
 - Per-scene graph persistence via `sceneData` — each scene has independent nodes/edges
 - Scene CRUD: create, rename (with cross-reference updates), duplicate, delete, reorder
@@ -24,11 +24,11 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Asset CRUD with real file import stored as `dataUrl` and exported as binary package entries
 - Auto-layout (hierarchical by topological depth)
 - Export package: generates `_choiceforge/project.json`, `startup.txt`, `choicescript_stats.txt`, per-scene `.txt` files, and imported asset files inside a `.zip`
-- Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`
+- Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`, using CodeMirror for the full-file ChoiceScript editor
 - Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and common inline `*choice` / `*if` branch bodies
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
-- Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, and assets
+- Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, assets, and preserved imported source; source matches can open the text editor at the matched line
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
 - Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
@@ -37,7 +37,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 
 ### Not Yet Implemented
 - Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
-- Inline text editor with syntax highlighting (CodeMirror/Monaco — not yet integrated)
+- Inline node-body editor with syntax highlighting/autocomplete. The full-file editor uses CodeMirror, but individual node body fields still use plain controls.
 - Play-test with the official ChoiceScript runtime
 - Git integration, version history, snapshots
 - Desktop packaging (Tauri/Electron)
@@ -57,7 +57,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 
 **Node version:** ≥ 24.15.0 (see `.nvmrc`)
 
-There is no React Flow, Zustand, Redux, or CodeMirror yet — the canvas is custom-built.
+There is no React Flow, Zustand, or Redux. The canvas is custom-built. CodeMirror is used for the full-file generated/source editor, not for every node inspector field.
 
 ---
 
@@ -223,7 +223,7 @@ In rough order of value:
 
 1. **Import/parser hardening** — current import handles common/simple structures, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and inline branch bodies for `*choice` and `*if`, but is still not a full AST or full roundtrip parser.
 2. **Automated test coverage** — a minimal domain/import/generator suite exists; broaden it before broad parser work.
-3. **CodeMirror inline editor in RightPanel** — the `body` field is currently a plain `<textarea>`. Syntax highlighting and autocomplete are the core editing experience.
+3. **CodeMirror inline editor in RightPanel** — full-file editing uses CodeMirror, but node-level fields are still plain controls. Syntax highlighting and autocomplete inside node inspectors remain important.
 4. **Official ChoiceScript play-test integration** — embed or package the official runtime using exported files.
 5. **More complete ChoiceScript commands** — more expression helpers, subroutine ergonomics.
 
@@ -274,11 +274,12 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 
 | Area | Status |
 |------|--------|
-| Generated file editor | Editable and applies changes back to project, but still a plain textarea without ChoiceScript syntax highlighting |
+| Generated file editor | Editable, CodeMirror-backed, line-highlightable, and applies changes back to project |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
 | Import parser | Handles common/simple ChoiceScript commands, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
+| Preserved source linting | Implemented for imported scenes, startup, stats, scene lists, global declarations, stat charts, conditions, `*temp`, and `*params`; still not a complete ChoiceScript semantic validator |
 | Tests | Minimal domain/import/generator coverage exists via Node's built-in test runner; no UI/browser test coverage yet |
-| Global search | Implemented for scenes, nodes, variables, achievements, and assets |
+| Global search | Implemented for scenes, nodes, variables, achievements, assets, and preserved source text |
 | Lint console | Expandable and navigable; issue text is still not localized |
 | Git/version history | Not implemented beyond browser undo history |
 
@@ -312,7 +313,7 @@ The original design document (`prompt_editor_visual_choicescript (1).md`) descri
 |-----------|---------|
 | Tauri desktop app (Windows/macOS/Linux) | Browser-only web app on Cloudflare Pages |
 | React Flow or Rete.js for canvas | Custom canvas, no graph library |
-| CodeMirror 6 / Monaco in node editor | Plain `<textarea>` in RightPanel |
+| CodeMirror 6 / Monaco in node editor | CodeMirror is integrated for full-file source editing; node inspector fields remain plain controls |
 | Zustand or Redux Toolkit | React `useState` + `useMemo` only |
 | Vitest + Playwright tests, 70% coverage | Minimal Node test runner coverage only; no Vitest/Playwright suite |
 | Parser (import `.txt` → graph) | Partially implemented pragmatic importer, not full AST |
