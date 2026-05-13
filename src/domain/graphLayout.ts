@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, SceneGraph, StoryNode } from "./types";
+import type { ChoiceForgeProject, SceneGraph, StoryEdge, StoryNode } from "./types";
 
 export function layoutSceneGraph(graph: SceneGraph): SceneGraph {
   const nodes = layoutStoryNodes(graph.nodes, graph.edges);
@@ -35,7 +35,7 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
 
-  edges.forEach((edge) => {
+  layoutEdges(nodes, edges).forEach((edge) => {
     if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return;
     outgoing.get(edge.from)?.push(edge.to);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
@@ -87,6 +87,65 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
   });
 
   return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
+}
+
+function layoutEdges(nodes: StoryNode[], edges: StoryEdge[]): StoryEdge[] {
+  const seen = new Set<string>();
+  return [...edges, ...deriveNodeEdges(nodes)].filter((edge) => {
+    const key = `${edge.from}:${edge.to}:${edge.kind}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const labels = new Map(
+    nodes
+      .filter((node) => node.type === "label")
+      .map((node) => [stripCommandPrefix(node.title, "*label"), node.id]),
+  );
+
+  return nodes.flatMap((node): StoryEdge[] => {
+    if (node.type === "choice") {
+      return (node.options ?? [])
+        .filter((option) => nodeIds.has(option.to))
+        .map((option, index) => ({
+          from: node.id,
+          to: option.to,
+          kind: "choice",
+          label: `#${index + 1}${option.cond ? ` *${option.cond.type}` : ""}`,
+        }));
+    }
+
+    if (node.type === "if") {
+      return (node.branches ?? [])
+        .filter((branch) => nodeIds.has(branch.to))
+        .map((branch) => ({
+          from: node.id,
+          to: branch.to,
+          kind: branch.kind,
+          label: branch.kind === "else" ? "*else" : `*${branch.kind}`,
+        }));
+    }
+
+    if (node.type === "goto") {
+      const target = labels.get(stripCommandPrefix(node.title, "*goto"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*goto" }] : [];
+    }
+
+    if (node.type === "gosub") {
+      const target = labels.get(stripCommandPrefix(node.title, "*gosub"));
+      return target ? [{ from: node.id, to: target, kind: "goto", label: "*gosub" }] : [];
+    }
+
+    return [];
+  });
+}
+
+function stripCommandPrefix(value: string, command: string): string {
+  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
 }
 
 function estimateLayoutNodeHeight(node: StoryNode): number {

@@ -380,6 +380,7 @@ test("layouts project graphs for starter and imported projects", () => {
 
   assert.deepEqual(pickPosition(laidOut.nodes.find((node) => node.id === "n1")), { x: 70, y: 70 });
   assert.ok((laidOut.nodes.find((node) => node.id === "n2")?.x ?? 0) > 70);
+  assert.ok((laidOut.nodes.find((node) => node.id === "n3")?.x ?? 0) > (laidOut.nodes.find((node) => node.id === "n2")?.x ?? 0));
   assert.deepEqual(laidOut.sceneData?.intro.nodes.map(pickPosition), laidOut.nodes.map(pickPosition));
 });
 
