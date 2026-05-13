@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { sampleProjects } from "../src/data/sampleProject.ts";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph } from "../src/domain/types.ts";
@@ -350,6 +351,13 @@ test("generates lint-clean ChoiceScript for a minimal project", () => {
   assert.match(generateStartupChoiceScript(project), /\*scene_list\n  intro/);
   assert.match(generateSceneChoiceScript(project), /\*goto cf_n2/);
   assert.equal(lintProject(project).filter((issue) => issue.level === "error").length, 0);
+});
+
+test("keeps bundled sample projects lint-clean", () => {
+  Object.values(sampleProjects).forEach((project) => {
+    const errors = lintProject(project).filter((issue) => issue.level === "error");
+    assert.deepEqual(errors, []);
+  });
 });
 
 test("does not lint words inside quoted condition strings as variables", () => {
