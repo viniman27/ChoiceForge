@@ -163,6 +163,7 @@ export default function App() {
           setPlayOpen(false);
           setGeneratedDocumentId(null);
           setSelectedId("n1");
+          resetViewport(setPan, setZoom);
         }, lang)}
         onExport={() => {
           if (!confirmExportWithLintErrors(lintedProject, lang)) return;
@@ -178,6 +179,7 @@ export default function App() {
           setGeneratedDocumentId(null);
           setPlayOpen(false);
           setSelectedId("n1");
+          resetViewport(setPan, setZoom);
         }}
       />
       <LeftPanel
@@ -360,6 +362,11 @@ function centerPanForNode(node: StoryNode, zoom: number, layout: { left: number;
     x: Math.round(canvasWidth / 2 - (node.x + node.w / 2) * zoom),
     y: Math.round(canvasHeight / 2 - (node.y + 110) * zoom),
   };
+}
+
+function resetViewport(setPan: (pan: { x: number; y: number }) => void, setZoom: (zoom: number) => void) {
+  setPan({ x: 20, y: 20 });
+  setZoom(0.85);
 }
 
 function tabForLintMessage(message: string): string {
