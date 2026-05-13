@@ -992,8 +992,9 @@ function sourceCommandValue(line: string, command: string): string {
 
 function sourceConditionExpression(line: string, command: string): string {
   const value = sourceCommandValue(line, `*${command}`).trim();
-  const parenthesized = value.match(/^\((.*)\)$/)?.[1];
-  return parenthesized ?? value;
+  const parenthesized = value.match(/^\((.*?)\)(?:\s+#.*)?$/)?.[1];
+  if (parenthesized !== undefined) return parenthesized;
+  return value.replace(/\s+#.*$/, "");
 }
 
 function normalizeSourceExpressionIdentifiers(expression: string): string {

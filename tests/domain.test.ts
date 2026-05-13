@@ -287,6 +287,8 @@ test("lints preserved source without graph approximation false positives", () =>
       "*goto_scene missing_scene",
       "*if missing_condition",
       "  *finish",
+      "*selectable_if (missing_choice) #Locked Door",
+      "  *finish",
     ].join("\n")),
   ]);
   const issues = lintProject(project);
@@ -295,6 +297,8 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 5 && issue.msg.includes("undeclared variable: missing")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 6 && issue.msg.includes("missing scene")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 7 && issue.msg.includes("undeclared variable: missing_condition")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("undeclared variable: missing_choice")));
+  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.node && issue.msg.includes("incoming connection")));
 });
 
