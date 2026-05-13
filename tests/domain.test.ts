@@ -409,6 +409,43 @@ test("lints empty choice conditions", () => {
   assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*selectable_if condition is empty")));
 });
 
+test("warns about choice and if branches that loop to themselves", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "choice",
+        x: 0,
+        y: 0,
+        w: 340,
+        title: "choice",
+        prompt: "Choose.",
+        options: [{ text: "Again", to: "n1", cond: null }],
+      },
+      {
+        id: "n2",
+        type: "if",
+        x: 0,
+        y: 160,
+        w: 300,
+        title: "condition",
+        branches: [{ kind: "if", expr: "true", to: "n2" }],
+      },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("loops back to its own *choice")));
+  assert.ok(warnings.some((message) => message.includes("loops back to its own *if")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),

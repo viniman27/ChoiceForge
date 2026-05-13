@@ -405,6 +405,7 @@ function lintChoiceNode(
   node.options?.forEach((option, index) => {
     if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
     if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
+    if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
   });
@@ -446,6 +447,7 @@ function lintIfNode(
       issues.push({ level: "error", msg: `*${branch.kind} branch needs a condition`, scene: sceneName, node: node.id });
     }
     if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: sceneName, node: node.id });
+    if (branch.to === node.id) issues.push({ level: "warning", msg: `branch *${branch.kind} loops back to its own *if node`, scene: sceneName, node: node.id });
     lintExpression(branch.expr, variables, issues, sceneName, node.id);
     branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
   });
