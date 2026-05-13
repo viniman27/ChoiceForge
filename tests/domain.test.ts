@@ -341,6 +341,28 @@ test("lints empty and invalid command targets", () => {
   assert.ok(errors.some((message) => message.includes("*goto_scene has an invalid scene identifier")));
 });
 
+test("lints empty and invalid input command targets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_text", x: 0, y: 0, w: 280, title: "*input_text", inputVar: "" },
+      { id: "n2", type: "input_number", x: 0, y: 160, w: 280, title: "*input_number Bad Score", inputVar: "Bad Score", inputMin: "1", inputMax: "10" },
+      { id: "n3", type: "rand", x: 0, y: 320, w: 280, title: "*rand 1roll", inputVar: "1roll", inputMin: "1", inputMax: "6" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*input_text needs a variable target")));
+  assert.ok(errors.some((message) => message.includes("*input_number has an invalid variable identifier")));
+  assert.ok(errors.some((message) => message.includes("*rand has an invalid variable identifier")));
+});
+
 test("lints duplicate and empty label nodes", () => {
   const graph: SceneGraph = {
     nodes: [

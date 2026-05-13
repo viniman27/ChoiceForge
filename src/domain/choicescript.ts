@@ -636,7 +636,15 @@ function lintInputNode(
   scene: string,
 ) {
   const command = node.type === "input_text" ? "*input_text" : node.type === "input_number" ? "*input_number" : "*rand";
-  const variableName = node.inputVar ?? stripCommandPrefix(node.title, command);
+  const variableName = (node.inputVar ?? stripCommandPrefix(node.title, command)).trim();
+  if (!variableName) {
+    issues.push({ level: "error", msg: `${command} needs a variable target`, scene, node: node.id });
+    return;
+  }
+  if (!isValidChoiceScriptIdentifier(variableName)) {
+    issues.push({ level: "error", msg: `${command} has an invalid variable identifier: ${variableName}`, scene, node: node.id });
+    return;
+  }
   const variable = variableTypes.get(variableName);
   if (!variables.has(variableName) || !variable) {
     issues.push({ level: "error", msg: `${command} uses an undeclared variable: ${variableName}`, scene, node: node.id });
