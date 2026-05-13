@@ -483,7 +483,18 @@ function lintIfNode(
   if (!node.branches?.length) {
     issues.push({ level: "error", msg: `*if node "${node.title}" has no branches`, scene: sceneName, node: node.id });
   }
-  node.branches?.forEach((branch) => {
+  let seenElse = false;
+  node.branches?.forEach((branch, index) => {
+    if (index === 0 && branch.kind !== "if") {
+      issues.push({ level: "error", msg: `*if node "${node.title}" must start with an *if branch`, scene: sceneName, node: node.id });
+    }
+    if (seenElse) {
+      issues.push({ level: "error", msg: `*if node "${node.title}" has a branch after *else`, scene: sceneName, node: node.id });
+    }
+    if (branch.kind === "else" && seenElse) {
+      issues.push({ level: "error", msg: `*if node "${node.title}" has multiple *else branches`, scene: sceneName, node: node.id });
+    }
+    if (branch.kind === "else") seenElse = true;
     if (branch.kind === "else" && branch.expr?.trim()) {
       issues.push({ level: "error", msg: "*else branch cannot have a condition", scene: sceneName, node: node.id });
     }

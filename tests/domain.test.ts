@@ -614,6 +614,43 @@ test("warns about choice and if branches that loop to themselves", () => {
   assert.ok(warnings.some((message) => message.includes("loops back to its own *if")));
 });
 
+test("lints invalid if branch ordering", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "if",
+        x: 0,
+        y: 0,
+        w: 300,
+        title: "condition",
+        branches: [
+          { kind: "elseif", expr: "true", to: "n2" },
+          { kind: "else", to: "n3" },
+          { kind: "else", to: "n4" },
+          { kind: "elseif", expr: "false", to: "n5" },
+        ],
+      },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "a", body: "A." },
+      { id: "n3", type: "passage", x: 0, y: 320, w: 300, title: "b", body: "B." },
+      { id: "n4", type: "passage", x: 0, y: 480, w: 300, title: "c", body: "C." },
+      { id: "n5", type: "finish", x: 0, y: 640, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("must start with an *if branch")));
+  assert.ok(errors.some((message) => message.includes("multiple *else branches")));
+  assert.ok(errors.some((message) => message.includes("branch after *else")));
+});
+
 test("exports project metadata, scene files, and binary assets", () => {
   const project = {
     ...minimalProject(),
