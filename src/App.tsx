@@ -134,7 +134,10 @@ export default function App() {
     );
     if (!confirmed) return;
     actions.convertCurrentSceneToVisual();
-    setSelectedId(null);
+    setGeneratedDocumentId(null);
+    setGeneratedDocumentLine(null);
+    setPlayOpen(false);
+    setSelectedId("n1");
   };
 
   return (
