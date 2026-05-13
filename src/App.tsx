@@ -442,25 +442,41 @@ async function importChoiceForgeProject(files: File[], setProject: (project: Cho
       assertChoiceForgeProject(parsed);
       setProject(parsed);
     } else {
-      const txtFiles = files.filter((file) => file.name.toLowerCase().endsWith(".txt"));
-      if (txtFiles.length === 0 || files.some((file) => /\.(json|zip)$/i.test(file.name))) throw new Error("invalid multi-file import");
-      const entries = await Promise.all(txtFiles
-        .map(async (file) => ({
-          name: selectedImportPath(file),
-          bytes: new Uint8Array(await file.arrayBuffer()),
-        })));
-      setProject(importChoiceScriptArchive(entries));
+      const entries = await selectedImportEntries(files);
+      const projectJson = entries.find((entry) => isChoiceForgeProjectJsonPath(entry.name));
+      if (projectJson) {
+        const parsed = JSON.parse(new TextDecoder().decode(projectJson.bytes)) as ChoiceForgeProject;
+        assertChoiceForgeProject(parsed);
+        setProject(parsed);
+      } else {
+        const txtEntries = entries.filter((entry) => entry.name.toLowerCase().endsWith(".txt"));
+        if (!txtEntries.length) throw new Error("no text files selected");
+        setProject(importChoiceScriptArchive(txtEntries));
+      }
     }
     onDone();
   } catch (error) {
     console.error("ChoiceForge import failed", error);
-    window.alert(lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge, project.json, ou selecione todos os arquivos .txt do projeto juntos." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip, project.json, or select all project .txt files together.");
+    const reason = error instanceof Error && error.message ? `\n\n${error.message}` : "";
+    window.alert((lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge, project.json, ou selecione todos os arquivos .txt do projeto juntos." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip, project.json, or select all project .txt files together.") + reason);
   }
+}
+
+async function selectedImportEntries(files: File[]) {
+  return Promise.all(files.map(async (file) => ({
+    name: selectedImportPath(file),
+    bytes: new Uint8Array(await file.arrayBuffer()),
+  })));
 }
 
 function selectedImportPath(file: File): string {
   const importFile = file as File & { choiceForgeRelativePath?: string; webkitRelativePath?: string };
   return importFile.choiceForgeRelativePath || importFile.webkitRelativePath || file.name;
+}
+
+function isChoiceForgeProjectJsonPath(path: string): boolean {
+  const normalized = path.replace(/\\/g, "/").toLowerCase();
+  return normalized === "_choiceforge/project.json" || normalized.endsWith("/_choiceforge/project.json");
 }
 
 function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {
