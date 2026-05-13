@@ -396,10 +396,11 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
     };
   }
 
+  const preserved = Boolean(project.sceneData?.[project.sceneTitle]?.sourceText);
   return {
     title: `${project.sceneTitle}.txt`,
     path: `mygame/${project.sceneTitle}.txt`,
-    description: "ChoiceScript generated from the current scene graph.",
+    description: preserved ? "Imported ChoiceScript source preserved for safe export." : "ChoiceScript generated from the current scene graph.",
     content: `${generateSceneChoiceScript(project)}\n`,
   };
 }
@@ -473,7 +474,8 @@ function isSceneTextFile(file: File): boolean {
 
 async function importSingleSceneFile(project: ChoiceForgeProject, file: File): Promise<ChoiceForgeProject> {
   const sceneName = normalizeImportIdentifier(file.name.replace(/\.txt$/i, ""));
-  const graph = importChoiceScriptSceneText(sceneName, await file.text(), project.sceneData?.[sceneName]);
+  const sourceText = await file.text();
+  const graph = { ...importChoiceScriptSceneText(sceneName, sourceText, project.sceneData?.[sceneName]), sourceText };
   const existingScene = project.scenes.find((scene) => scene.name === sceneName && !scene.isStart && !scene.special);
   const sceneSummary = existingScene ?? { id: nextImportedSceneId(sceneName, project), name: sceneName, words: 0, nodes: graph.nodes.length };
   const scenes = existingScene

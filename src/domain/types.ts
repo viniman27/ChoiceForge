@@ -132,6 +132,7 @@ export interface StoryEdge {
 export interface SceneGraph {
   nodes: StoryNode[];
   edges: StoryEdge[];
+  sourceText?: string;
 }
 
 export interface LintIssue {

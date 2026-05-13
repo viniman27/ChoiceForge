@@ -36,7 +36,11 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   if (!sceneNames.length) throw new Error("no scene files found");
 
   const activeScene = sceneNames[0];
-  const sceneData = Object.fromEntries(sceneNames.map((sceneName) => [sceneName, createImportedSceneGraph(sceneName, sceneFileMap.get(sceneName) ?? "")]));
+  const sceneData = Object.fromEntries(sceneNames.map((sceneName) => {
+    const sourceText = sceneFileMap.get(sceneName) ?? "";
+    const graph = createImportedSceneGraph(sceneName, sourceText);
+    return [sceneName, sourceText ? { ...graph, sourceText } : graph];
+  }));
   const scenes = createSceneSummaries(sceneNames, activeScene, sceneData);
 
   return {
@@ -577,7 +581,7 @@ function createSceneSummaries(sceneNames: string[], activeScene: string, sceneDa
   return sceneNames.map((sceneName) => ({
     id: importedSceneId(sceneName),
     name: sceneName,
-    words: countWords(sceneData[sceneName]?.nodes.map((node) => node.body ?? "").join("\n") ?? ""),
+    words: countWords(sceneData[sceneName]?.sourceText ?? sceneData[sceneName]?.nodes.map((node) => node.body ?? "").join("\n") ?? ""),
     nodes: sceneData[sceneName]?.nodes.length ?? 0,
     current: sceneName === activeScene,
   }));

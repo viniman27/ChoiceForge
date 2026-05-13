@@ -81,6 +81,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
 export function generateSceneChoiceScript(project: ChoiceForgeProject, sceneName = project.sceneTitle): string {
   const graph = getSceneGraph(project, sceneName);
+  if (graph.sourceText !== undefined) return graph.sourceText.replace(/\s+$/g, "");
   const edges = mergeGraphEdges(graph.edges, deriveNodeEdges(graph.nodes));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
   edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));

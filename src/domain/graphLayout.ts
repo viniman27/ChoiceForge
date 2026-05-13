@@ -2,7 +2,7 @@ import type { ChoiceForgeProject, SceneGraph, StoryEdge, StoryNode } from "./typ
 
 export function layoutSceneGraph(graph: SceneGraph): SceneGraph {
   const nodes = layoutStoryNodes(graph.nodes, graph.edges);
-  return { nodes, edges: graph.edges };
+  return { ...graph, nodes, edges: graph.edges };
 }
 
 export function layoutProjectGraphs(project: ChoiceForgeProject): ChoiceForgeProject {

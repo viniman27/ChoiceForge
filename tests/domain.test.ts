@@ -195,6 +195,31 @@ test("imports startup body as prologue without duplicating startup scene", () =>
   assert.match(project.sceneData?.startup_prologue.nodes[0]?.body ?? "", /Opening in startup/);
 });
 
+test("preserves imported scene source for safe export", () => {
+  const source = [
+    "Opening.",
+    "*line_break",
+    "*choice",
+    "  #Go",
+    "    Inline body.",
+    "After.",
+    "*finish",
+  ].join("\n");
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Preserve",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+    ].join("\n")),
+    textEntry("ch1.txt", source),
+  ]);
+
+  assert.equal(project.sceneData?.ch1.sourceText, source);
+  assert.equal(generateSceneChoiceScript(project, "ch1"), source);
+  assert.match(createExportPackage(project).files.find((file) => file.path === "mygame/ch1.txt")?.content.toString() ?? "", /\*line_break/);
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",

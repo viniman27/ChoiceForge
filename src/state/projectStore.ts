@@ -135,7 +135,7 @@ export function useProjectStore() {
     },
     replaceCurrentSceneText: (content) => {
       setTrackedProjectState((current) => {
-        const graph = layoutSceneGraph(importChoiceScriptSceneText(current.sceneTitle, content, { nodes: current.nodes, edges: current.edges }));
+        const graph = { ...layoutSceneGraph(importChoiceScriptSceneText(current.sceneTitle, content, { nodes: current.nodes, edges: current.edges })), sourceText: content };
         return commitProject({
           ...current,
           nodes: graph.nodes,
@@ -176,10 +176,10 @@ export function useProjectStore() {
       });
     },
     updateNode: (id, patch) => {
-      setTrackedProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject(clearActiveSceneSource({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
-      }));
+      })));
     },
     moveNode: (id, x, y) => {
       setTrackedProjectState((current) => commitProject({
@@ -197,13 +197,13 @@ export function useProjectStore() {
       setTrackedProjectState((current) => {
         if (current.nodes.some((node) => node.id === id)) return current;
         const node = createStoryNode(type, id, position, current);
-        return commitProject({
+        return commitProject(clearActiveSceneSource({
           ...current,
           nodes: [...current.nodes, node],
           scenes: current.scenes.map((scene) => (
             scene.name === current.sceneTitle ? { ...scene, nodes: scene.nodes + 1 } : scene
           )),
-        });
+        }));
       });
     },
     deleteNode: (id) => {
@@ -212,7 +212,7 @@ export function useProjectStore() {
         const nodes = current.nodes.filter((node) => node.id !== id);
         if (nodes.length === current.nodes.length) return current;
 
-        return commitProject({
+        return commitProject(clearActiveSceneSource({
           ...current,
           nodes: nodes.map((node) => ({
             ...node,
@@ -223,7 +223,7 @@ export function useProjectStore() {
           scenes: current.scenes.map((scene) => (
             scene.name === current.sceneTitle ? { ...scene, nodes: Math.max(0, scene.nodes - 1) } : scene
           )),
-        });
+        }));
       });
     },
     connectNodes: (from, to) => {
@@ -234,14 +234,14 @@ export function useProjectStore() {
 
         if (source.type === "choice") {
           if (source.options?.some((option) => option.to === to)) return current;
-          return commitProject({
+          return commitProject(clearActiveSceneSource({
             ...current,
             nodes: current.nodes.map((node) => (
               node.id === from
                 ? { ...node, options: [...(node.options ?? []), { text: `Go to ${target.title}`, to, cond: null }] }
                 : node
             )),
-          });
+          }));
         }
 
         if (source.type === "if") {
@@ -256,14 +256,14 @@ export function useProjectStore() {
           const nextBranches = elseIndex >= 0
             ? [...branches.slice(0, elseIndex), nextBranch, ...branches.slice(elseIndex)]
             : [...branches, nextBranch];
-          return commitProject({
+          return commitProject(clearActiveSceneSource({
             ...current,
             nodes: current.nodes.map((node) => (
               node.id === from
                 ? { ...node, branches: nextBranches }
                 : node
             )),
-          });
+          }));
         }
 
         return addFlowEdgeToProject(current, from, to);
@@ -273,10 +273,10 @@ export function useProjectStore() {
       setTrackedProjectState((current) => addFlowEdgeToProject(current, from, to));
     },
     deleteFlowEdge: (from, to) => {
-      setTrackedProjectState((current) => commitProject({
+      setTrackedProjectState((current) => commitProject(clearActiveSceneSource({
         ...current,
         edges: current.edges.filter((edge) => !(edge.from === from && edge.to === to && edge.kind === "flow")),
-      }));
+      })));
     },
     addScene: () => {
       setTrackedProjectState((current) => {
@@ -826,6 +826,7 @@ function commitProject(project: ChoiceForgeProject): ChoiceForgeProject {
 }
 
 function persistActiveScene(project: ChoiceForgeProject): ChoiceForgeProject {
+  const currentGraph = project.sceneData?.[project.sceneTitle];
   return {
     ...project,
     sceneData: {
@@ -833,6 +834,7 @@ function persistActiveScene(project: ChoiceForgeProject): ChoiceForgeProject {
       [project.sceneTitle]: {
         nodes: project.nodes,
         edges: project.edges,
+        sourceText: currentGraph?.sourceText,
       },
     },
   };
@@ -871,6 +873,7 @@ function renameSceneGraphKey(sceneData: Record<string, SceneGraph>, from: string
   return Object.fromEntries(Object.entries(next).map(([sceneName, graph]) => [
     sceneName,
     {
+      ...graph,
       nodes: graph.nodes.map((node) => (node.type === "goto_scene" && node.target === from ? { ...node, target: to, title: `*goto_scene ${to}` } : node)),
       edges: graph.edges,
     },
@@ -881,6 +884,7 @@ function retargetGotoSceneReferences(sceneData: Record<string, SceneGraph>, from
   return Object.fromEntries(Object.entries(sceneData).map(([sceneName, graph]) => [
     sceneName,
     {
+      ...graph,
       nodes: graph.nodes.map((node) => (node.type === "goto_scene" && node.target === from ? { ...node, target: to, title: `*goto_scene ${to}` } : node)),
       edges: graph.edges,
     },
@@ -897,7 +901,22 @@ function addFlowEdgeToProject(project: ChoiceForgeProject, from: string, to: str
   const target = project.nodes.find((node) => node.id === to);
   const sourceCanFlow = source && !["choice", "if", "ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"].includes(source.type);
   if (!sourceCanFlow || !target || from === to || project.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return project;
-  return commitProject({ ...project, edges: [...project.edges, { from, to, kind: "flow" }] });
+  return commitProject(clearActiveSceneSource({ ...project, edges: [...project.edges, { from, to, kind: "flow" }] }));
+}
+
+function clearActiveSceneSource(project: ChoiceForgeProject): ChoiceForgeProject {
+  const currentGraph = project.sceneData?.[project.sceneTitle];
+  if (!currentGraph?.sourceText) return project;
+  return {
+    ...project,
+    sceneData: {
+      ...(project.sceneData ?? {}),
+      [project.sceneTitle]: {
+        nodes: project.nodes,
+        edges: project.edges,
+      },
+    },
+  };
 }
 
 function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
