@@ -217,6 +217,7 @@ export default function App() {
         onSelectScene={(id, targetLine) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.id === id);
           const keepTextMode = generatedDocumentId === "scene";
+          const hasPreservedSource = Boolean(scene && !scene.isStart && !scene.special && lintedProject.sceneData?.[scene.name]?.sourceText);
           setPlayOpen(false);
           if (scene?.isStart || scene?.special) {
             setGeneratedDocumentId(scene.isStart ? "startup" : "stats");
@@ -224,10 +225,10 @@ export default function App() {
             setSelectedId(null);
             return;
           }
-          setGeneratedDocumentId(targetLine || keepTextMode ? "scene" : null);
+          setGeneratedDocumentId(targetLine || keepTextMode || hasPreservedSource ? "scene" : null);
           setGeneratedDocumentLine(targetLine ?? null);
           actions.selectScene(id);
-          setSelectedId(targetLine ? null : "n1");
+          setSelectedId(targetLine || hasPreservedSource ? null : "n1");
         }}
         onUpdateScene={actions.updateScene}
         onMoveScene={actions.moveScene}
