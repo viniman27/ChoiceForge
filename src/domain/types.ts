@@ -13,6 +13,7 @@ export type NodeType =
   | "goto"
   | "goto_scene"
   | "gosub"
+  | "return"
   | "ending"
   | "finish"
   | "checkpoint"

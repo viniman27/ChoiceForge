@@ -894,7 +894,7 @@ function syncDerivedEdges(project: ChoiceForgeProject): ChoiceForgeProject {
 function addFlowEdgeToProject(project: ChoiceForgeProject, from: string, to: string): ChoiceForgeProject {
   const source = project.nodes.find((node) => node.id === from);
   const target = project.nodes.find((node) => node.id === to);
-  const sourceCanFlow = source && !["choice", "if", "ending", "finish", "goto", "goto_scene"].includes(source.type);
+  const sourceCanFlow = source && !["choice", "if", "ending", "finish", "goto", "goto_scene", "return"].includes(source.type);
   if (!sourceCanFlow || !target || from === to || project.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return project;
   return commitProject({ ...project, edges: [...project.edges, { from, to, kind: "flow" }] });
 }
@@ -1044,6 +1044,7 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "goto") return { ...base, title: `*goto ${firstLabel(project) || "label"}` };
   if (type === "goto_scene") return { ...base, title: `*goto_scene ${firstScene(project)}`, target: firstScene(project) };
   if (type === "gosub") return { ...base, title: "*gosub subroutine" };
+  if (type === "return") return { ...base, title: "*return" };
   if (type === "finish") return { ...base, title: "*finish" };
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
   if (type === "page_break") return { ...base, title: "*page_break Continue" };
@@ -1074,6 +1075,7 @@ function defaultNodeTitle(type: NodeType): string {
     goto: "*goto",
     goto_scene: "*goto_scene",
     gosub: "*gosub",
+    return: "*return",
     ending: "*ending",
     finish: "*finish",
     checkpoint: "new_checkpoint",

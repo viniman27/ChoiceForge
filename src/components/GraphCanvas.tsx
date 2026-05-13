@@ -19,7 +19,7 @@ interface GraphCanvasProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "input_text", "input_number", "rand", "page_break", "checkpoint", "comment", "finish", "ending"];
+const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "return", "input_text", "input_number", "rand", "page_break", "checkpoint", "comment", "finish", "ending"];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
@@ -233,7 +233,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             }}
             onConnectStart={(event, id) => {
               const current = data.nodes.find((node) => node.id === id);
-              if (!current || ["ending", "finish", "goto", "goto_scene"].includes(current.type)) return;
+              if (!current || ["ending", "finish", "goto", "goto_scene", "return"].includes(current.type)) return;
               event.stopPropagation();
               const start = { x2: current.x + current.w, y2: current.y + estimateNodeHeight(data, current.id, density) / 2 };
               setConnecting({ from: id, x1: start.x2, y1: start.y2, ...start });

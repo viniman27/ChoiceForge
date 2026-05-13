@@ -259,6 +259,26 @@ test("normalizes imported gosub targets with label names", () => {
   assert.ok(!lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub")));
 });
 
+test("imports and exports return command nodes", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*label subroutine",
+    "Subroutine text.",
+    "*return",
+  ].join("\n"));
+  const returnNode = graph.nodes.find((node) => node.type === "return");
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const generated = generateSceneChoiceScript(project);
+
+  assert.ok(returnNode);
+  assert.match(generated, /\*return/);
+  assert.ok(!graph.edges.some((edge) => edge.from === returnNode.id && edge.kind === "flow"));
+});
+
 test("keeps playable startup even when scene_list omits startup", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [

@@ -1,6 +1,6 @@
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
 
-const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene"]);
+const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene", "return"]);
 
 export interface ChoiceForgeExportFile {
   path: string;
@@ -57,6 +57,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (node.type === "goto_scene" && node.target) lines.push(`*goto_scene ${node.target}`);
   if (node.type === "goto") lines.push(`*goto ${stripCommandPrefix(node.title, "*goto")}`);
   if (node.type === "gosub") lines.push(stripCommandPrefix(node.title, "*gosub").startsWith("*") ? node.title : `*gosub ${stripCommandPrefix(node.title, "*gosub")}`);
+  if (node.type === "return") lines.push("*return");
   if (node.type === "ending") lines.push("*ending");
   if (node.type === "finish") lines.push("*finish");
   if (node.type === "checkpoint") lines.push(`*save_checkpoint ${stripCommandPrefix(node.title, "*save_checkpoint")}`);

@@ -92,6 +92,7 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
     goto: "var(--c-goto)",
     goto_scene: "var(--c-goto)",
     gosub: "var(--c-gosub)",
+    return: "var(--c-gosub)",
     ending: "var(--c-ending)",
     finish: "var(--c-ending)",
     checkpoint: "var(--c-check)",

@@ -451,6 +451,7 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
   if (node.type === "goto_scene" && name === "goto_scene") return { ...node, title: command, target: commandValue(command, "*goto_scene") };
   if (node.type === "goto" && name === "goto") return { ...node, title: command };
   if (node.type === "gosub" && name === "gosub") return { ...node, title: command };
+  if (node.type === "return" && name === "return") return { ...node, title: "*return" };
   if (node.type === "ending" && name === "ending") return { ...node, title: "*ending" };
   if (node.type === "finish" && name === "finish") return { ...node, title: "*finish" };
   if (node.type === "checkpoint" && name === "save_checkpoint") return { ...node, title: command };
@@ -488,7 +489,7 @@ function parseChoiceForgeBody(section: string[]): string {
 function isChoiceForgeBodyStop(trimmed: string): boolean {
   if (!trimmed.startsWith("*")) return false;
   if (isChoiceForgeFlowGoto(trimmed)) return true;
-  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*ending", "*finish", "*save_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand"].some((prefix) => trimmed.startsWith(prefix));
+  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand"].some((prefix) => trimmed.startsWith(prefix));
 }
 
 function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
@@ -573,6 +574,7 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   if (command === "goto") return { type: "goto", title: `*goto ${normalizeIdentifier(value || "label")}` };
   if (command === "goto_scene") return { type: "goto_scene", title: `*goto_scene ${normalizeIdentifier(value || "scene")}`, target: normalizeIdentifier(value || "scene") };
   if (command === "gosub") return { type: "gosub", title: `*gosub ${normalizeIdentifier(value || "subroutine")}` };
+  if (command === "return") return { type: "return", title: "*return" };
   if (command === "ending") return { type: "ending", title: "*ending" };
   if (command === "finish") return { type: "finish", title: "*finish" };
   if (command === "save_checkpoint") return { type: "checkpoint", title: `*save_checkpoint ${normalizeIdentifier(value || `checkpoint_${index}`)}` };
@@ -610,7 +612,7 @@ function isComplexCommand(command: string): boolean {
 }
 
 function canAutoFlow(node: StoryNode): boolean {
-  if (["choice", "if", "ending", "finish", "goto", "goto_scene"].includes(node.type)) return false;
+  if (["choice", "if", "ending", "finish", "goto", "goto_scene", "return"].includes(node.type)) return false;
   if (node.body?.trim().match(/^\*(choice|fake_choice|if|elseif|else|selectable_if)\b/i)) return false;
   return true;
 }
@@ -938,7 +940,7 @@ function extractTerminalCommand(lines: string[]): { index: number; line: string 
     const line = lines[index].trim();
     if (!line) continue;
     const command = commandName(line);
-    if (command && ["goto", "goto_scene", "finish", "ending"].includes(command)) return { index, line };
+    if (command && ["goto", "goto_scene", "return", "finish", "ending"].includes(command)) return { index, line };
     return null;
   }
   return null;

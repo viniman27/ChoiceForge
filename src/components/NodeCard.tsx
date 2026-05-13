@@ -10,6 +10,7 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   goto: { dot: "var(--c-goto)", tint: "var(--c-goto-tint)", label: "*goto" },
   goto_scene: { dot: "var(--c-goto)", tint: "var(--c-goto-tint)", label: "*goto_scene" },
   gosub: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*gosub" },
+  return: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*return" },
   ending: { dot: "var(--c-ending)", tint: "var(--c-ending-tint)", label: "*ending" },
   finish: { dot: "var(--c-ending)", tint: "var(--c-ending-tint)", label: "*finish" },
   checkpoint: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*checkpoint" },
@@ -39,6 +40,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "label") return <svg {...common}><path d="M2 4l3-2h5v8H5l-3-2z" /></svg>;
   if (type === "goto" || type === "goto_scene") return <svg {...common}><path d="M2 6h7M7 3l3 3-3 3" /></svg>;
   if (type === "gosub") return <svg {...common}><path d="M3 3v6a1 1 0 0 0 1 1h5M9 8l2-2-2-2" /></svg>;
+  if (type === "return") return <svg {...common}><path d="M9 3v6a1 1 0 0 1-1 1H3M3 8l-2-2 2-2" /></svg>;
   if (type === "ending") return <svg {...common}><circle cx="6" cy="6" r="4" /><path d="M4 4l4 4M8 4l-4 4" /></svg>;
   if (type === "finish") return <svg {...common}><path d="M3 2v8" /><path d="M3 3h6l-1 2 1 2H3" /><path d="M7 9h3" /></svg>;
   if (type === "checkpoint") return <svg {...common}><path d="M3 2v8M3 3h6l-1 2 1 2H3" /></svg>;
