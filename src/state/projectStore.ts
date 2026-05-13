@@ -151,7 +151,7 @@ export function useProjectStore() {
       setTrackedProjectState((current) => commitProject({ ...applyStartupText(current, content), startupSource: content }));
     },
     replaceStatsText: (content) => {
-      setTrackedProjectState((current) => commitProject(applyStatsText(current, content)));
+      setTrackedProjectState((current) => commitProject({ ...applyStatsText(current, content), statsSource: content }));
     },
     resetProject: (language) => {
       const fresh = commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects[language]))));
@@ -395,7 +395,7 @@ export function useProjectStore() {
       setTrackedProjectState((current) => {
         const name = nextAvailableName("new_var", new Set(current.variables.map((variable) => variable.name)));
         const variable: VariableSummary = { name, type: "number", initial: "0", desc: "", uses: 0 };
-        return commitProject(clearStartupSource({ ...current, variables: [...current.variables, variable] }));
+        return commitProject(clearStatsSource(clearStartupSource({ ...current, variables: [...current.variables, variable] })));
       });
     },
     updateVariable: (name, patch) => {
@@ -411,13 +411,13 @@ export function useProjectStore() {
           : saved.sceneData;
         const activeGraph = sceneData?.[saved.sceneTitle];
 
-        return commitProject(clearStartupSource({
+        return commitProject(clearStatsSource(clearStartupSource({
           ...saved,
           variables: saved.variables.map((variable) => (variable.name === name ? { ...variable, ...patch, name: nextName || variable.name } : variable)),
           sceneData,
           nodes: shouldRename ? activeGraph?.nodes ?? saved.nodes.map((node) => renameNodeVariable(node, name, nextName!)) : saved.nodes,
           edges: shouldRename ? activeGraph?.edges ?? saved.edges : saved.edges,
-        }));
+        })));
       });
     },
     deleteVariable: (name) => {
@@ -432,13 +432,13 @@ export function useProjectStore() {
           nodes: graph.nodes.map((node) => removeNodeVariable(node, name, inputFallback)),
         }));
         const activeGraph = sceneData[saved.sceneTitle];
-        return commitProject(clearStartupSource({
+        return commitProject(clearStatsSource(clearStartupSource({
           ...saved,
           variables,
           sceneData,
           nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeVariable(node, name, inputFallback)),
           edges: activeGraph?.edges ?? saved.edges,
-        }));
+        })));
       });
     },
     addAchievement: () => {
@@ -452,7 +452,7 @@ export function useProjectStore() {
           preDesc: "Achievement locked.",
           postDesc: "Achievement unlocked.",
         };
-        return commitProject(clearStartupSource({ ...current, achievements: [...current.achievements, achievement] }));
+        return commitProject(clearStatsSource(clearStartupSource({ ...current, achievements: [...current.achievements, achievement] })));
       });
     },
     updateAchievement: (id, patch) => {
@@ -467,7 +467,7 @@ export function useProjectStore() {
             }))
           : saved.sceneData;
         const activeGraph = sceneData?.[saved.sceneTitle];
-        return commitProject(clearStartupSource({
+        return commitProject(clearStatsSource(clearStartupSource({
           ...saved,
           achievements: saved.achievements.map((achievement) => (
             achievement.id === id ? { ...achievement, ...patch, id: nextId || achievement.id } : achievement
@@ -475,7 +475,7 @@ export function useProjectStore() {
           sceneData,
           nodes: shouldRename ? activeGraph?.nodes ?? saved.nodes.map((node) => renameNodeAchievement(node, id, nextId!)) : saved.nodes,
           edges: shouldRename ? activeGraph?.edges ?? saved.edges : saved.edges,
-        }));
+        })));
       });
     },
     deleteAchievement: (id) => {
@@ -486,13 +486,13 @@ export function useProjectStore() {
           nodes: graph.nodes.map((node) => removeNodeAchievement(node, id)),
         }));
         const activeGraph = sceneData[saved.sceneTitle];
-        return commitProject(clearStartupSource({
+        return commitProject(clearStatsSource(clearStartupSource({
           ...saved,
           achievements: saved.achievements.filter((achievement) => achievement.id !== id),
           sceneData,
           nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeAchievement(node, id)),
           edges: activeGraph?.edges ?? saved.edges,
-        }));
+        })));
       });
     },
     addAsset: () => {
@@ -818,6 +818,7 @@ function hydrateProject(project: ChoiceForgeProject): ChoiceForgeProject {
     edges: activeGraph.edges,
     assets: project.assets ?? [],
     startupSource: project.startupSource,
+    statsSource: project.statsSource,
     scenes: project.scenes.map((scene) => ({ ...scene, current: scene.name === activeSceneName })),
   };
 }
@@ -923,6 +924,12 @@ function clearActiveSceneSource(project: ChoiceForgeProject): ChoiceForgeProject
 function clearStartupSource(project: ChoiceForgeProject): ChoiceForgeProject {
   if (project.startupSource === undefined) return project;
   const { startupSource: _startupSource, ...nextProject } = project;
+  return nextProject;
+}
+
+function clearStatsSource(project: ChoiceForgeProject): ChoiceForgeProject {
+  if (project.statsSource === undefined) return project;
+  const { statsSource: _statsSource, ...nextProject } = project;
   return nextProject;
 }
 

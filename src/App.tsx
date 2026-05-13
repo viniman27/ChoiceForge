@@ -411,10 +411,11 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
   }
 
   if (id === "stats") {
+    const preserved = project.statsSource !== undefined;
     return {
       title: "choicescript_stats.txt",
       path: "mygame/choicescript_stats.txt",
-      description: "Status screen generated from project variables and achievements.",
+      description: preserved ? "Imported stats source preserved for safe export." : "Status screen generated from project variables and achievements.",
       content: generateStatsChoiceScript(project),
     };
   }

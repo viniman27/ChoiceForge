@@ -156,6 +156,7 @@ export interface ChoiceForgeProject {
   edges: StoryEdge[];
   sceneData?: Record<string, SceneGraph>;
   startupSource?: string;
+  statsSource?: string;
   lints: LintIssue[];
 }
 

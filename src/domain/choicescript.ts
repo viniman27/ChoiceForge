@@ -130,6 +130,7 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
 }
 
 export function generateStatsChoiceScript(project: ChoiceForgeProject): string {
+  if (project.statsSource !== undefined) return `${project.statsSource.replace(/\s+$/g, "")}\n`;
   const lines: string[] = [];
 
   if (!project.variables.length && !project.achievements.length) {

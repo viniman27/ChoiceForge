@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sampleProjects } from "../src/data/sampleProject.ts";
-import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { layoutProjectGraphs } from "../src/domain/graphLayout.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph } from "../src/domain/types.ts";
@@ -241,6 +241,32 @@ test("preserves imported startup source in export package", () => {
 
   assert.equal(project.startupSource, startupSource);
   assert.equal(startupFile?.content, `${startupSource}\n`);
+});
+
+test("preserves imported stats source in export package", () => {
+  const statsSource = [
+    "*comment custom stats heading",
+    "*stat_chart",
+    "  percent score Score",
+    "",
+    "A custom status page line.",
+  ].join("\n");
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Preserve Stats",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+      "*create score 0",
+    ].join("\n")),
+    textEntry("choicescript_stats.txt", statsSource),
+    textEntry("ch1.txt", "Chapter one.\n*ending"),
+  ]);
+  const statsFile = createExportPackage(project).files.find((file) => file.path === "mygame/choicescript_stats.txt");
+
+  assert.equal(project.statsSource, statsSource);
+  assert.equal(generateStatsChoiceScript(project), `${statsSource}\n`);
+  assert.equal(statsFile?.content, `${statsSource}\n`);
 });
 
 test("lints preserved source without graph approximation false positives", () => {

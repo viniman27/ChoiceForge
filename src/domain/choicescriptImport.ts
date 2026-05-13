@@ -60,6 +60,7 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
     edges: sceneData[activeScene].edges,
     sceneData,
     startupSource: startupText,
+    statsSource: stats ? decoder.decode(stats.bytes) : undefined,
     lints: [],
   };
 }
