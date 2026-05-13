@@ -90,6 +90,31 @@ test("normalizes imported condition identifiers", () => {
   assert.ok(!lintProject(project).some((issue) => issue.level === "warning" && issue.msg.includes("Player")));
 });
 
+test("normalizes imported set variables inside choices and branches", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Train",
+    "    *set Player-Score + 5",
+    "    *goto trained",
+    "  #Rest",
+    "    *goto rested",
+    "*label trained",
+    "*if Player-Score > 5",
+    "  *set Player-Score + 1",
+    "  *goto rested",
+    "*else",
+    "  *goto rested",
+    "*label rested",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((node) => node.type === "choice");
+  const condition = graph.nodes.find((node) => node.type === "if");
+
+  assert.equal(choice?.options?.[0]?.sets?.[0]?.var, "player_score");
+  assert.equal(condition?.branches?.[0]?.sets?.[0]?.var, "player_score");
+  assert.equal(condition?.branches?.[0]?.expr, "player_score > 5");
+});
+
 test("imports ChoiceScript archives with startup metadata", () => {
   const project = importChoiceScriptArchive([
     textEntry("mygame/startup.txt", [
