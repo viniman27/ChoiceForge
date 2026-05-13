@@ -293,6 +293,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     ...graph.nodes.map((node) => generatedNodeLabel(node.id)),
     ...graph.nodes.filter((node) => node.type === "label").map((node) => stripCommandPrefix(node.title, "*label")),
   ]);
+  const generatedLabels = new Set(graph.nodes.map((node) => generatedNodeLabel(node.id)));
   const humanLabels = graph.nodes
     .filter((node) => node.type === "label")
     .map((node) => ({ node, label: stripCommandPrefix(node.title, "*label") }));
@@ -315,7 +316,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   });
 
-  lintLabels(humanLabels, issues, sceneName);
+  lintLabels(humanLabels, generatedLabels, issues, sceneName);
 
   graph.nodes.forEach((node) => {
     if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
@@ -375,11 +376,20 @@ function lintNodeIds(nodes: StoryNode[], issues: LintIssue[], sceneName: string)
   });
 }
 
-function lintLabels(labels: Array<{ node: StoryNode; label: string }>, issues: LintIssue[], sceneName: string) {
+function lintLabels(
+  labels: Array<{ node: StoryNode; label: string }>,
+  generatedLabels: Set<string>,
+  issues: LintIssue[],
+  sceneName: string,
+) {
   const seen = new Map<string, StoryNode>();
   labels.forEach(({ node, label }) => {
     if (!label) {
       issues.push({ level: "error", msg: `*label node "${node.title}" has an empty label`, scene: sceneName, node: node.id });
+      return;
+    }
+    if (generatedLabels.has(label)) {
+      issues.push({ level: "error", msg: `*label collides with a generated ChoiceForge label: ${label}`, scene: sceneName, node: node.id });
       return;
     }
     const previous = seen.get(label);

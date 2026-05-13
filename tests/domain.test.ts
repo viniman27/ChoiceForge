@@ -345,6 +345,29 @@ test("lints duplicate and empty label nodes", () => {
   assert.ok(errors.some((message) => message.includes("empty label")));
 });
 
+test("lints label nodes that collide with generated labels", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Start." },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label cf_n1" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+    ],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("collides with a generated ChoiceForge label")));
+});
+
 test("lints variable initial values that do not match their type", () => {
   const project = {
     ...minimalProject(),
