@@ -465,6 +465,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
       if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
     }
+    if (command === "if" || command === "elseif" || command === "selectable_if") {
+      lintSourceExpression(sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
+    }
     const achievement = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i)?.[1]?.trim();
     if (achievement && !achievements.has(normalizeSourceIdentifier(achievement))) {
       issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${normalizeSourceIdentifier(achievement)}`, scene: sceneName, line: lineNumber });
@@ -954,6 +957,12 @@ function lintExpression(expression: string | undefined, variables: Set<string>, 
   });
 }
 
+function lintSourceExpression(expression: string, variables: Set<string>, issues: LintIssue[], scene: string, line: number) {
+  extractExpressionNames(normalizeSourceExpressionIdentifiers(expression)).forEach((name) => {
+    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, scene, line });
+  });
+}
+
 function extractVariableReferences(text: string): string[] {
   return [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((match) => match[1]);
 }
@@ -979,6 +988,21 @@ function sourceCommand(line: string): string | null {
 
 function sourceCommandValue(line: string, command: string): string {
   return line.replace(command, "").trim();
+}
+
+function sourceConditionExpression(line: string, command: string): string {
+  const value = sourceCommandValue(line, `*${command}`).trim();
+  const parenthesized = value.match(/^\((.*)\)$/)?.[1];
+  return parenthesized ?? value;
+}
+
+function normalizeSourceExpressionIdentifiers(expression: string): string {
+  const reserved = new Set(["and", "or", "not", "true", "false"]);
+  return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[a-zA-Z_][a-zA-Z0-9_-]*/g, (match) => {
+    if (match.startsWith("\"") || match.startsWith("'")) return match;
+    const lower = match.toLowerCase();
+    return reserved.has(lower) ? lower : normalizeSourceIdentifier(match);
+  });
 }
 
 function normalizeSourceIdentifier(value: string): string {
