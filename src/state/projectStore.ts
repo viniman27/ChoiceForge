@@ -135,7 +135,7 @@ export function useProjectStore() {
     },
     replaceCurrentSceneText: (content) => {
       setTrackedProjectState((current) => {
-        const graph = importChoiceScriptSceneText(current.sceneTitle, content, { nodes: current.nodes, edges: current.edges });
+        const graph = layoutSceneGraph(importChoiceScriptSceneText(current.sceneTitle, content, { nodes: current.nodes, edges: current.edges }));
         return commitProject({
           ...current,
           nodes: graph.nodes,
