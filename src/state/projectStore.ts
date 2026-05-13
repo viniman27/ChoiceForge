@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
+import { layoutProjectGraphs, layoutSceneGraph } from "../domain/graphLayout";
 import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
 
@@ -13,12 +14,12 @@ function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
 
 function loadInitialProject(): ChoiceForgeProject {
   const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (!saved) return commitProject(hydrateProject(cloneProject(sampleProjects.en)));
+  if (!saved) return commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects.en))));
 
   try {
     return commitProject(hydrateProject(JSON.parse(saved) as ChoiceForgeProject));
   } catch {
-    return commitProject(hydrateProject(cloneProject(sampleProjects.en)));
+    return commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects.en))));
   }
 }
 
@@ -125,7 +126,7 @@ export function useProjectStore() {
       });
     },
     setProject: (nextProject) => {
-      const syncedProject = commitProject(hydrateProject(nextProject));
+      const syncedProject = commitProject(layoutProjectGraphs(hydrateProject(nextProject)));
       setTrackedProjectState(syncedProject);
       saveProjectSnapshot(syncedProject);
     },
@@ -153,7 +154,7 @@ export function useProjectStore() {
       setTrackedProjectState((current) => commitProject(applyStatsText(current, content)));
     },
     resetProject: (language) => {
-      const fresh = commitProject(hydrateProject(cloneProject(sampleProjects[language])));
+      const fresh = commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects[language]))));
       setTrackedProjectState(fresh);
       saveProjectSnapshot(fresh);
       return fresh;
@@ -189,7 +190,7 @@ export function useProjectStore() {
     layoutNodes: () => {
       setTrackedProjectState((current) => commitProject({
         ...current,
-        nodes: layoutStoryNodes(current),
+        ...layoutSceneGraph({ nodes: current.nodes, edges: current.edges }),
       }));
     },
     addNode: (type, id, position) => {
@@ -953,79 +954,6 @@ function replaceInputTitle(node: StoryNode, variableName: string): string {
   if (node.type === "input_number") return `*input_number ${variableName}`;
   if (node.type === "rand") return `*rand ${variableName}`;
   return node.title;
-}
-
-function layoutStoryNodes(project: ChoiceForgeProject): StoryNode[] {
-  const nodes = project.nodes;
-  const horizontalGap = 150;
-  const verticalGap = 90;
-  const startX = 70;
-  const startY = 70;
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const incoming = new Map(nodes.map((node) => [node.id, 0]));
-  const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
-
-  project.edges.forEach((edge) => {
-    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return;
-    outgoing.get(edge.from)?.push(edge.to);
-    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
-  });
-
-  const roots = nodes.filter((node) => node.id === "n1" || (incoming.get(node.id) ?? 0) === 0);
-  const queue = roots.length ? roots.map((node) => node.id) : nodes.slice(0, 1).map((node) => node.id);
-  const depth = new Map<string, number>(queue.map((id) => [id, 0]));
-
-  for (let index = 0; index < queue.length; index += 1) {
-    const id = queue[index];
-    const currentDepth = depth.get(id) ?? 0;
-    outgoing.get(id)?.forEach((target) => {
-      const nextDepth = currentDepth + 1;
-      if (!depth.has(target) || nextDepth > (depth.get(target) ?? 0)) {
-        depth.set(target, nextDepth);
-        queue.push(target);
-      }
-    });
-  }
-
-  const maxDepth = Math.max(0, ...depth.values());
-  nodes.forEach((node) => {
-    if (!depth.has(node.id)) depth.set(node.id, maxDepth + 1);
-  });
-
-  const columns = new Map<number, StoryNode[]>();
-  nodes.forEach((node) => {
-    const column = depth.get(node.id) ?? 0;
-    columns.set(column, [...(columns.get(column) ?? []), node]);
-  });
-
-  const orderedColumns = [...columns.entries()].sort(([a], [b]) => a - b);
-  const positions = new Map<string, { x: number; y: number }>();
-  let columnX = startX;
-  orderedColumns.forEach(([, columnNodes]) => {
-    const sortedNodes = [...columnNodes].sort((a, b) => a.y - b.y || a.x - b.x);
-    let nodeY = startY;
-    sortedNodes.forEach((node) => {
-      positions.set(node.id, { x: columnX, y: nodeY });
-      nodeY += estimateLayoutNodeHeight(node) + verticalGap;
-    });
-    const maxWidth = Math.max(...sortedNodes.map((node) => node.w), 260);
-    columnX += maxWidth + horizontalGap;
-  });
-
-  return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
-}
-
-function estimateLayoutNodeHeight(node: StoryNode): number {
-  let height = 58 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
-  if (node.body) height += 90;
-  if (node.prompt) height += 28;
-  if (node.options) height += node.options.length * 38 + 8;
-  if (node.fakeOptions) height += node.fakeOptions.length * 38 + 8;
-  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (branch.sets?.length ?? 0) * 22, 8);
-  if (node.sets?.length) height += 30;
-  if (node.target) height += 22;
-  if (node.inputVar) height += 22;
-  return Math.max(80, height);
 }
 
 function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {

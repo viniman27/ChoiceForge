@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { sampleProjects } from "../src/data/sampleProject.ts";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { layoutProjectGraphs } from "../src/domain/graphLayout.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph } from "../src/domain/types.ts";
 
@@ -358,6 +359,28 @@ test("keeps bundled sample projects lint-clean", () => {
     const errors = lintProject(project).filter((issue) => issue.level === "error");
     assert.deepEqual(errors, []);
   });
+});
+
+test("layouts project graphs for starter and imported projects", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 900, y: 900, w: 300, title: "start", body: "Start." },
+      { id: "n2", type: "choice", x: 50, y: 400, w: 340, title: "choice", prompt: "Choose.", options: [{ text: "Go", to: "n3", cond: null }] },
+      { id: "n3", type: "finish", x: 20, y: 40, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const laidOut = layoutProjectGraphs(project);
+
+  assert.deepEqual(pickPosition(laidOut.nodes.find((node) => node.id === "n1")), { x: 70, y: 70 });
+  assert.ok((laidOut.nodes.find((node) => node.id === "n2")?.x ?? 0) > 70);
+  assert.deepEqual(laidOut.sceneData?.intro.nodes.map(pickPosition), laidOut.nodes.map(pickPosition));
 });
 
 test("does not lint words inside quoted condition strings as variables", () => {
@@ -796,4 +819,8 @@ function minimalProject(): ChoiceForgeProject {
 
 function textEntry(name: string, content: string) {
   return { name, bytes: new TextEncoder().encode(content) };
+}
+
+function pickPosition(node: { x: number; y: number } | undefined) {
+  return node ? { x: node.x, y: node.y } : undefined;
 }
