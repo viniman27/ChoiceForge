@@ -11,9 +11,11 @@ interface RightPanelProps {
   onAddFlowEdge: (from: string, to: string) => void;
   onDeleteFlowEdge: (from: string, to: string) => void;
   onSelectNode: (id: string) => void;
+  sourcePreserved?: boolean;
+  onConvertSource?: () => void;
 }
 
-export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge, onSelectNode }: RightPanelProps) {
+export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge, onSelectNode, sourcePreserved = false, onConvertSource }: RightPanelProps) {
   const [tab, setTab] = useState<"content" | "logic" | "raw">("content");
 
   if (!node) {
@@ -37,9 +39,15 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
     <aside className="right-panel">
       <div className="ip-head" style={{ "--accent": colors.dot, "--accent-tint": colors.tint } as React.CSSProperties}>
         <div className="ip-type"><span className="ip-dot" /><NodeIcon type={node.type} /><span>{labels.nodeTypes[node.type]}</span></div>
-        <input className="ip-title" value={node.title} onChange={(event) => onUpdateNode(node.id, { title: event.target.value })} />
+        <input className="ip-title" value={node.title} disabled={sourcePreserved} onChange={(event) => onUpdateNode(node.id, { title: event.target.value })} />
         <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
       </div>
+      {sourcePreserved && (
+        <div className="ip-source-lock">
+          <span>Imported source is preserved. Inspector edits are disabled until this scene is converted to visual editing.</span>
+          <button className="ghost-btn" onClick={onConvertSource}>Convert</button>
+        </div>
+      )}
 
       <div className="ip-tabs">
         {(["content", "logic", "raw"] as const).map((id, index) => (
@@ -49,7 +57,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
         ))}
       </div>
 
-      <div className="ip-body">
+      <div className={`ip-body ${sourcePreserved ? "is-source-locked" : ""}`}>
         {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
         {tab === "logic" && (
           <LogicTab

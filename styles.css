@@ -254,6 +254,36 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .canvas-toolbar-resize:hover {
   border-color: var(--accent-1);
 }
+.source-preserved-banner {
+  position: absolute;
+  z-index: 5;
+  top: 58px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(680px, calc(100% - 32px));
+  padding: 10px 12px;
+  background: var(--paper-2);
+  border: 1px solid color-mix(in oklch, var(--warn) 45%, var(--paper-edge));
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-1);
+  font-size: 11px;
+}
+.source-preserved-banner div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.source-preserved-banner strong {
+  color: var(--ink);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
+.source-preserved-banner span {
+  color: var(--ink-mute);
+  line-height: 1.35;
+}
 
 /* ─── Left panel ─────────────────────────────── */
 .left-panel {
@@ -1200,6 +1230,18 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-title:focus { background: var(--paper-1); border-radius: var(--r-1); padding: 2px 6px; }
 .ip-meta { display: flex; gap: 6px; font-size: 11px; color: var(--ink-mute); font-family: var(--ff-mono); }
 .ip-meta code { font-size: 11px; color: var(--ink-2); }
+.ip-source-lock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in oklch, var(--warn) 45%, var(--paper-edge));
+  background: color-mix(in oklch, var(--warn) 10%, var(--paper-2));
+  color: var(--ink-mute);
+  font-size: 11px;
+  line-height: 1.35;
+}
 
 .ip-tabs { display: flex; padding: 0 12px; gap: 2px; border-bottom: 1px solid var(--paper-edge); background: var(--paper-2); }
 .ip-tab { background: transparent; border: none; padding: 8px 12px; font-size: 11px; color: var(--ink-mute); border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; letter-spacing: 0.02em; text-transform: lowercase; }
@@ -1207,6 +1249,10 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-tab.is-active { color: var(--ink); border-bottom-color: var(--accent-1); }
 
 .ip-body { flex: 1; overflow: auto; padding: 14px 16px; }
+.ip-body.is-source-locked {
+  pointer-events: none;
+  opacity: 0.62;
+}
 .ip-content, .ip-logic, .ip-raw { display: flex; flex-direction: column; gap: 10px; }
 .ip-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.05em; }
 .stat-node-note {

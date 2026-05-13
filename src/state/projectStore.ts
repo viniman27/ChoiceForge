@@ -34,6 +34,7 @@ export interface ProjectActions {
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
   replaceCurrentSceneText: (content: string) => void;
+  convertCurrentSceneToVisual: () => void;
   replaceStartupText: (content: string) => void;
   replaceStatsText: (content: string) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
@@ -146,6 +147,9 @@ export function useProjectStore() {
           },
         });
       });
+    },
+    convertCurrentSceneToVisual: () => {
+      setTrackedProjectState((current) => commitProject(clearActiveSceneSource(current)));
     },
     replaceStartupText: (content) => {
       setTrackedProjectState((current) => commitProject({ ...applyStartupText(current, content), startupSource: content }));

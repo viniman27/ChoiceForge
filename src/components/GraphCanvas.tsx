@@ -13,6 +13,8 @@ interface GraphCanvasProps {
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDeleteNode: (id: string) => void;
+  sourcePreserved?: boolean;
+  onConvertSource?: () => void;
   pan: { x: number; y: number };
   onPan: (pan: { x: number; y: number }) => void;
   zoom: number;
@@ -24,7 +26,7 @@ const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -53,6 +55,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       if (event.key === "Escape") setSelectedId(null);
       if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
         event.preventDefault();
+        if (sourcePreserved) return;
         onDeleteNode(selectedId);
         setSelectedId(null);
       }
@@ -66,7 +69,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
     };
-  }, [onDeleteNode, selectedId, setSelectedId]);
+  }, [onDeleteNode, selectedId, setSelectedId, sourcePreserved]);
 
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
@@ -170,6 +173,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
           <button
             key={type}
             className="canvas-tool"
+            disabled={sourcePreserved}
             onClick={() => onAddNode(type, { x: Math.round((180 - pan.x) / zoom), y: Math.round((140 - pan.y) / zoom) })}
             title={labels.nodeTypes[type]}
           >
@@ -179,7 +183,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         ))}
         <button
           className="canvas-tool danger"
-          disabled={!selectedId}
+          disabled={!selectedId || sourcePreserved}
           onClick={() => selectedId && onDeleteNode(selectedId)}
           title={labels.deleteSelected}
         >
@@ -200,6 +204,15 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
           }}
         />
       </div>
+      {sourcePreserved && (
+        <div className="source-preserved-banner">
+          <div>
+            <strong>Imported source preserved</strong>
+            <span>The canvas is a preview. Export uses the original .txt until you convert this scene to visual editing.</span>
+          </div>
+          <button className="ghost-btn" onClick={onConvertSource}>Convert to visual</button>
+        </div>
+      )}
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         <svg className="edges" width="3000" height="2000">
           <defs>
@@ -242,6 +255,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
               if (current) setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origX: current.x, origY: current.y });
             }}
             onConnectStart={(event, id) => {
+              if (sourcePreserved) return;
               const current = data.nodes.find((node) => node.id === id);
               if (!current || ["ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"].includes(current.type)) return;
               event.stopPropagation();
@@ -249,6 +263,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
               setConnecting({ from: id, x1: start.x2, y1: start.y2, ...start });
             }}
             onConnectEnd={(id) => {
+              if (sourcePreserved) return;
               if (!connecting) return;
               onConnectNodes(connecting.from, id);
               setConnecting(null);

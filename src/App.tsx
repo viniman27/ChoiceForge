@@ -112,6 +112,7 @@ export default function App() {
 
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
+  const currentSceneSourcePreserved = Boolean(lintedProject.sceneData?.[lintedProject.sceneTitle]?.sourceText);
   const currentSceneId = lintedProject.scenes.find((scene) => scene.current)?.id ?? lintedProject.sceneTitle;
   const activeSceneId = generatedDocumentId === "startup" || generatedDocumentId === "stats" ? generatedDocumentId : currentSceneId;
   const appStyle = {
@@ -293,6 +294,8 @@ export default function App() {
             actions.deleteNode(id);
             setSelectedId(null);
           }}
+          sourcePreserved={currentSceneSourcePreserved}
+          onConvertSource={actions.convertCurrentSceneToVisual}
         />
       )}
       <button
@@ -308,9 +311,11 @@ export default function App() {
         node={selectedNode}
         project={lintedProject}
         labels={i18n[lang]}
-        onUpdateNode={actions.updateNode}
-        onAddFlowEdge={actions.addFlowEdge}
-        onDeleteFlowEdge={actions.deleteFlowEdge}
+        sourcePreserved={currentSceneSourcePreserved}
+        onConvertSource={actions.convertCurrentSceneToVisual}
+        onUpdateNode={currentSceneSourcePreserved ? noopUpdateNode : actions.updateNode}
+        onAddFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.addFlowEdge}
+        onDeleteFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.deleteFlowEdge}
         onSelectNode={focusNode}
       />
       <BottomBar
@@ -390,6 +395,14 @@ function centerPanForNode(node: StoryNode, zoom: number, layout: { left: number;
 function resetViewport(setPan: (pan: { x: number; y: number }) => void, setZoom: (zoom: number) => void) {
   setPan({ x: 20, y: 20 });
   setZoom(0.85);
+}
+
+function noopUpdateNode() {
+  return;
+}
+
+function noopFlowEdge() {
+  return;
 }
 
 function tabForLintMessage(message: string): string {
