@@ -458,6 +458,7 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
   if (node.type === "ending" && name === "ending") return { ...node, title: "*ending" };
   if (node.type === "finish" && name === "finish") return { ...node, title: "*finish" };
   if (node.type === "checkpoint" && name === "save_checkpoint") return { ...node, title: command };
+  if (node.type === "restore_checkpoint" && name === "restore_checkpoint") return { ...node, title: command };
   if (node.type === "page_break" && name === "page_break") return { ...node, title: command };
   if (node.type === "comment" && name === "comment") return { ...node, title: "*comment", body: commands.filter((line) => line.startsWith("*comment")).map((line) => commandValue(line, "*comment")).join("\n") };
   if (node.type === "input_text" && name === "input_text") {
@@ -497,7 +498,7 @@ function parseChoiceForgeBody(section: string[]): string {
 function isChoiceForgeBodyStop(trimmed: string): boolean {
   if (!trimmed.startsWith("*")) return false;
   if (isChoiceForgeFlowGoto(trimmed)) return true;
-  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand"].some((prefix) => trimmed.startsWith(prefix));
+  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand"].some((prefix) => trimmed.startsWith(prefix));
 }
 
 function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
@@ -586,6 +587,7 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   if (command === "ending") return { type: "ending", title: "*ending" };
   if (command === "finish") return { type: "finish", title: "*finish" };
   if (command === "save_checkpoint") return { type: "checkpoint", title: `*save_checkpoint ${normalizeIdentifier(value || `checkpoint_${index}`)}` };
+  if (command === "restore_checkpoint") return { type: "restore_checkpoint", title: `*restore_checkpoint ${value ? normalizeIdentifier(value) : ""}`.trimEnd() };
   if (command === "page_break") return { type: "page_break", title: `*page_break ${value || "Continue"}` };
   if (command === "comment") return { type: "comment", title: "*comment", body: value || "Imported comment." };
   if (command === "input_text") return { type: "input_text", title: `*input_text ${normalizeIdentifier(value || "text")}`, inputVar: normalizeIdentifier(value || "text"), body: "Imported text input." };
@@ -620,7 +622,7 @@ function isComplexCommand(command: string): boolean {
 }
 
 function canAutoFlow(node: StoryNode): boolean {
-  if (["choice", "if", "ending", "finish", "goto", "goto_scene", "return"].includes(node.type)) return false;
+  if (["choice", "if", "ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"].includes(node.type)) return false;
   if (node.body?.trim().match(/^\*(choice|fake_choice|if|elseif|else|selectable_if)\b/i)) return false;
   return true;
 }
@@ -948,7 +950,7 @@ function extractTerminalCommand(lines: string[]): { index: number; line: string 
     const line = lines[index].trim();
     if (!line) continue;
     const command = commandName(line);
-    if (command && ["goto", "goto_scene", "return", "finish", "ending"].includes(command)) return { index, line };
+    if (command && ["goto", "goto_scene", "return", "restore_checkpoint", "finish", "ending"].includes(command)) return { index, line };
     return null;
   }
   return null;
@@ -1139,7 +1141,7 @@ function normalizeExpressionIdentifiers(expression: string): string {
 
 function defaultImportedWidth(type: NodeType): number {
   if (type === "passage") return 340;
-  if (["goto_scene", "checkpoint", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
+  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
   return 240;
 }
 

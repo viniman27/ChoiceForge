@@ -895,7 +895,7 @@ function syncDerivedEdges(project: ChoiceForgeProject): ChoiceForgeProject {
 function addFlowEdgeToProject(project: ChoiceForgeProject, from: string, to: string): ChoiceForgeProject {
   const source = project.nodes.find((node) => node.id === from);
   const target = project.nodes.find((node) => node.id === to);
-  const sourceCanFlow = source && !["choice", "if", "ending", "finish", "goto", "goto_scene", "return"].includes(source.type);
+  const sourceCanFlow = source && !["choice", "if", "ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"].includes(source.type);
   if (!sourceCanFlow || !target || from === to || project.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === "flow")) return project;
   return commitProject({ ...project, edges: [...project.edges, { from, to, kind: "flow" }] });
 }
@@ -975,6 +975,7 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "return") return { ...base, title: "*return" };
   if (type === "finish") return { ...base, title: "*finish" };
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
+  if (type === "restore_checkpoint") return { ...base, title: "*restore_checkpoint" };
   if (type === "page_break") return { ...base, title: "*page_break Continue" };
   if (type === "comment") return { ...base, title: "*comment", body: "Author note." };
   if (type === "input_text") {
@@ -1007,6 +1008,7 @@ function defaultNodeTitle(type: NodeType): string {
     ending: "*ending",
     finish: "*finish",
     checkpoint: "new_checkpoint",
+    restore_checkpoint: "*restore_checkpoint",
     page_break: "*page_break",
     comment: "new_comment",
     input_text: "*input_text",
@@ -1019,7 +1021,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice" || type === "fake_choice") return 340;
   if (type === "passage") return 300;
-  if (["checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
+  if (["checkpoint", "restore_checkpoint", "goto_scene", "page_break", "comment", "input_text", "input_number", "rand"].includes(type)) return 280;
   return 240;
 }
 

@@ -281,6 +281,46 @@ test("imports and exports return command nodes", () => {
   assert.ok(!graph.edges.some((edge) => edge.from === returnNode.id && edge.kind === "flow"));
 });
 
+test("imports and exports restore checkpoint command nodes", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*save_checkpoint major",
+    "*choice",
+    "  #Restore",
+    "    *restore_checkpoint major",
+    "  #Continue",
+    "    *finish",
+  ].join("\n"));
+  const restoreNode = graph.nodes.find((node) => node.type === "restore_checkpoint");
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const generated = generateSceneChoiceScript(project);
+
+  assert.equal(restoreNode?.title, "*restore_checkpoint major");
+  assert.match(generated, /\*restore_checkpoint major/);
+});
+
+test("warns about restore checkpoints without matching saves", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "restore_checkpoint", x: 0, y: 0, w: 280, title: "*restore_checkpoint missing" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("no matching *save_checkpoint")));
+});
+
 test("normalizes edited ChoiceForge command identifiers", () => {
   const currentGraph: SceneGraph = {
     nodes: [

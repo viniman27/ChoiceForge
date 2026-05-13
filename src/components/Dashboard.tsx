@@ -96,6 +96,7 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
     ending: "var(--c-ending)",
     finish: "var(--c-ending)",
     checkpoint: "var(--c-check)",
+    restore_checkpoint: "var(--c-check)",
     page_break: "var(--c-check)",
     comment: "var(--ink-mute)",
     input_text: "var(--c-set)",

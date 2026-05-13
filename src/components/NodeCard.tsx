@@ -14,6 +14,7 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   ending: { dot: "var(--c-ending)", tint: "var(--c-ending-tint)", label: "*ending" },
   finish: { dot: "var(--c-ending)", tint: "var(--c-ending-tint)", label: "*finish" },
   checkpoint: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*checkpoint" },
+  restore_checkpoint: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*restore_checkpoint" },
   page_break: { dot: "var(--c-check)", tint: "var(--c-check-tint)", label: "*page_break" },
   comment: { dot: "var(--ink-mute)", tint: "var(--paper-3)", label: "*comment" },
   input_text: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_text" },
@@ -44,6 +45,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "ending") return <svg {...common}><circle cx="6" cy="6" r="4" /><path d="M4 4l4 4M8 4l-4 4" /></svg>;
   if (type === "finish") return <svg {...common}><path d="M3 2v8" /><path d="M3 3h6l-1 2 1 2H3" /><path d="M7 9h3" /></svg>;
   if (type === "checkpoint") return <svg {...common}><path d="M3 2v8M3 3h6l-1 2 1 2H3" /></svg>;
+  if (type === "restore_checkpoint") return <svg {...common}><path d="M9 2v8M9 3H3l1 2-1 2h6" /></svg>;
   if (type === "page_break") return <svg {...common}><path d="M3 2h5l1 1v7H3z" /><path d="M7 2v2h2M4 7h4" /></svg>;
   if (type === "comment") return <svg {...common}><path d="M2 3h8v5H5l-3 2z" /></svg>;
   if (type === "input_text") return <svg {...common}><path d="M2 3h8M4 3v6M2 9h4" /></svg>;

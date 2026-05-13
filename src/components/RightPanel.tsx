@@ -185,7 +185,7 @@ function ContentTab({
     return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
-  if (["label", "goto", "goto_scene", "gosub", "return", "checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
+  if (["label", "goto", "goto_scene", "gosub", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
@@ -283,6 +283,15 @@ function CommandNodeFields({
       <div className="ip-content">
         <label className="ip-label">checkpoint</label>
         <input className="command-input" value={stripCommandPrefix(node.title, "*save_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*save_checkpoint ${normalizeIdentifier(event.target.value)}` })} />
+      </div>
+    );
+  }
+
+  if (node.type === "restore_checkpoint") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">restore checkpoint</label>
+        <input className="command-input" value={stripCommandPrefix(node.title, "*restore_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*restore_checkpoint ${normalizeIdentifier(event.target.value)}`.trimEnd() })} />
       </div>
     );
   }

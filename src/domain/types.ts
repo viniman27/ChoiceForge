@@ -17,6 +17,7 @@ export type NodeType =
   | "ending"
   | "finish"
   | "checkpoint"
+  | "restore_checkpoint"
   | "page_break"
   | "comment"
   | "input_text"

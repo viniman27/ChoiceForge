@@ -96,6 +96,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
               <div className="playtest-node"><code>{node.id}</code><span>{node.title}</span></div>
               {node.body && <p className="playtest-text">{node.body}</p>}
               {node.type === "checkpoint" && <p className="playtest-note">Checkpoint saved: {node.title.replace("*save_checkpoint", "").trim()}</p>}
+              {node.type === "restore_checkpoint" && <p className="playtest-note">Checkpoint restore requested.</p>}
               {node.type === "return" && <p className="playtest-note">Subroutine returned.</p>}
               {node.type === "ending" && <p className="playtest-note">Ending reached.</p>}
               {node.type === "finish" && <p className="playtest-note">Scene finished.</p>}
@@ -122,7 +123,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
                 </div>
               )}
 
-              {flowTarget && node.type !== "choice" && node.type !== "return" && node.type !== "ending" && node.type !== "finish" && (
+              {flowTarget && node.type !== "choice" && node.type !== "return" && node.type !== "restore_checkpoint" && node.type !== "ending" && node.type !== "finish" && (
                 <button className="playtest-continue" onClick={() => { setStats((current) => applySets(current, node.sets ?? [], project.variables)); setNodeId(flowTarget); }}>
                   Continue
                 </button>

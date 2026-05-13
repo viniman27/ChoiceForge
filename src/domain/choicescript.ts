@@ -1,6 +1,6 @@
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
 
-const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene", "return"]);
+const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"]);
 
 export interface ChoiceForgeExportFile {
   path: string;
@@ -61,6 +61,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (node.type === "ending") lines.push("*ending");
   if (node.type === "finish") lines.push("*finish");
   if (node.type === "checkpoint") lines.push(`*save_checkpoint ${stripCommandPrefix(node.title, "*save_checkpoint")}`);
+  if (node.type === "restore_checkpoint") lines.push(`*restore_checkpoint ${stripCommandPrefix(node.title, "*restore_checkpoint")}`.trimEnd());
   if (node.type === "page_break") lines.push(`*page_break ${stripCommandPrefix(node.title, "*page_break") || "Continue"}`);
   if (node.type === "comment") {
     const comments = (node.body?.trim() || stripCommandPrefix(node.title, "*comment") || "ChoiceForge comment").split("\n");
@@ -316,6 +317,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const hasGosub = graph.nodes.some((node) => node.type === "gosub");
+  const checkpointSlots = new Set(graph.nodes.filter((node) => node.type === "checkpoint").map((node) => checkpointSlot(node.title, "*save_checkpoint")));
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
   const flowOutgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
@@ -394,6 +396,14 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     if (node.type === "return" && !hasGosub) {
       issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub nodes", scene: sceneName, node: node.id });
+    }
+
+    if (node.type === "restore_checkpoint") {
+      const slot = checkpointSlot(node.title, "*restore_checkpoint");
+      if (!checkpointSlots.has(slot)) {
+        const label = slot ? ` "${slot}"` : "";
+        issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in this scene`, scene: sceneName, node: node.id });
+      }
     }
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
@@ -616,6 +626,10 @@ function formatStatsLabel(value: string): string {
 
 function stripCommandPrefix(value: string, command: string): string {
   return value.replace(command, "").replace(/^[-\s]+/, "").trim();
+}
+
+function checkpointSlot(value: string, command: "*save_checkpoint" | "*restore_checkpoint"): string {
+  return stripCommandPrefix(value, command);
 }
 
 function lintCondition(condition: ChoiceCondition | null | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
