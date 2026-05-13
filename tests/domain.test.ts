@@ -57,6 +57,19 @@ test("imports top-level set commands as set nodes", () => {
   assert.equal(graph.edges.find((edge) => edge.from === setNode.id)?.kind, "flow");
 });
 
+test("normalizes imported input and rand variable names", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*input_text Player-Name",
+    "*input_number Player-Score 1 10",
+    "*rand Random-Value 1 6",
+    "*finish",
+  ].join("\n"));
+
+  assert.equal(graph.nodes.find((node) => node.type === "input_text")?.inputVar, "player_name");
+  assert.equal(graph.nodes.find((node) => node.type === "input_number")?.inputVar, "player_score");
+  assert.equal(graph.nodes.find((node) => node.type === "rand")?.inputVar, "random_value");
+});
+
 test("imports ChoiceScript archives with startup metadata", () => {
   const project = importChoiceScriptArchive([
     textEntry("mygame/startup.txt", [
