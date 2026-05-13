@@ -448,23 +448,31 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
   const command = commands.find((line) => !choiceForgeLabel(line) && !line.startsWith("*set ") && !isChoiceForgeFlowGoto(line));
   if (!command) return node;
   const name = commandName(command);
-  if (node.type === "goto_scene" && name === "goto_scene") return { ...node, title: command, target: commandValue(command, "*goto_scene") };
-  if (node.type === "goto" && name === "goto") return { ...node, title: command };
-  if (node.type === "gosub" && name === "gosub") return { ...node, title: command };
+  if (node.type === "goto_scene" && name === "goto_scene") {
+    const target = normalizeIdentifier(commandValue(command, "*goto_scene"));
+    return { ...node, title: `*goto_scene ${target}`, target };
+  }
+  if (node.type === "goto" && name === "goto") return { ...node, title: `*goto ${normalizeIdentifier(commandValue(command, "*goto"))}` };
+  if (node.type === "gosub" && name === "gosub") return { ...node, title: `*gosub ${normalizeIdentifier(commandValue(command, "*gosub"))}` };
   if (node.type === "return" && name === "return") return { ...node, title: "*return" };
   if (node.type === "ending" && name === "ending") return { ...node, title: "*ending" };
   if (node.type === "finish" && name === "finish") return { ...node, title: "*finish" };
   if (node.type === "checkpoint" && name === "save_checkpoint") return { ...node, title: command };
   if (node.type === "page_break" && name === "page_break") return { ...node, title: command };
   if (node.type === "comment" && name === "comment") return { ...node, title: "*comment", body: commands.filter((line) => line.startsWith("*comment")).map((line) => commandValue(line, "*comment")).join("\n") };
-  if (node.type === "input_text" && name === "input_text") return { ...node, title: command, inputVar: commandValue(command, "*input_text") };
+  if (node.type === "input_text" && name === "input_text") {
+    const inputVar = normalizeIdentifier(commandValue(command, "*input_text"));
+    return { ...node, title: `*input_text ${inputVar}`, inputVar };
+  }
   if (node.type === "input_number" && name === "input_number") {
     const [inputVar, inputMin, inputMax] = commandValue(command, "*input_number").split(/\s+/);
-    return { ...node, title: `*input_number ${inputVar}`, inputVar, inputMin, inputMax };
+    const normalizedInputVar = normalizeIdentifier(inputVar ?? "number");
+    return { ...node, title: `*input_number ${normalizedInputVar}`, inputVar: normalizedInputVar, inputMin, inputMax };
   }
   if (node.type === "rand" && name === "rand") {
     const [inputVar, inputMin, inputMax] = commandValue(command, "*rand").split(/\s+/);
-    return { ...node, title: `*rand ${inputVar}`, inputVar, inputMin, inputMax };
+    const normalizedInputVar = normalizeIdentifier(inputVar ?? "number");
+    return { ...node, title: `*rand ${normalizedInputVar}`, inputVar: normalizedInputVar, inputMin, inputMax };
   }
   return node;
 }

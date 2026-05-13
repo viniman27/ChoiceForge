@@ -279,6 +279,32 @@ test("imports and exports return command nodes", () => {
   assert.ok(!graph.edges.some((edge) => edge.from === returnNode.id && edge.kind === "flow"));
 });
 
+test("normalizes edited ChoiceForge command identifiers", () => {
+  const currentGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "goto_scene", x: 0, y: 0, w: 280, title: "*goto_scene chapter_two", target: "chapter_two" },
+      { id: "n2", type: "gosub", x: 0, y: 160, w: 240, title: "*gosub sub_routine" },
+      { id: "n3", type: "input_text", x: 0, y: 320, w: 280, title: "*input_text player_name", inputVar: "player_name" },
+    ],
+    edges: [],
+  };
+  const graph = importChoiceScriptSceneText("intro", [
+    "*label cf_n1",
+    "*goto_scene Chapter-Two",
+    "",
+    "*label cf_n2",
+    "*gosub Sub-Routine",
+    "",
+    "*label cf_n3",
+    "*input_text Player-Name",
+  ].join("\n"), currentGraph);
+
+  assert.equal(graph.nodes.find((node) => node.id === "n1")?.target, "chapter_two");
+  assert.equal(graph.nodes.find((node) => node.id === "n1")?.title, "*goto_scene chapter_two");
+  assert.equal(graph.nodes.find((node) => node.id === "n2")?.title, "*gosub sub_routine");
+  assert.equal(graph.nodes.find((node) => node.id === "n3")?.inputVar, "player_name");
+});
+
 test("warns about return nodes without gosub nodes", () => {
   const graph: SceneGraph = {
     nodes: [
