@@ -245,10 +245,16 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     .map((scene) => scene.name);
 
   lintProjectMetadata(project, issues);
+  if (project.startupSource !== undefined) {
+    lintPreservedScriptSource(project, project.startupSource, "startup", "startup exports preserved ChoiceScript source", issues);
+  }
+  if (project.statsSource !== undefined) {
+    lintPreservedStatsSource(project, project.statsSource, issues);
+  }
   sceneNames.forEach((sceneName) => {
     const graph = getSceneGraph(project, sceneName);
     if (graph.sourceText !== undefined) {
-      lintPreservedSceneSource(project, graph.sourceText, sceneName, issues);
+      lintPreservedScriptSource(project, graph.sourceText, sceneName, "scene exports preserved ChoiceScript source", issues);
       return;
     }
     lintSceneGraph(project, graph, sceneName, issues);
@@ -420,7 +426,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   });
 }
 
-function lintPreservedSceneSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, issues: LintIssue[]) {
+function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const variables = new Set(project.variables.map((variable) => variable.name));
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
@@ -428,7 +434,7 @@ function lintPreservedSceneSource(project: ChoiceForgeProject, sourceText: strin
   const referencedLabels: Array<{ label: string; line: number }> = [];
   const lines = sourceText.split(/\r?\n/);
 
-  issues.push({ level: "info", msg: "scene exports preserved ChoiceScript source", scene: sceneName, line: 1 });
+  issues.push({ level: "info", msg: infoMessage, scene: sceneName, line: 1 });
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
@@ -467,6 +473,32 @@ function lintPreservedSceneSource(project: ChoiceForgeProject, sourceText: strin
 
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
+  });
+}
+
+function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
+  lintPreservedScriptSource(project, sourceText, "choicescript_stats", "stats screen exports preserved ChoiceScript source", issues);
+
+  const variables = new Set(project.variables.map((variable) => variable.name));
+  let inStatChart = false;
+  sourceText.split(/\r?\n/).forEach((line, index) => {
+    const lineNumber = index + 1;
+    const trimmed = line.trim();
+    const command = sourceCommand(trimmed);
+    if (command === "stat_chart") {
+      inStatChart = true;
+      return;
+    }
+    if (command) {
+      inStatChart = false;
+      return;
+    }
+    if (!inStatChart || !trimmed) return;
+    const [, rawVariable = ""] = trimmed.split(/\s+/, 2);
+    const variable = normalizeSourceIdentifier(rawVariable);
+    if (variable && !variables.has(variable)) {
+      issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+    }
   });
 }
 

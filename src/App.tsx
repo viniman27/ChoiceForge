@@ -334,6 +334,18 @@ export default function App() {
         onSelectIssue={(lint) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.name === lint.scene);
           setPlayOpen(false);
+          if (lint.line && scene?.isStart) {
+            setGeneratedDocumentId("startup");
+            setGeneratedDocumentLine(lint.line);
+            setSelectedId(null);
+            return;
+          }
+          if (lint.line && scene?.special) {
+            setGeneratedDocumentId("stats");
+            setGeneratedDocumentLine(lint.line);
+            setSelectedId(null);
+            return;
+          }
           if (scene && !scene.isStart && !scene.special && scene.name !== lintedProject.sceneTitle) {
             actions.selectScene(scene.id);
           }

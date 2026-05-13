@@ -295,6 +295,31 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.node && issue.msg.includes("incoming connection")));
 });
 
+test("lints preserved startup and stats source by line", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Preserve Lint",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+      "*create score 0",
+      "*goto_scene missing_scene",
+    ].join("\n")),
+    textEntry("choicescript_stats.txt", [
+      "*stat_chart",
+      "  percent missing Missing",
+      "  percent score Score",
+    ].join("\n")),
+    textEntry("ch1.txt", "Chapter one.\n*ending"),
+  ]);
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 6 && issue.msg.includes("missing scene")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 2 && issue.msg.includes("undeclared variable: missing")));
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",
