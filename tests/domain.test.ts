@@ -402,6 +402,26 @@ test("lints gosub nodes that point to missing labels", () => {
   assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub points to a missing label")));
 });
 
+test("warns about gosub nodes without flow continuation", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub subroutine" },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label subroutine" },
+      { id: "n3", type: "return", x: 0, y: 320, w: 240, title: "*return" },
+    ],
+    edges: [{ from: "n2", to: "n3", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("no flow continuation")));
+});
+
 test("lints empty and invalid command targets", () => {
   const graph: SceneGraph = {
     nodes: [

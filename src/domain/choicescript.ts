@@ -318,6 +318,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const hasGosub = graph.nodes.some((node) => node.type === "gosub");
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
+  const flowOutgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
 
   lintNodeIds(graph.nodes, issues, sceneName);
   edges.forEach((edge) => {
@@ -327,6 +328,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (!nodeIds.has(edge.to)) {
       issues.push({ level: "error", msg: `edge points to a missing node: ${edge.to}`, scene: sceneName });
     }
+    if (edge.kind === "flow") flowOutgoing.set(edge.from, (flowOutgoing.get(edge.from) ?? 0) + 1);
     outgoing.set(edge.from, (outgoing.get(edge.from) ?? 0) + 1);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   });
@@ -384,6 +386,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         issues.push({ level: "error", msg: `*gosub has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
       } else if (!labels.has(label)) {
         issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
+      }
+      if ((flowOutgoing.get(node.id) ?? 0) === 0) {
+        issues.push({ level: "warning", msg: "*gosub has no flow continuation for *return", scene: sceneName, node: node.id });
       }
     }
 
