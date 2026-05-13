@@ -319,6 +319,28 @@ test("lints gosub nodes that point to missing labels", () => {
   assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*gosub points to a missing label")));
 });
 
+test("lints empty and invalid command targets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "goto", x: 0, y: 0, w: 240, title: "*goto" },
+      { id: "n2", type: "gosub", x: 0, y: 160, w: 240, title: "*gosub Bad Label" },
+      { id: "n3", type: "goto_scene", x: 0, y: 320, w: 240, title: "*goto_scene Bad Scene", target: "Bad Scene" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*goto needs a label target")));
+  assert.ok(errors.some((message) => message.includes("*gosub has an invalid label identifier")));
+  assert.ok(errors.some((message) => message.includes("*goto_scene has an invalid scene identifier")));
+});
+
 test("lints duplicate and empty label nodes", () => {
   const graph: SceneGraph = {
     nodes: [

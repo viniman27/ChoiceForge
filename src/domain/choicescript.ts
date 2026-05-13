@@ -354,18 +354,37 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName);
     if (node.type === "if") lintIfNode(node, nodeIds, variables, variableTypes, issues, sceneName);
 
-    if (node.type === "goto_scene" && node.target && !scenes.has(node.target)) {
-      issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${node.target}`, scene: sceneName, node: node.id });
+    if (node.type === "goto_scene") {
+      const target = node.target?.trim() ?? "";
+      if (!target) {
+        issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, node: node.id });
+      } else if (!isValidChoiceScriptIdentifier(target)) {
+        issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
+      } else if (!scenes.has(target)) {
+        issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
+      }
     }
 
     if (node.type === "goto") {
       const label = stripCommandPrefix(node.title, "*goto");
-      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: sceneName, node: node.id });
+      if (!label) {
+        issues.push({ level: "error", msg: "*goto needs a label target", scene: sceneName, node: node.id });
+      } else if (!isValidChoiceScriptIdentifier(label)) {
+        issues.push({ level: "error", msg: `*goto has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
+      } else if (!labels.has(label)) {
+        issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: sceneName, node: node.id });
+      }
     }
 
     if (node.type === "gosub") {
       const label = stripCommandPrefix(node.title, "*gosub");
-      if (label && !labels.has(label)) issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
+      if (!label) {
+        issues.push({ level: "error", msg: "*gosub needs a label target", scene: sceneName, node: node.id });
+      } else if (!isValidChoiceScriptIdentifier(label)) {
+        issues.push({ level: "error", msg: `*gosub has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
+      } else if (!labels.has(label)) {
+        issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
+      }
     }
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
