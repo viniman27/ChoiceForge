@@ -8,7 +8,7 @@ interface LeftPanelProps {
   activeSceneId: string;
   labels: I18nLabels;
   onAddScene: () => void;
-  onSelectScene: (id: string) => void;
+  onSelectScene: (id: string, targetLine?: number) => void;
   onUpdateScene: (id: string, patch: Partial<SceneSummary>) => void;
   onMoveScene: (id: string, direction: "up" | "down") => void;
   onMoveSceneBefore: (id: string, beforeId: string | null) => void;
@@ -93,7 +93,7 @@ export function LeftPanel({
             results={searchResults}
             labels={labels}
             onOpenResult={(result) => {
-              if (result.sceneId) onSelectScene(result.sceneId);
+              if (result.sceneId) onSelectScene(result.sceneId, result.line);
               if (result.nodeId) onSelectNode(result.nodeId);
               if (result.kind === "variable") setActiveTab("variables");
               if (result.kind === "achievement") setActiveTab("achievements");
@@ -138,6 +138,7 @@ interface SearchResult {
   title: string;
   detail: string;
   searchText?: string;
+  line?: number;
   nodeId?: string;
   sceneId?: string;
 }
@@ -178,12 +179,14 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
   data.scenes.forEach((scene) => {
     const sourceStatus = sceneSourceStatus(data, scene);
     const preservedText = scene.isStart ? data.startupSource : scene.special ? data.statsSource : data.sceneData?.[scene.name]?.sourceText;
+    const line = preservedText ? lineForQuery(preservedText, normalized) : undefined;
     addResult(results, normalized, {
       id: `scene-${scene.id}`,
       kind: "scene",
       title: `${scene.name}.txt`,
-      detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes - ${sourceStatus}`,
+      detail: `${scene.words.toLocaleString()} words - ${scene.nodes} nodes - ${sourceStatus}${line ? ` :${line}` : ""}`,
       searchText: preservedText,
+      line,
       sceneId: scene.id,
     });
   });
@@ -232,6 +235,12 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
 
 function addResult(results: SearchResult[], query: string, result: SearchResult) {
   if (`${result.title} ${result.detail} ${result.searchText ?? ""}`.toLowerCase().includes(query)) results.push(result);
+}
+
+function lineForQuery(text: string, normalizedQuery: string): number | undefined {
+  const index = text.toLowerCase().indexOf(normalizedQuery);
+  if (index < 0) return undefined;
+  return text.slice(0, index).split(/\r?\n/).length;
 }
 
 function nodeSearchTargets(node: StoryNode): string[] {
