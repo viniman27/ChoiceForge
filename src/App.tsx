@@ -38,6 +38,7 @@ export default function App() {
   const [zoom, setZoom] = useState(0.85);
   const [view, setView] = useState<EditorView>("editor");
   const [generatedDocumentId, setGeneratedDocumentId] = useState<GeneratedDocumentId | null>(null);
+  const [generatedDocumentLine, setGeneratedDocumentLine] = useState<number | null>(null);
   const [playOpen, setPlayOpen] = useState(false);
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
@@ -96,6 +97,7 @@ export default function App() {
       actions.undo();
       setSelectedId(null);
       setGeneratedDocumentId(null);
+      setGeneratedDocumentLine(null);
       setPlayOpen(false);
     };
     window.addEventListener("keydown", keyDown);
@@ -117,12 +119,13 @@ export default function App() {
     "--right-panel-width": `${layout.right}px`,
   } as CSSProperties;
   const focusNode = (id: string) => {
-    const node = lintedProject.nodes.find((candidate) => candidate.id === id);
-    setSelectedId(id);
-    if (!node) return;
-    setGeneratedDocumentId(null);
-    setPlayOpen(false);
-    setPan(centerPanForNode(node, zoom, layout, consoleOpen));
+      const node = lintedProject.nodes.find((candidate) => candidate.id === id);
+      setSelectedId(id);
+      if (!node) return;
+      setGeneratedDocumentId(null);
+      setGeneratedDocumentLine(null);
+      setPlayOpen(false);
+      setPan(centerPanForNode(node, zoom, layout, consoleOpen));
   };
 
   return (
@@ -144,6 +147,7 @@ export default function App() {
           actions.undo();
           setSelectedId(null);
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           setPlayOpen(false);
         }}
         onSave={() => {
@@ -154,16 +158,19 @@ export default function App() {
         onTextMode={() => {
           setPlayOpen(false);
           setGeneratedDocumentId((current) => (current === "scene" ? null : "scene"));
+          setGeneratedDocumentLine(null);
           setSelectedId(null);
         }}
         onPlay={() => {
           setPlayOpen(true);
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           setSelectedId(null);
         }}
         onImport={(files) => importChoiceForgeProject(files, lintedProject, actions.setProject, () => {
           setPlayOpen(false);
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           setSelectedId("n1");
           resetViewport(setPan, setZoom);
         }, lang)}
@@ -179,6 +186,7 @@ export default function App() {
           actions.resetProject(lang);
           setSaveStatus(formatSaveStatus(lang));
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           setPlayOpen(false);
           setSelectedId("n1");
           resetViewport(setPan, setZoom);
@@ -192,6 +200,7 @@ export default function App() {
         labels={i18n[lang]}
         onAddScene={() => {
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           setPlayOpen(false);
           actions.addScene();
           setSelectedId("n1");
@@ -202,10 +211,12 @@ export default function App() {
           setPlayOpen(false);
           if (scene?.isStart || scene?.special) {
             setGeneratedDocumentId(scene.isStart ? "startup" : "stats");
+            setGeneratedDocumentLine(null);
             setSelectedId(null);
             return;
           }
           setGeneratedDocumentId(keepTextMode ? "scene" : null);
+          setGeneratedDocumentLine(null);
           actions.selectScene(id);
           setSelectedId("n1");
         }}
@@ -241,6 +252,7 @@ export default function App() {
           <GeneratedDocumentView
             {...generatedDocument}
             editable
+            targetLine={generatedDocumentLine}
             onSave={(content) => {
               if (generatedDocumentId === "startup") {
                 actions.replaceStartupText(content);
@@ -314,10 +326,12 @@ export default function App() {
           }
           if (lint.line && scene && !scene.isStart && !scene.special) {
             setGeneratedDocumentId("scene");
+            setGeneratedDocumentLine(lint.line);
             setSelectedId(null);
             return;
           }
           setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
           if (lint.node) {
             if (!scene || scene.name === lintedProject.sceneTitle) focusNode(lint.node);
             else setSelectedId(lint.node);

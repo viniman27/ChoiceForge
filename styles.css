@@ -756,6 +756,10 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .generated-code-editor .cm-activeLine {
   background: color-mix(in oklch, var(--accent) 8%, transparent);
 }
+.generated-code-editor .cm-cs-target-line {
+  background: color-mix(in oklch, var(--warn) 22%, transparent);
+  box-shadow: inset 3px 0 0 var(--warn);
+}
 .generated-code-editor .cm-selectionBackground,
 .generated-code-editor .cm-focused .cm-selectionBackground {
   background: color-mix(in oklch, var(--accent-2) 24%, transparent);

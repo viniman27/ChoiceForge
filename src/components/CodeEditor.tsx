@@ -2,16 +2,17 @@ import { useEffect, useRef } from "react";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { bracketMatching, defaultHighlightStyle, foldGutter, indentOnInput, syntaxHighlighting } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
-import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
+import { EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, highlightSpecialChars, keymap, lineNumbers, type DecorationSet } from "@codemirror/view";
 
 interface CodeEditorProps {
   value: string;
+  targetLine?: number | null;
   onChange: (value: string) => void;
   onSave: () => void;
 }
 
-export function CodeEditor({ value, onChange, onSave }: CodeEditorProps) {
+export function CodeEditor({ value, targetLine = null, onChange, onSave }: CodeEditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
@@ -40,6 +41,7 @@ export function CodeEditor({ value, onChange, onSave }: CodeEditorProps) {
           highlightActiveLineGutter(),
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
           choiceScriptHighlight,
+          targetLineHighlight,
           EditorView.lineWrapping,
           EditorState.tabSize.of(2),
           keymap.of([
@@ -77,6 +79,21 @@ export function CodeEditor({ value, onChange, onSave }: CodeEditorProps) {
     });
   }, [value]);
 
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !targetLine) return;
+    const lineNumber = Math.min(Math.max(1, targetLine), view.state.doc.lines);
+    const line = view.state.doc.line(lineNumber);
+    view.dispatch({
+      selection: { anchor: line.from },
+      effects: [
+        EditorView.scrollIntoView(line.from, { y: "center" }),
+        setTargetLineEffect.of(lineNumber),
+      ],
+    });
+    view.focus();
+  }, [targetLine]);
+
   return <div ref={hostRef} className="generated-code-editor" />;
 }
 
@@ -85,6 +102,23 @@ const choiceScriptHighlight = StateField.define<DecorationSet>({
   update(decorations, transaction) {
     if (!transaction.docChanged) return decorations.map(transaction.changes);
     return buildChoiceScriptDecorations(transaction.state);
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+const setTargetLineEffect = StateEffect.define<number | null>();
+
+const targetLineHighlight = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(decorations, transaction) {
+    for (const effect of transaction.effects) {
+      if (effect.is(setTargetLineEffect)) {
+        if (!effect.value) return Decoration.none;
+        const line = transaction.state.doc.line(Math.min(Math.max(1, effect.value), transaction.state.doc.lines));
+        return Decoration.set([Decoration.line({ class: "cm-cs-target-line" }).range(line.from)]);
+      }
+    }
+    return decorations.map(transaction.changes);
   },
   provide: (field) => EditorView.decorations.from(field),
 });

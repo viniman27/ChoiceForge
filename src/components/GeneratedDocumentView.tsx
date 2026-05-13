@@ -7,10 +7,11 @@ interface GeneratedDocumentViewProps {
   description: string;
   content: string;
   editable?: boolean;
+  targetLine?: number | null;
   onSave?: (content: string) => string | void;
 }
 
-export function GeneratedDocumentView({ title, path, description, content, editable = false, onSave }: GeneratedDocumentViewProps) {
+export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, onSave }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
   const [saveStatus, setSaveStatus] = useState("");
   const visibleContent = editable ? draft : content;
@@ -55,7 +56,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           {lines.map((_, index) => <span key={index}>{index + 1}</span>)}
         </div>
         {editable ? (
-          <CodeEditor value={draft} onChange={setDraft} onSave={saveDraft} />
+          <CodeEditor value={draft} targetLine={targetLine} onChange={setDraft} onSave={saveDraft} />
         ) : (
           <pre><code>{lines.join("\n")}</code></pre>
         )}
