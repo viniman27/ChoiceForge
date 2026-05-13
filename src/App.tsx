@@ -442,13 +442,13 @@ async function importChoiceForgeProject(files: File[], setProject: (project: Cho
       assertChoiceForgeProject(parsed);
       setProject(parsed);
     } else {
-      const entries = await Promise.all(files
-        .filter((file) => file.name.toLowerCase().endsWith(".txt"))
+      const txtFiles = files.filter((file) => file.name.toLowerCase().endsWith(".txt"));
+      if (txtFiles.length === 0 || files.some((file) => /\.(json|zip)$/i.test(file.name))) throw new Error("invalid multi-file import");
+      const entries = await Promise.all(txtFiles
         .map(async (file) => ({
           name: selectedImportPath(file),
           bytes: new Uint8Array(await file.arrayBuffer()),
         })));
-      if (entries.length !== files.length) throw new Error("mixed import files");
       setProject(importChoiceScriptArchive(entries));
     }
     onDone();
@@ -459,7 +459,8 @@ async function importChoiceForgeProject(files: File[], setProject: (project: Cho
 }
 
 function selectedImportPath(file: File): string {
-  return (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+  const importFile = file as File & { choiceForgeRelativePath?: string; webkitRelativePath?: string };
+  return importFile.choiceForgeRelativePath || importFile.webkitRelativePath || file.name;
 }
 
 function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeProject {

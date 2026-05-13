@@ -83,6 +83,9 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
           {lang === "pt" ? "Importar" : "Import"}
         </button>
+        <button className="ghost-btn" onClick={() => void openImportFolderPicker(onImport)}>
+          {lang === "pt" ? "Pasta" : "Folder"}
+        </button>
         <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
@@ -97,6 +100,17 @@ interface FilePickerHandle {
   getFile: () => Promise<File>;
 }
 
+interface DirectoryPickerFileHandle extends FilePickerHandle {
+  kind: "file";
+  name: string;
+}
+
+interface DirectoryPickerDirectoryHandle {
+  kind: "directory";
+  name: string;
+  values: () => AsyncIterable<DirectoryPickerFileHandle | DirectoryPickerDirectoryHandle>;
+}
+
 interface WindowWithFilePicker extends Window {
   showOpenFilePicker?: (options: {
     multiple?: boolean;
@@ -106,6 +120,7 @@ interface WindowWithFilePicker extends Window {
       accept: Record<string, string[]>;
     }>;
   }) => Promise<FilePickerHandle[]>;
+  showDirectoryPicker?: () => Promise<DirectoryPickerDirectoryHandle>;
 }
 
 async function openImportPicker(onImport: (files: File[]) => void) {
@@ -138,6 +153,23 @@ async function openImportPicker(onImport: (files: File[]) => void) {
   openImportInputFallback(onImport);
 }
 
+async function openImportFolderPicker(onImport: (files: File[]) => void) {
+  const showDirectoryPicker = (window as WindowWithFilePicker).showDirectoryPicker;
+  if (showDirectoryPicker) {
+    try {
+      const directory = await showDirectoryPicker();
+      const files = await collectDirectoryFiles(directory, directory.name);
+      if (files.length > 0) onImport(files);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      window.setTimeout(() => openImportFolderInputFallback(onImport), 0);
+    }
+    return;
+  }
+
+  openImportFolderInputFallback(onImport);
+}
+
 function openImportInputFallback(onImport: (files: File[]) => void) {
   const input = document.createElement("input");
   input.type = "file";
@@ -166,6 +198,52 @@ function openImportInputFallback(onImport: (files: File[]) => void) {
 
   document.body.appendChild(input);
   input.click();
+}
+
+function openImportFolderInputFallback(onImport: (files: File[]) => void) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+  input.accept = ".txt,text/plain";
+  (input as HTMLInputElement & { webkitdirectory?: boolean }).webkitdirectory = true;
+  input.style.position = "fixed";
+  input.style.left = "-10000px";
+  input.style.top = "0";
+  input.style.opacity = "0";
+
+  let cleaned = false;
+  const handleFocus = () => window.setTimeout(cleanup, 500);
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    window.removeEventListener("focus", handleFocus);
+    input.remove();
+  };
+
+  input.addEventListener("change", () => {
+    const files = Array.from(input.files ?? []);
+    cleanup();
+    if (files.length > 0) onImport(files);
+  }, { once: true });
+  window.addEventListener("focus", handleFocus, { once: true });
+
+  document.body.appendChild(input);
+  input.click();
+}
+
+async function collectDirectoryFiles(directory: DirectoryPickerDirectoryHandle, prefix: string): Promise<File[]> {
+  const files: File[] = [];
+  for await (const entry of directory.values()) {
+    const path = `${prefix}/${entry.name}`;
+    if (entry.kind === "file") {
+      const file = await entry.getFile();
+      (file as File & { choiceForgeRelativePath?: string }).choiceForgeRelativePath = path;
+      files.push(file);
+    } else {
+      files.push(...await collectDirectoryFiles(entry, path));
+    }
+  }
+  return files;
 }
 
 function isAbortError(error: unknown): boolean {
