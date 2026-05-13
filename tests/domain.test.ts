@@ -44,6 +44,19 @@ test("imports inline if branch bodies as branch targets", () => {
   assert.equal(graph.edges.filter((edge) => edge.from === condition.id && ["if", "else"].includes(edge.kind)).length, 2);
 });
 
+test("imports top-level set commands as set nodes", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*set courage + 5",
+    "*finish",
+  ].join("\n"));
+  const setNode = graph.nodes.find((node) => node.type === "set");
+
+  assert.ok(setNode);
+  assert.equal(setNode.title, "*set courage");
+  assert.deepEqual(setNode.sets, [{ var: "courage", op: "+", val: "5" }]);
+  assert.equal(graph.edges.find((edge) => edge.from === setNode.id)?.kind, "flow");
+});
+
 test("imports ChoiceScript archives with startup metadata", () => {
   const project = importChoiceScriptArchive([
     textEntry("mygame/startup.txt", [

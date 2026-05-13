@@ -589,7 +589,7 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   }
   if (command === "set") {
     const parsed = parseSet(value);
-    return parsed ? { type: "passage", title: `set_${parsed.var}`, sets: [parsed] } : null;
+    return parsed ? { type: "set", title: `*set ${parsed.var}`, sets: [parsed] } : null;
   }
   return null;
 }
