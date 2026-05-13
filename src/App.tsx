@@ -268,6 +268,11 @@ export default function App() {
             targetLine={generatedDocumentLine}
             sourcePreserved={generatedDocumentId === "scene" && currentSceneSourcePreserved}
             onConvertSource={confirmVisualConversion}
+            onClose={() => {
+              setGeneratedDocumentId(null);
+              setGeneratedDocumentLine(null);
+              setSelectedId("n1");
+            }}
             onSave={(content) => {
               if (generatedDocumentId === "startup") {
                 actions.replaceStartupText(content);
