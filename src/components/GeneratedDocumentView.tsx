@@ -51,6 +51,16 @@ export function GeneratedDocumentView({ title, path, description, content, edita
     return () => window.removeEventListener("keydown", keyDown);
   }, [dirty, onClose]);
 
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+
   return (
     <section className="generated-doc">
       <div className="generated-doc-header">
