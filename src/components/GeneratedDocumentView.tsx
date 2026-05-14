@@ -40,6 +40,17 @@ export function GeneratedDocumentView({ title, path, description, content, edita
     onClose?.();
   };
 
+  useEffect(() => {
+    if (!onClose) return;
+    const keyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeDocument();
+    };
+    window.addEventListener("keydown", keyDown);
+    return () => window.removeEventListener("keydown", keyDown);
+  }, [dirty, onClose]);
+
   return (
     <section className="generated-doc">
       <div className="generated-doc-header">
