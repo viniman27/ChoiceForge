@@ -1061,6 +1061,22 @@ test("lints malformed asset data urls", () => {
   assert.ok(errors.some((message) => message.includes("asset \"bad_uri\" has invalid URL-encoded data")));
 });
 
+test("lints asset export path collisions", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "startup_asset", path: "startup.txt", kind: "data" as const, desc: "Startup collision", dataUrl: "data:text/plain;base64,SGVsbG8=" },
+      { id: "scene_asset", path: "intro.txt", kind: "data" as const, desc: "Scene collision", dataUrl: "data:text/plain;base64,SGVsbG8=" },
+      { id: "stats_asset", path: "choicescript_stats.txt", kind: "data" as const, desc: "Stats collision", dataUrl: "data:text/plain;base64,SGVsbG8=" },
+    ],
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("asset \"startup_asset\" export path conflicts with a generated file: startup.txt")));
+  assert.ok(errors.some((message) => message.includes("asset \"scene_asset\" export path conflicts with a generated file: intro.txt")));
+  assert.ok(errors.some((message) => message.includes("asset \"stats_asset\" export path conflicts with a generated file: choicescript_stats.txt")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [

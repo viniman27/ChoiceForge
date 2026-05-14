@@ -267,6 +267,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   if (!project.title.trim()) issues.push({ level: "error", msg: "project has an empty title", scene: null });
   if (!project.author.trim()) issues.push({ level: "error", msg: "project has an empty author", scene: null });
+  const generatedExportPaths = generatedChoiceScriptExportPaths(project);
 
   findDuplicates(project.scenes.map((scene) => scene.name))
     .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, scene: null }));
@@ -318,6 +319,9 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (asset.path.trim() && !isSafeAssetPath(asset.path)) {
       issues.push({ level: "error", msg: `asset "${asset.id}" has an unsafe export path: ${asset.path}`, scene: null });
     }
+    if (asset.dataUrl && generatedExportPaths.has(`mygame/${asset.path}`)) {
+      issues.push({ level: "error", msg: `asset "${asset.id}" export path conflicts with a generated file: ${asset.path}`, scene: null });
+    }
     const dataUrlIssue = asset.dataUrl ? assetDataUrlIssue(asset.dataUrl) : null;
     if (dataUrlIssue) {
       issues.push({ level: "error", msg: `asset "${asset.id}" has ${dataUrlIssue}`, scene: null });
@@ -341,6 +345,16 @@ function isSafeAssetPath(path: string): boolean {
   if (!normalized || normalized.includes("\\")) return false;
   if (normalized.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(normalized)) return false;
   return normalized.split("/").every((part) => part && part !== "." && part !== "..");
+}
+
+function generatedChoiceScriptExportPaths(project: ChoiceForgeProject): Set<string> {
+  return new Set([
+    "mygame/startup.txt",
+    "mygame/choicescript_stats.txt",
+    ...project.scenes
+      .filter((scene) => !scene.special && !scene.isStart && scene.name !== "startup")
+      .map((scene) => `mygame/${scene.name}.txt`),
+  ]);
 }
 
 function assetDataUrlIssue(dataUrl: string): string | null {
