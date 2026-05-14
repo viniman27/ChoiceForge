@@ -20,6 +20,8 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   input_text: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_text" },
   input_number: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*input_number" },
   rand: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*rand" },
+  gosub_scene: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*gosub_scene" },
+  image: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "*image" },
 };
 
 export function NodeIcon({ type }: { type: NodeType }) {
@@ -51,6 +53,8 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "input_text") return <svg {...common}><path d="M2 3h8M4 3v6M2 9h4" /></svg>;
   if (type === "input_number") return <svg {...common}><path d="M3 3h6M5 3v6M3 9h6M8 5v4" /></svg>;
   if (type === "rand") return <svg {...common}><path d="M3 3h6v6H3z" /><path d="M5 5h.01M7 7h.01M7 5h.01M5 7h.01" /></svg>;
+  if (type === "gosub_scene") return <svg {...common}><path d="M2 6h6M7 3l3 3-3 3M2 3v6" /></svg>;
+  if (type === "image") return <svg {...common}><path d="M2 2h8v8H2z" /><path d="M2 8l2-3 2 2 1-1 3 2" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
 }
 
@@ -159,7 +163,8 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
       )}
 
       {isRich && node.sets && <div className="node-sets">{node.sets.map((set, index) => <VarDelta key={`${set.var}-${index}`} set={set} />)}</div>}
-      {isRich && node.target && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
+      {isRich && node.target && node.type !== "image" && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
+      {isRich && node.type === "image" && node.target && <div className="node-target"><code>{node.target}</code></div>}
       {isRich && node.inputVar && <div className="node-target">-&gt; <code>{node.inputVar}</code></div>}
       <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
       <div className="anchor anchor-out no-drag" title={labels.dragToConnect} onPointerDown={(event) => onConnectStart(event, node.id)} />

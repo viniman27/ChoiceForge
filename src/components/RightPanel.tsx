@@ -194,7 +194,24 @@ function ContentTab({
     return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
-  if (["label", "goto", "goto_scene", "gosub", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
+  if (node.type === "image") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">filename</label>
+        <input className="command-input" value={node.target ?? ""} placeholder="image.jpg" onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })} />
+        <label className="ip-label">alignment</label>
+        <select className="command-input" value={node.inputMin ?? "none"} onChange={(event) => onUpdateNode(node.id, { inputMin: event.target.value })}>
+          <option value="none">none</option>
+          <option value="left">left</option>
+          <option value="right">right</option>
+        </select>
+        <label className="ip-label">alt text</label>
+        <input className="command-input" value={node.prompt ?? ""} onChange={(event) => onUpdateNode(node.id, { prompt: event.target.value })} />
+      </div>
+    );
+  }
+
+  if (["label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
@@ -283,6 +300,25 @@ function CommandNodeFields({
         >
           {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
         </select>
+      </div>
+    );
+  }
+
+  if (node.type === "gosub_scene") {
+    const currentScene = node.target ?? "";
+    const currentLabel = node.body?.trim() ?? "";
+    return (
+      <div className="ip-content">
+        <label className="ip-label">target scene</label>
+        <select
+          className="command-input"
+          value={currentScene}
+          onChange={(event) => onUpdateNode(node.id, { title: `*gosub_scene ${event.target.value}`, target: event.target.value })}
+        >
+          {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
+        </select>
+        <label className="ip-label">entry label (optional)</label>
+        <input className="command-input" value={currentLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
       </div>
     );
   }

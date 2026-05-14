@@ -22,7 +22,9 @@ export type NodeType =
   | "comment"
   | "input_text"
   | "input_number"
-  | "rand";
+  | "rand"
+  | "gosub_scene"
+  | "image";
 
 export interface SceneSummary {
   id: string;

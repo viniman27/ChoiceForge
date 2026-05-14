@@ -329,6 +329,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 3
+- **Implemented `*gosub_scene` and `*image` NodeTypes** (closes gap #3 from session 1).
+  - `src/domain/types.ts`: added `"gosub_scene" | "image"` to the `NodeType` union.
+  - `src/domain/choicescript.ts`:
+    - Code generation: `*gosub_scene {target}[ {label}]` and `*image {file} {alignment}[ {alt}]`.
+    - Linting: `gosub_scene` validates scene target exists and warns if no flow continuation; `image` warns if filename is empty.
+  - `src/state/projectStore.ts`: `defaultNodeTitle`, `defaultNodeWidth` (280px each), and `createStoryNode` with correct default fields.
+    - `gosub_scene`: `target` = scene name, `body` = optional entry label.
+    - `image`: `target` = filename, `inputMin` = alignment (default "none"), `prompt` = alt text.
+  - `src/components/NodeCard.tsx`: colors (`gosub` palette for `gosub_scene`; `passage` palette for `image`), SVG icons for both, and fixed `node.target` rich display (no spurious `.txt` on image nodes).
+  - `src/components/RightPanel.tsx`: inspector panels for both types — scene dropdown + optional label input for `gosub_scene`; filename + alignment select + alt text input for `image`.
+  - `src/components/Dashboard.tsx`: added color entries to the node-type summary chart.
+  - `src/data/sampleProject.ts`: PT (`subrotina de cena`, `imagem`) and EN (`gosub scene`, `image`) labels.
+  - `src/components/GraphCanvas.tsx`: added both to `creatableNodeTypes`.
+  - Build: clean (zero TS errors). Tests: 58/58 pass.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 2
 - **Implemented inline CodeMirror editor for node body fields** (closes gap #1 from session 1).
   - Created `src/components/NodeBodyEditor.tsx`: compact CM editor (no line numbers, no gutter, word-wrap, spellcheck, history, ChoiceScript highlighting).
@@ -345,7 +361,7 @@ When you see something in the spec that sounds implemented but isn't in the code
 - **Gap assessment for project completion (priority order):**
   1. ~~**Inline CodeMirror in node body fields**~~ — **Done (session 2).** `NodeBodyEditor.tsx` replaces the plain textareas in `RightPanel.tsx` for passage body, comment body, and input prompt.
   2. **Official ChoiceScript runtime play-test** — Internal playtest exists but uses graph traversal, not the real engine. The official CS runtime (MIT) could be bundled and given the exported zip files to run in a sandboxed iframe.
-  3. **Missing NodeTypes from spec** — `*gosub_scene` (cross-scene subroutines) and `*image` (with alignment/alt text) are in the spec but not in `NodeType`. Low risk to add following the "Adding a New Node Type" checklist in this file.
+  3. ~~**Missing NodeTypes from spec**~~ — **Done (session 3).** `*gosub_scene` and `*image` fully implemented across types, codegen, linter, inspector, NodeCard, Dashboard, and i18n.
   4. **Test coverage** — 58 tests cover domain/import/generator well. No component-level tests yet (no Vitest/Playwright).
   5. **Tauri/desktop packaging** — Nice-to-have; the web app on Cloudflare Pages serves the use case.
   6. **Spanish i18n** — The i18n system (`I18nLabels`) supports it; just needs a third locale object.
