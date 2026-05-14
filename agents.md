@@ -13,9 +13,9 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ## Current Implementation Status
 
 ### Done
-- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements
+- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements (22 NodeTypes including `temp`)
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
-- Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, duplicate exported asset files, malformed asset data URLs, asset export path collisions, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
+- Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, duplicate exported asset files, malformed asset data URLs, asset export path collisions, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, scene reachability (`lintSceneReachability` warns when scenes have no incoming connections), temp variable shadowing, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
 - Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
 - Per-scene graph persistence via `sceneData` — each scene has independent nodes/edges
 - Scene CRUD: create, rename (with cross-reference updates), duplicate, delete, reorder
@@ -328,6 +328,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 9
+- **Added `*temp` node type for scene-local variable declarations.**
+  - `src/domain/types.ts`: added `"temp"` to the `NodeType` union (22 types total).
+  - `src/domain/choicescript.ts`:
+    - Code generation: `*temp {inputVar} {body}` — body is the initial value (defaults to `"0"` if empty). Excluded `temp` from the generic body narrative push (same treatment as `comment`).
+    - `lintSceneGraph`: collects `inputVar` from all `temp` nodes as scene-local variables before linting, preventing false "uses an undeclared variable" warnings. Validates `inputVar` is a valid CS identifier; warns if it shadows a global variable; warns if no initial value is provided.
+  - `src/domain/choicescriptImport.ts`: `simpleCommandNode` parses `*temp var value` into a `temp` node with `inputVar` and `body`; added `"*temp "` to `isChoiceForgeBodyStop`; added to 280px width group; `updateChoiceForgeCommandNode` round-trips `temp` nodes on re-import.
+  - `src/state/projectStore.ts`: `defaultNodeTitle` → `"*temp"`, `defaultNodeWidth` → 280px, `createStoryNode` → default `inputVar: "temp_var"` + `body: "0"`.
+  - `src/components/NodeCard.tsx`: `typeColors` entry (shares `c-set` color); `NodeIcon` SVG (set-like icon with small circle suffix marker).
+  - `src/components/RightPanel.tsx`: inspector panel for `temp` — variable name input (auto-normalizes identifier) + initial value input + hint note about scene-local scope.
+  - `src/components/PlaytestView.tsx`: auto-advances like `set`/`rand` — parses the initial value string to boolean/number/string and stores it in the stats map, then follows the flow edge.
+  - `src/components/Dashboard.tsx`: `colors` map in `summarizeNodeTypes` updated to include `temp` (uses `c-set` color).
+  - `src/data/sampleProject.ts`: added `temp` label in PT (`variavel local`), EN (`temp variable`), ES (`variable local`).
+  - `styles.css`: added `.ip-hint` style for the small inspector hint paragraph.
+  - `tests/domain.test.ts`: 6 new tests (78 total, all pass): code generation, string initial value, empty identifier error, global variable shadow warning, no false undeclared-variable warnings, import round-trip.
 
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 8
 - **Implemented scene reachability linting and achievement usage tracking.**

@@ -194,6 +194,32 @@ function ContentTab({
     return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
   }
 
+  if (node.type === "temp") {
+    const varName = node.inputVar?.trim() ?? "";
+    return (
+      <div className="ip-content">
+        <label className="ip-label">variable name</label>
+        <input
+          className="command-input"
+          value={varName}
+          placeholder="temp_var"
+          onChange={(event) => {
+            const name = normalizeIdentifier(event.target.value);
+            onUpdateNode(node.id, { inputVar: name, title: `*temp ${name}`.trimEnd() });
+          }}
+        />
+        <label className="ip-label">initial value</label>
+        <input
+          className="command-input"
+          value={node.body ?? ""}
+          placeholder="0"
+          onChange={(event) => onUpdateNode(node.id, { body: event.target.value })}
+        />
+        <p className="ip-hint">Scene-local variable — not declared in startup.txt. Valid in this scene only.</p>
+      </div>
+    );
+  }
+
   if (node.type === "image") {
     return (
       <div className="ip-content">

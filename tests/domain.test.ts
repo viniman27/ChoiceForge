@@ -1632,6 +1632,103 @@ test("computeAchievementUses counts *achieve in preserved source text", () => {
   assert.equal(uses.get("ghost"), 1);
 });
 
+test("generates *temp command with variable name and initial value", () => {
+  const node: StoryNode = { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp score", inputVar: "score", body: "0" };
+  assert.equal(generateNodeChoiceScript(node), "*label cf_n1\n*temp score 0");
+});
+
+test("generates *temp command with string initial value", () => {
+  const node: StoryNode = { id: "n2", type: "temp", x: 0, y: 0, w: 280, title: "*temp greeting", inputVar: "greeting", body: "Hello there" };
+  assert.equal(generateNodeChoiceScript(node), "*label cf_n2\n*temp greeting Hello there");
+});
+
+test("lints temp node with empty variable name as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp", inputVar: "", body: "0" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp", inputVar: "", body: "0" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const errors = issues.filter((issue) => issue.level === "error").map((issue) => issue.msg);
+  assert.ok(errors.some((message) => message.includes("*temp has an invalid variable identifier")));
+});
+
+test("lints temp node that shadows a global variable as warning", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "health", type: "number", initial: "100", fairmath: false, desc: "" }],
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp health", inputVar: "health", body: "0" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp health", inputVar: "health", body: "0" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+  assert.ok(warnings.some((message) => message.includes("*temp shadows a global variable: health")));
+});
+
+test("temp variable does not cause false undeclared-variable warnings", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp local_score", inputVar: "local_score", body: "0" },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "passage", body: "Your score is ${local_score}." },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp local_score", inputVar: "local_score", body: "0" },
+          { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "passage", body: "Your score is ${local_score}." },
+          { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+        ],
+        edges: [
+          { from: "n1", to: "n2", kind: "flow" },
+          { from: "n2", to: "n3", kind: "flow" },
+        ],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+  assert.ok(!warnings.some((message) => message.includes("local_score")));
+});
+
+test("imports *temp lines as temp nodes with variable name and initial value", () => {
+  const graph = importChoiceScriptSceneText("intro", [
+    "*label cf_n1",
+    "*temp score 0",
+    "*goto cf_n2",
+    "*label cf_n2",
+    "*finish",
+  ].join("\n"));
+  const tempNode = graph.nodes.find((node) => node.type === "temp");
+  assert.ok(tempNode, "temp node should be imported");
+  assert.equal(tempNode?.inputVar, "score");
+  assert.equal(tempNode?.body, "0");
+  assert.equal(tempNode?.w, 280);
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

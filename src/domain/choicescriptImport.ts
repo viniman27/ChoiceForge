@@ -530,6 +530,13 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
     const [filename = "", alignment = "none", ...altParts] = value.split(/\s+/);
     return { ...node, title: `*image ${filename}`.trim(), target: filename, inputMin: alignment, prompt: altParts.join(" ").trim() || undefined };
   }
+  if (node.type === "temp" && name === "temp") {
+    const value = commandValue(command, "*temp");
+    const [rawVar = "", ...restParts] = value.trim().split(/\s+/);
+    const inputVar = normalizeIdentifier(rawVar || "temp_var");
+    const body = restParts.join(" ").trim() || undefined;
+    return { ...node, title: `*temp ${inputVar}`, inputVar, body };
+  }
   return node;
 }
 
@@ -553,7 +560,7 @@ function parseChoiceForgeBody(section: string[]): string {
 function isChoiceForgeBodyStop(trimmed: string): boolean {
   if (!trimmed.startsWith("*")) return false;
   if (isChoiceForgeFlowGoto(trimmed)) return true;
-  return ["*set ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image "].some((prefix) => trimmed.startsWith(prefix));
+  return ["*set ", "*temp ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image "].some((prefix) => trimmed.startsWith(prefix));
 }
 
 function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
@@ -653,6 +660,12 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   if (command === "rand") {
     const [inputVar = "number", inputMin = "1", inputMax = "100"] = value.split(/\s+/);
     return { type: "rand", title: `*rand ${normalizeIdentifier(inputVar)}`, inputVar: normalizeIdentifier(inputVar), inputMin, inputMax };
+  }
+  if (command === "temp") {
+    const [rawVar = "", ...restParts] = value.trim().split(/\s+/);
+    const inputVar = normalizeIdentifier(rawVar || "temp_var");
+    const initial = restParts.join(" ").trim();
+    return { type: "temp", title: `*temp ${inputVar}`, inputVar, body: initial || undefined };
   }
   if (command === "gosub_scene") {
     const [scenePart = "scene", labelPart] = value.trim().split(/\s+/);
@@ -1213,7 +1226,7 @@ function normalizeExpressionIdentifiers(expression: string): string {
 
 function defaultImportedWidth(type: NodeType): number {
   if (type === "passage") return 340;
-  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image"].includes(type)) return 280;
+  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image", "temp"].includes(type)) return 280;
   return 240;
 }
 
