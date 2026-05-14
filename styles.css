@@ -726,6 +726,23 @@ input, select, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-mute);
   line-height: 1.45;
 }
+.generated-doc-dirty {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 7px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-1);
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  text-transform: lowercase;
+}
+.generated-doc-dirty.is-dirty {
+  border-color: color-mix(in oklch, var(--warn) 45%, var(--paper-edge));
+  background: color-mix(in oklch, var(--warn) 18%, var(--paper-1));
+  color: oklch(48% 0.14 75);
+}
 .generated-doc-header code {
   flex: 0 0 auto;
   padding: 5px 8px;

@@ -68,6 +68,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           <div className="generated-doc-kicker">{editable ? "editable file" : "generated file"}</div>
           <h1>{title}</h1>
           <p>{description}</p>
+          {editable && <span className={`generated-doc-dirty ${dirty ? "is-dirty" : ""}`}>{dirty ? "unsaved changes" : "no local changes"}</span>}
         </div>
         <div className="generated-doc-actions">
           <code>{path}</code>
