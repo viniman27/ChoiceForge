@@ -316,7 +316,13 @@ const en: ChoiceForgeProject = {
   sceneSubtitle: `intro.txt - ${graphWords(intro)} words`,
 };
 
-export const sampleProjects: Record<Language, ChoiceForgeProject> = { pt, en };
+const es: ChoiceForgeProject = {
+  ...pt,
+  title: "Faro_de_Bruma",
+  sceneSubtitle: `intro.txt - ${graphWords(intro)} palabras`,
+};
+
+export const sampleProjects: Record<Language, ChoiceForgeProject> = { pt, en, es };
 
 export const i18n: Record<Language, I18nLabels> = {
   pt: {
@@ -434,5 +440,63 @@ export const i18n: Record<Language, I18nLabels> = {
     },
     inspectorTabs: ["Content", "Logic", "Raw code"],
     leftTabs: ["Scenes", "Variables", "Achievements", "Media"],
+  },
+  es: {
+    scenes: "Escenas",
+    variables: "Variables",
+    achievements: "Logros",
+    assets: "Medios",
+    search: "Buscar...",
+    inspector: "Inspector",
+    play: "Jugar",
+    export: "Exportar",
+    autosave: "autoguardado local activo",
+    addScene: "Nueva escena",
+    addVar: "Nueva variable",
+    addAch: "Nuevo logro",
+    addNode: "nuevo nodo",
+    deleteSelected: "eliminar selección",
+    autoLayout: "auto diseño",
+    connectHere: "soltar conexión aquí",
+    dragToConnect: "arrastrar para conectar",
+    fitView: "ajustar",
+    minimap: "minimapa",
+    textMode: "Modo texto",
+    nodes: "nodos",
+    words: "palabras",
+    errors: "errores",
+    warnings: "advertencias",
+    consoleTitle: "Consola",
+    bodyLabel: "narrativa",
+    choiceLabel: "elección mostrada al jugador",
+    addOption: "+ agregar opción",
+    linterPasses: "linter ok",
+    indentRule: "sangría: espacios (2)",
+    encoding: "UTF-8",
+    nodeTypes: {
+      passage: "pasaje",
+      choice: "elección",
+      fake_choice: "elección falsa",
+      if: "condicional",
+      set: "asignación",
+      label: "etiqueta",
+      goto: "salto",
+      goto_scene: "saltar escena",
+      gosub: "subrutina",
+      return: "retornar",
+      ending: "fin",
+      finish: "finalizar escena",
+      checkpoint: "punto de control",
+      restore_checkpoint: "restaurar punto de control",
+      page_break: "salto de página",
+      comment: "comentario",
+      input_text: "entrada de texto",
+      input_number: "entrada numérica",
+      rand: "aleatorio",
+      gosub_scene: "subrutina de escena",
+      image: "imagen",
+    },
+    inspectorTabs: ["Contenido", "Lógica", "Código fuente"],
+    leftTabs: ["Escenas", "Variables", "Logros", "Medios"],
   },
 };

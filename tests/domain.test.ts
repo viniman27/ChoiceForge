@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sampleProjects } from "../src/data/sampleProject.ts";
-import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { createExportPackage, generateNodeChoiceScript, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { layoutProjectGraphs } from "../src/domain/graphLayout.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
-import type { ChoiceForgeProject, SceneGraph } from "../src/domain/types.ts";
+import type { ChoiceForgeProject, SceneGraph, StoryNode } from "../src/domain/types.ts";
 
 test("imports inline choice option bodies as choice targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
@@ -1333,6 +1333,73 @@ test("exports project metadata, scene files, and binary assets", () => {
   assert.ok(paths.includes("mygame/images/logo.txt"));
   assert.equal(exported.files.find((file) => file.path === "mygame/images/logo.txt")?.encoding, "binary");
   assert.deepEqual([...exported.files.find((file) => file.path === "mygame/images/logo.txt")?.content as Uint8Array], [72, 101, 108, 108, 111]);
+});
+
+test("generates *gosub_scene command with optional entry label", () => {
+  const base: StoryNode = { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene chapter_two", target: "chapter_two" };
+  const withLabel: StoryNode = { ...base, body: "subroutine_start" };
+
+  assert.match(generateNodeChoiceScript(base), /\*gosub_scene chapter_two\b/);
+  assert.ok(!generateNodeChoiceScript(base).includes("undefined"));
+  assert.match(generateNodeChoiceScript(withLabel), /\*gosub_scene chapter_two subroutine_start/);
+});
+
+test("generates *image command with alignment and optional alt text", () => {
+  const noAlt: StoryNode = { id: "n1", type: "image", x: 0, y: 0, w: 280, title: "*image", target: "lighthouse.jpg", inputMin: "left" };
+  const withAlt: StoryNode = { id: "n2", type: "image", x: 0, y: 0, w: 280, title: "*image", target: "coast.jpg", inputMin: "none", prompt: "Coastal view" };
+  const emptyFile: StoryNode = { id: "n3", type: "image", x: 0, y: 0, w: 280, title: "*image", target: "", inputMin: "none" };
+
+  assert.match(generateNodeChoiceScript(noAlt), /\*image lighthouse\.jpg left/);
+  assert.match(generateNodeChoiceScript(withAlt), /\*image coast\.jpg none Coastal view/);
+  assert.ok(!generateNodeChoiceScript(emptyFile).includes("*image"));
+});
+
+test("lints gosub_scene nodes with missing and invalid scene targets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene", target: "" },
+      { id: "n2", type: "gosub_scene", x: 0, y: 160, w: 280, title: "*gosub_scene Bad Scene", target: "Bad Scene" },
+      { id: "n3", type: "gosub_scene", x: 0, y: 320, w: 280, title: "*gosub_scene missing_scene", target: "missing_scene" },
+      { id: "n4", type: "finish", x: 0, y: 480, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n4", kind: "flow" },
+      { from: "n2", to: "n4", kind: "flow" },
+      { from: "n3", to: "n4", kind: "flow" },
+    ],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*gosub_scene needs a scene target")));
+  assert.ok(errors.some((message) => message.includes("*gosub_scene has an invalid scene identifier")));
+  assert.ok(errors.some((message) => message.includes("*gosub_scene points to a missing scene")));
+});
+
+test("warns about gosub_scene nodes without flow continuation", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene intro", target: "intro" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("no flow continuation")));
+});
+
+test("warns about image nodes with missing filename", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 280, title: "*image", target: "", inputMin: "none" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
 });
 
 function minimalProject(): ChoiceForgeProject {
