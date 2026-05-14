@@ -35,6 +35,10 @@ export function GeneratedDocumentView({ title, path, description, content, edita
       setSaveStatus(error instanceof Error ? error.message : "Could not save changes.");
     }
   };
+  const closeDocument = () => {
+    if (dirty && !window.confirm("Discard unsaved text changes?")) return;
+    onClose?.();
+  };
 
   return (
     <section className="generated-doc">
@@ -47,7 +51,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
         <div className="generated-doc-actions">
           <code>{path}</code>
           {onClose && (
-            <button className="ghost-btn" onClick={onClose}>
+            <button className="ghost-btn" onClick={closeDocument}>
               Close
             </button>
           )}
