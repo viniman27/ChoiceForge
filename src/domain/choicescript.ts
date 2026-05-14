@@ -54,6 +54,15 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     });
   }
 
+  if (node.type === "gosub_scene" && node.target) {
+    const label = node.body?.trim();
+    lines.push(label ? `*gosub_scene ${node.target} ${label}` : `*gosub_scene ${node.target}`);
+  }
+  if (node.type === "image" && node.target?.trim()) {
+    const alignment = node.inputMin?.trim() || "none";
+    const alt = node.prompt?.trim();
+    lines.push(alt ? `*image ${node.target} ${alignment} ${alt}` : `*image ${node.target} ${alignment}`);
+  }
   if (node.type === "goto_scene" && node.target) lines.push(`*goto_scene ${node.target}`);
   if (node.type === "goto") lines.push(`*goto ${stripCommandPrefix(node.title, "*goto")}`);
   if (node.type === "gosub") lines.push(stripCommandPrefix(node.title, "*gosub").startsWith("*") ? node.title : `*gosub ${stripCommandPrefix(node.title, "*gosub")}`);
@@ -446,6 +455,24 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!scenes.has(target)) {
         issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
       }
+    }
+
+    if (node.type === "gosub_scene") {
+      const target = node.target?.trim() ?? "";
+      if (!target) {
+        issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, node: node.id });
+      } else if (!isValidChoiceScriptIdentifier(target)) {
+        issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
+      } else if (!scenes.has(target)) {
+        issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
+      }
+      if ((flowOutgoing.get(node.id) ?? 0) === 0) {
+        issues.push({ level: "warning", msg: "*gosub_scene has no flow continuation for the return", scene: sceneName, node: node.id });
+      }
+    }
+
+    if (node.type === "image" && !node.target?.trim()) {
+      issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
     }
 
     if (node.type === "goto") {

@@ -21,7 +21,7 @@ interface GraphCanvasProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "return", "input_text", "input_number", "rand", "page_break", "checkpoint", "restore_checkpoint", "comment", "finish", "ending"];
+const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "input_text", "input_number", "rand", "image", "page_break", "checkpoint", "restore_checkpoint", "comment", "finish", "ending"];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
