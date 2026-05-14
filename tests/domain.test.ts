@@ -310,6 +310,7 @@ test("lints preserved source without graph approximation false positives", () =>
       "*gosub bad-name",
       "*save_checkpoint safe",
       "*restore_checkpoint missing",
+      "*page_break",
       "*params frag",
       "*if frag",
       "  *input_text frag",
@@ -334,6 +335,7 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 26 && issue.msg.includes("*goto needs a label target")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*page_break needs a button label")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));

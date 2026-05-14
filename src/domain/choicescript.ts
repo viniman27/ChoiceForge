@@ -475,6 +475,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "restore_checkpoint") {
       restoredCheckpoints.push({ slot: sourceCommandValue(trimmed, "*restore_checkpoint"), line: lineNumber });
     }
+    if (command === "page_break" && !sourceCommandValue(trimmed, "*page_break")) {
+      issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, line: lineNumber });
+    }
     if (command === "set") {
       lintPreservedSetLine(variables, variableTypes, trimmed, sceneName, lineNumber, issues);
     }
