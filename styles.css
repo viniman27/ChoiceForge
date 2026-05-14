@@ -527,6 +527,21 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .var-edit.small { min-width: 42px; }
 .var-edit.desc { font-family: var(--ff-ui); min-width: 90px; }
+.var-uses {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 5px;
+  border-radius: var(--r-1);
+  background: var(--c-set-tint);
+  color: var(--c-set);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  text-align: center;
+}
+.var-uses.is-zero {
+  background: color-mix(in oklch, var(--warn) 20%, var(--paper-2));
+  color: var(--warn);
+}
 .type-pill { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; line-height: 18px; font-family: var(--ff-mono); font-size: 11px; font-weight: 600; }
 .type-pill.type-string { background: var(--c-passage-tint); color: var(--c-passage); }
 .type-pill.type-number { background: var(--c-set-tint); color: var(--c-set); }

@@ -262,6 +262,9 @@
 .kpi-card[data-accent="2"] { border-left: 3px solid var(--accent-2); }
 .kpi-card[data-accent="3"] { border-left: 3px solid var(--accent-3); }
 .kpi-card[data-accent="4"] { border-left: 3px solid var(--c-set); }
+.kpi-card[data-accent="warn"] { border-left: 3px solid var(--warn); }
+.kpi-card[data-accent="warn"] .kpi-value { color: var(--warn); }
+.kpi-card[data-accent="ok"] { border-left: 3px solid var(--c-gosub); }
 
 .dash-card {
   background: var(--paper-2); border: 1px solid var(--paper-edge);

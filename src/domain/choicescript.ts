@@ -1,4 +1,4 @@
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet } from "./types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"]);
 
@@ -1371,4 +1371,61 @@ function normalizeSourceExpressionIdentifiers(expression: string): string {
 
 function normalizeSourceIdentifier(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+export function computeVariableUses(project: ChoiceForgeProject): Map<string, number> {
+  const counts = new Map(project.variables.map((variable) => [variable.name, 0]));
+  const names = new Set(project.variables.map((variable) => variable.name));
+
+  const tally = (name: string) => {
+    if (names.has(name)) counts.set(name, (counts.get(name) ?? 0) + 1);
+  };
+
+  const scanNode = (node: StoryNode) => {
+    node.sets?.forEach((set) => tally(set.var));
+    if (node.inputVar) tally(node.inputVar);
+    extractVariableReferences(node.body ?? "").forEach(tally);
+    extractVariableReferences(node.prompt ?? "").forEach(tally);
+    node.options?.forEach((option) => {
+      option.sets?.forEach((set) => tally(set.var));
+      if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
+    });
+    node.fakeOptions?.forEach((option) => {
+      option.sets?.forEach((set) => tally(set.var));
+      if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
+    });
+    node.branches?.forEach((branch) => {
+      branch.sets?.forEach((set) => tally(set.var));
+      if (branch.expr) extractExpressionNames(branch.expr).forEach(tally);
+    });
+  };
+
+  const scanSource = (text: string) => {
+    text.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      extractVariableReferences(trimmed).forEach(tally);
+      const command = sourceCommand(trimmed);
+      if (command === "set") {
+        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
+        if (varName) tally(varName);
+      }
+      if (command === "if" || command === "elseif") {
+        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach(tally);
+      }
+      if (command === "input_text" || command === "input_number" || command === "rand") {
+        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
+        if (varName) tally(varName);
+      }
+    });
+  };
+
+  const graphs = project.sceneData ? Object.values(project.sceneData) : [{ nodes: project.nodes, edges: project.edges }];
+  graphs.forEach((graph) => {
+    graph.nodes.forEach(scanNode);
+    if (graph.sourceText) scanSource(graph.sourceText);
+  });
+  if (project.startupSource) scanSource(project.startupSource);
+  if (project.statsSource) scanSource(project.statsSource);
+
+  return counts;
 }
