@@ -12,6 +12,7 @@ interface GraphCanvasProps {
   onLayoutNodes: () => void;
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
+  onDuplicateNode: (id: string) => void;
   onDeleteNode: (id: string) => void;
   sourcePreserved?: boolean;
   onConvertSource?: () => void;
@@ -26,7 +27,7 @@ const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDeleteNode, sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNode, sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -53,6 +54,12 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       if (event.code === "Space" && !event.repeat) setSpace(true);
       if (isTypingTarget(event.target)) return;
       if (event.key === "Escape") setSelectedId(null);
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d" && selectedId) {
+        event.preventDefault();
+        if (sourcePreserved) return;
+        onDuplicateNode(selectedId);
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
         event.preventDefault();
         if (sourcePreserved) return;
@@ -69,7 +76,7 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
     };
-  }, [onDeleteNode, selectedId, setSelectedId, sourcePreserved]);
+  }, [onDeleteNode, onDuplicateNode, selectedId, setSelectedId, sourcePreserved]);
 
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
@@ -181,6 +188,14 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             <span>{typeColors[type].label}</span>
           </button>
         ))}
+        <button
+          className="canvas-tool"
+          disabled={!selectedId || sourcePreserved}
+          onClick={() => selectedId && onDuplicateNode(selectedId)}
+          title="Ctrl+D"
+        >
+          dup
+        </button>
         <button
           className="canvas-tool danger"
           disabled={!selectedId || sourcePreserved}

@@ -537,6 +537,11 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
     const body = restParts.join(" ").trim() || undefined;
     return { ...node, title: `*temp ${inputVar}`, inputVar, body };
   }
+  if (node.type === "params" && name === "params") {
+    const names = commandValue(command, "*params").trim().split(/\s+/).filter(Boolean).map(normalizeIdentifier);
+    const body = names.join(" ");
+    return { ...node, title: `*params${body ? ` ${body}` : ""}`, body: body || undefined };
+  }
   return node;
 }
 
@@ -560,7 +565,7 @@ function parseChoiceForgeBody(section: string[]): string {
 function isChoiceForgeBodyStop(trimmed: string): boolean {
   if (!trimmed.startsWith("*")) return false;
   if (isChoiceForgeFlowGoto(trimmed)) return true;
-  return ["*set ", "*temp ", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image "].some((prefix) => trimmed.startsWith(prefix));
+  return ["*set ", "*temp ", "*params", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image "].some((prefix) => trimmed.startsWith(prefix));
 }
 
 function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
@@ -666,6 +671,11 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
     const inputVar = normalizeIdentifier(rawVar || "temp_var");
     const initial = restParts.join(" ").trim();
     return { type: "temp", title: `*temp ${inputVar}`, inputVar, body: initial || undefined };
+  }
+  if (command === "params") {
+    const names = value.trim().split(/\s+/).filter(Boolean).map(normalizeIdentifier);
+    const body = names.join(" ");
+    return { type: "params", title: `*params${body ? ` ${body}` : ""}`, body: body || undefined, w: 280 };
   }
   if (command === "gosub_scene") {
     const [scenePart = "scene", labelPart] = value.trim().split(/\s+/);
@@ -1226,7 +1236,7 @@ function normalizeExpressionIdentifiers(expression: string): string {
 
 function defaultImportedWidth(type: NodeType): number {
   if (type === "passage") return 340;
-  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image", "temp"].includes(type)) return 280;
+  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image", "temp", "params"].includes(type)) return 280;
   return 240;
 }
 

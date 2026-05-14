@@ -25,7 +25,8 @@ export type NodeType =
   | "rand"
   | "gosub_scene"
   | "image"
-  | "temp";
+  | "temp"
+  | "params";
 
 export interface SceneSummary {
   id: string;

@@ -45,6 +45,7 @@ export interface ProjectActions {
   moveNode: (id: string, x: number, y: number) => void;
   layoutNodes: () => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
+  duplicateNode: (id: string) => string | null;
   deleteNode: (id: string) => void;
   connectNodes: (from: string, to: string) => void;
   addFlowEdge: (from: string, to: string) => void;
@@ -236,6 +237,28 @@ export function useProjectStore() {
           )),
         }));
       });
+    },
+    duplicateNode: (id) => {
+      let newId: string | null = null;
+      setTrackedProjectState((current) => {
+        const node = current.nodes.find((n) => n.id === id);
+        if (!node) return current;
+        const allNodes = current.sceneData ? Object.values(current.sceneData).flatMap((g) => g.nodes) : current.nodes;
+        const maxNum = allNodes.reduce((max, n) => {
+          const match = /^n(\d+)$/.exec(n.id);
+          return match ? Math.max(max, Number(match[1])) : max;
+        }, 0);
+        newId = `n${maxNum + 1}`;
+        const cloned: StoryNode = { ...structuredClone(node), id: newId, x: node.x + 24, y: node.y + node.w + 24 };
+        return commitProject(clearActiveSceneSource({
+          ...current,
+          nodes: [...current.nodes, cloned],
+          scenes: current.scenes.map((scene) => (
+            scene.name === current.sceneTitle ? { ...scene, nodes: scene.nodes + 1 } : scene
+          )),
+        }));
+      });
+      return newId;
     },
     deleteNode: (id) => {
       setTrackedProjectState((current) => {
@@ -1057,6 +1080,7 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "gosub_scene") return { ...base, title: `*gosub_scene ${firstScene(project)}`, target: firstScene(project) };
   if (type === "image") return { ...base, title: "*image", target: "", inputMin: "none", prompt: "" };
   if (type === "temp") return { ...base, title: "*temp temp_var", inputVar: "temp_var", body: "0" };
+  if (type === "params") return { ...base, title: "*params", body: "" };
   return { ...base, title: "*ending" };
 }
 
@@ -1084,6 +1108,7 @@ function defaultNodeTitle(type: NodeType): string {
     gosub_scene: "*gosub_scene",
     image: "*image",
     temp: "*temp",
+    params: "*params",
   };
   return titles[type];
 }
@@ -1091,7 +1116,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice" || type === "fake_choice") return 340;
   if (type === "passage") return 300;
-  if (["checkpoint", "restore_checkpoint", "goto_scene", "gosub_scene", "page_break", "comment", "input_text", "input_number", "rand", "image", "temp"].includes(type)) return 280;
+  if (["checkpoint", "restore_checkpoint", "goto_scene", "gosub_scene", "page_break", "comment", "input_text", "input_number", "rand", "image", "temp", "params"].includes(type)) return 280;
   return 240;
 }
 

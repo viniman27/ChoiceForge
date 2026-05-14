@@ -24,7 +24,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
   lines.push(`*label ${nodeLabel}`);
   if (node.type === "label") lines.push(`*label ${stripCommandPrefix(node.title, "*label")}`);
-  if (node.type !== "comment" && node.type !== "temp" && node.body?.trim()) lines.push(node.body);
+  if (node.type !== "comment" && node.type !== "temp" && node.type !== "params" && node.body?.trim()) lines.push(node.body);
   node.sets?.forEach((set) => lines.push(generateSet(set)));
 
   if (node.type === "choice") {
@@ -83,6 +83,10 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     const varName = node.inputVar ?? stripCommandPrefix(node.title, "*temp");
     const initial = node.body?.trim() ?? "0";
     lines.push(`*temp ${varName} ${initial}`);
+  }
+  if (node.type === "params") {
+    const params = (node.body?.trim() ?? "").split(/\s+/).filter(Boolean);
+    if (params.length) lines.push(`*params ${params.join(" ")}`);
   }
 
   const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
@@ -466,7 +470,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const tempVarNames = new Set(
     graph.nodes.filter((node) => node.type === "temp" && node.inputVar?.trim()).map((node) => node.inputVar!.trim()),
   );
-  const variables = new Set([...project.variables.map((variable) => variable.name), ...tempVarNames]);
+  const paramsVarNames = new Set(
+    graph.nodes.filter((node) => node.type === "params").flatMap((node) => (node.body?.trim() ?? "").split(/\s+/).filter(Boolean)),
+  );
+  const variables = new Set([...project.variables.map((variable) => variable.name), ...tempVarNames, ...paramsVarNames]);
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
@@ -600,6 +607,24 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if (!node.body?.trim()) {
         issues.push({ level: "warning", msg: `*temp "${varName}" has no initial value (defaults to 0)`, scene: sceneName, node: node.id });
       }
+    }
+
+    if (node.type === "params") {
+      const rawParams = (node.body?.trim() ?? "").split(/\s+/).filter(Boolean);
+      if (!rawParams.length) {
+        issues.push({ level: "error", msg: "*params has no parameter names", scene: sceneName, node: node.id });
+      }
+      rawParams.forEach((param) => {
+        if (!isValidChoiceScriptIdentifier(param)) {
+          issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${param}`, scene: sceneName, node: node.id });
+        } else if (project.variables.some((variable) => variable.name === param)) {
+          issues.push({ level: "warning", msg: `*params shadows a global variable: ${param}`, scene: sceneName, node: node.id });
+        }
+      });
+      const duplicateParams = findDuplicates(rawParams);
+      duplicateParams.forEach((param) => {
+        issues.push({ level: "error", msg: `*params has a duplicate parameter name: ${param}`, scene: sceneName, node: node.id });
+      });
     }
   });
 }
