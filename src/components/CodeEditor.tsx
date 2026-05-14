@@ -97,7 +97,7 @@ export function CodeEditor({ value, targetLine = null, onChange, onSave }: CodeE
   return <div ref={hostRef} className="generated-code-editor" />;
 }
 
-const choiceScriptHighlight = StateField.define<DecorationSet>({
+export const choiceScriptHighlight = StateField.define<DecorationSet>({
   create: buildChoiceScriptDecorations,
   update(decorations, transaction) {
     if (!transaction.docChanged) return decorations.map(transaction.changes);
@@ -140,6 +140,9 @@ function buildChoiceScriptDecorations(state: EditorState): DecorationSet {
     }
     for (const variable of text.matchAll(/\$\{[a-zA-Z_][\w]*\}/g)) {
       builder.add(line.from + variable.index, line.from + variable.index + variable[0].length, Decoration.mark({ class: "cm-cs-variable" }));
+    }
+    for (const multi of text.matchAll(/@\{[^}]+\}/g)) {
+      builder.add(line.from + multi.index, line.from + multi.index + multi[0].length, Decoration.mark({ class: "cm-cs-multi" }));
     }
   }
   return builder.finish();

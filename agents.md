@@ -329,12 +329,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
-### 2026-05-14 — Claude Code (claude-sonnet-4-6)
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 2
+- **Implemented inline CodeMirror editor for node body fields** (closes gap #1 from session 1).
+  - Created `src/components/NodeBodyEditor.tsx`: compact CM editor (no line numbers, no gutter, word-wrap, spellcheck, history, ChoiceScript highlighting).
+  - Exported `choiceScriptHighlight` from `CodeEditor.tsx`; added `@{…}` multireplace highlighting (`cm-cs-multi` token) to both the full-file editor and the node body editor.
+  - Replaced plain `<textarea className="narr-editor">` with `<NodeBodyEditor>` in three places in `RightPanel.tsx`: passage body, comment body, input_text/input_number prompt.
+  - `key={node.id}` on each `NodeBodyEditor` ensures fresh undo history when switching nodes.
+  - Added `.node-body-editor` CSS and `.cm-cs-multi` color token to `styles.css`.
+  - Build: clean (zero TS errors). Tests: 58/58 pass.
+
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 1
 - First Claude Code session. Contextualised the full codebase: read agents.md, types.ts, App.tsx, RightPanel.tsx, NodeCard.tsx, domain tests, package.json, and spec.
 - Confirmed 58 tests pass (`npm test`), zero errors.
 - Created `CLAUDE.md` at project root for Claude-specific workflow guidance.
 - **Gap assessment for project completion (priority order):**
-  1. **Inline CodeMirror in node body fields** — passage/comment body textareas in `RightPanel.tsx` are plain `<textarea>`. CodeMirror deps are already installed. Adding syntax highlighting for `${var}`, `@{var|opt}`, and `*command` tokens is the highest-value UX gap remaining.
+  1. ~~**Inline CodeMirror in node body fields**~~ — **Done (session 2).** `NodeBodyEditor.tsx` replaces the plain textareas in `RightPanel.tsx` for passage body, comment body, and input prompt.
   2. **Official ChoiceScript runtime play-test** — Internal playtest exists but uses graph traversal, not the real engine. The official CS runtime (MIT) could be bundled and given the exported zip files to run in a sandboxed iframe.
   3. **Missing NodeTypes from spec** — `*gosub_scene` (cross-scene subroutines) and `*image` (with alignment/alt text) are in the spec but not in `NodeType`. Low risk to add following the "Adding a New Node Type" checklist in this file.
   4. **Test coverage** — 58 tests cover domain/import/generator well. No component-level tests yet (no Vitest/Playwright).
