@@ -329,6 +329,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 5
+- **Completed import/parser hardening for `gosub_scene` and `image`** (closes gap #7).
+  - `src/domain/choicescriptImport.ts`:
+    - `simpleCommandNode`: already had `gosub_scene` and `image` cases from session 5 start.
+    - `updateChoiceForgeCommandNode`: added `gosub_scene` and `image` cases so re-importing ChoiceForge-generated text round-trips both node types correctly (target, label, alignment, alt text).
+    - `isChoiceForgeBodyStop`: added `"*image "` prefix so image nodes correctly stop body parsing in the ChoiceForge-format section reader.
+    - `defaultImportedWidth`: added `"gosub_scene"` and `"image"` to the 280px group.
+  - `src/domain/choicescript.ts` (`lintPreservedScriptSource`): added `gosub_scene` block (missing target → error, invalid identifier → error, unknown scene → error) and `image` block (empty filename → warning), matching the visual graph linter.
+  - `tests/domain.test.ts`: added 3 new tests (66 total):
+    1. "imports gosub_scene and image command nodes" — verifies `simpleCommandNode` parse, field mapping, and 280px width.
+    2. "normalizes edited gosub_scene and image command nodes on re-import" — verifies `updateChoiceForgeCommandNode` round-trip.
+    3. "lints gosub_scene and image in preserved script source" — verifies preserved-source diagnostics for both new commands.
+  - Build: clean (zero TS errors). Tests: 66/66 pass.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 4
 - **Added Spanish (ES) i18n** (closes gap #6 from session 1).
   - `src/domain/types.ts`: `Language` union extended to `"pt" | "en" | "es"`.

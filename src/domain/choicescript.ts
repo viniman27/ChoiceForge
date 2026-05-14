@@ -569,6 +569,17 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
     }
+    if (command === "gosub_scene") {
+      const rawTarget = sourceCommandValue(trimmed, "*gosub_scene").split(/\s+/)[0] ?? "";
+      const target = normalizeSourceIdentifier(rawTarget);
+      if (!rawTarget) issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, line: lineNumber });
+      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
+      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
+    }
+    if (command === "image") {
+      const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
+      if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
+    }
     if (command === "save_checkpoint") {
       const slot = sourceCommandValue(trimmed, "*save_checkpoint");
       if (!slot) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });

@@ -1402,6 +1402,84 @@ test("warns about image nodes with missing filename", () => {
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
 });
 
+test("imports gosub_scene and image command nodes", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*gosub_scene chapter_two intro_label",
+    "Continuing after gosub.",
+    "*finish",
+    "*image lighthouse.jpg left A lighthouse on a cliff",
+    "*finish",
+  ].join("\n"));
+
+  const gosubScene = graph.nodes.find((node) => node.type === "gosub_scene");
+  const imageNode = graph.nodes.find((node) => node.type === "image");
+
+  assert.ok(gosubScene);
+  assert.equal(gosubScene?.target, "chapter_two");
+  assert.equal(gosubScene?.body, "intro_label");
+  assert.equal(gosubScene?.title, "*gosub_scene chapter_two");
+  assert.equal(gosubScene?.w, 280);
+
+  assert.ok(imageNode);
+  assert.equal(imageNode?.target, "lighthouse.jpg");
+  assert.equal(imageNode?.inputMin, "left");
+  assert.equal(imageNode?.prompt, "A lighthouse on a cliff");
+  assert.equal(imageNode?.w, 280);
+});
+
+test("normalizes edited gosub_scene and image command nodes on re-import", () => {
+  const currentGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene old_scene", target: "old_scene" },
+      { id: "n2", type: "image", x: 0, y: 160, w: 280, title: "*image old.jpg", target: "old.jpg", inputMin: "left" },
+    ],
+    edges: [],
+  };
+  const graph = importChoiceScriptSceneText("scene", [
+    "*label cf_n1",
+    "*gosub_scene New-Scene entry_point",
+    "",
+    "*label cf_n2",
+    "*image new.jpg right Coast",
+  ].join("\n"), currentGraph);
+
+  const gosub = graph.nodes.find((node) => node.id === "n1");
+  const image = graph.nodes.find((node) => node.id === "n2");
+
+  assert.equal(gosub?.target, "new_scene");
+  assert.equal(gosub?.title, "*gosub_scene new_scene");
+  assert.equal(gosub?.body, "entry_point");
+  assert.equal(image?.target, "new.jpg");
+  assert.equal(image?.inputMin, "right");
+  assert.equal(image?.prompt, "Coast");
+});
+
+test("lints gosub_scene and image in preserved script source", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: [
+          "*gosub_scene",
+          "*gosub_scene Bad Scene",
+          "*gosub_scene missing_scene",
+          "*image",
+        ].join("\n"),
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const errors = issues.filter((issue) => issue.level === "error").map((issue) => issue.msg);
+  const warnings = issues.filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*gosub_scene needs a scene target")));
+  assert.ok(errors.some((message) => message.includes("*gosub_scene has an invalid scene identifier")));
+  assert.ok(errors.some((message) => message.includes("*gosub_scene points to a missing scene")));
+  assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
