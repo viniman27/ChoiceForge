@@ -321,13 +321,23 @@ The original design document (`prompt_editor_visual_choicescript (1).md`) descri
 | Play-test with official runtime | Not implemented; internal graph playtest exists |
 | Stats screen editor | Basic editable generated `choicescript_stats.txt`, no rich stats-screen designer |
 | Git integration, version history | Not implemented |
-| i18n in ES (Spanish) | Only PT + EN |
+| i18n in ES (Spanish) | PT + EN + ES implemented |
 
 When you see something in the spec that sounds implemented but isn't in the code — it isn't implemented.
 
 ---
 
 ## Session Log
+
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 4
+- **Added Spanish (ES) i18n** (closes gap #6 from session 1).
+  - `src/domain/types.ts`: `Language` union extended to `"pt" | "en" | "es"`.
+  - `src/data/sampleProject.ts`: added `es` sample project (reuses `pt` data, Spanish title/subtitle) and full `i18n.es` label set (all 21 node types, all UI strings).
+  - `src/components/TopBar.tsx`: added `<option value="es">ES</option>` to language select; updated all 6 inline lang ternaries for Spanish.
+  - `src/App.tsx`: updated `formatSaveStatus` (ES locale + "Guardado localmente"), reset/export confirm dialogs, and import error alert to handle Spanish.
+- **Added domain tests for `gosub_scene` and `image` node types** (5 new tests, 63 total).
+  - `tests/domain.test.ts`: code generation tests for both types (optional label, alignment, alt text, empty filename skip); lint tests for missing/invalid/unknown scene target, no-flow-continuation warning, and empty-filename warning.
+  - Build: clean (zero TS errors). Tests: 63/63 pass.
 
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 3
 - **Implemented `*gosub_scene` and `*image` NodeTypes** (closes gap #3 from session 1).
@@ -364,7 +374,7 @@ When you see something in the spec that sounds implemented but isn't in the code
   3. ~~**Missing NodeTypes from spec**~~ — **Done (session 3).** `*gosub_scene` and `*image` fully implemented across types, codegen, linter, inspector, NodeCard, Dashboard, and i18n.
   4. **Test coverage** — 58 tests cover domain/import/generator well. No component-level tests yet (no Vitest/Playwright).
   5. **Tauri/desktop packaging** — Nice-to-have; the web app on Cloudflare Pages serves the use case.
-  6. **Spanish i18n** — The i18n system (`I18nLabels`) supports it; just needs a third locale object.
+  6. ~~**Spanish i18n**~~ — **Done (session 4).** `Language` extended to `"es"`, full `i18n.es` label set, ES sample project, TopBar + App strings all handle Spanish.
 - Nothing broken. Codebase is healthy.
 
 ---

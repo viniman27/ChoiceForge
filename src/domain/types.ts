@@ -1,4 +1,4 @@
-export type Language = "pt" | "en";
+export type Language = "pt" | "en" | "es";
 export type Theme = "light" | "dark";
 export type Density = "minimal" | "medium" | "rich";
 export type EditorView = "editor" | "dashboard";

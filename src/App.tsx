@@ -191,9 +191,11 @@ export default function App() {
           downloadGeneratedProject(lintedProject);
         }}
         onResetProject={() => {
-          const confirmed = window.confirm(lang === "pt"
-            ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
-            : "Reset replaces the locally saved project with the starter sample. Continue?");
+          const confirmed = window.confirm(
+            lang === "pt" ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
+            : lang === "es" ? "Restablecer reemplaza el proyecto guardado localmente con el ejemplo inicial. ¿Continuar?"
+            : "Reset replaces the locally saved project with the starter sample. Continue?"
+          );
           if (!confirmed) return;
           actions.resetProject(lang);
           setSaveStatus(formatSaveStatus(lang));
@@ -406,12 +408,15 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 function formatSaveStatus(lang: Language): string {
-  const time = new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en-US", {
+  const locale = lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US";
+  const time = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date());
-  return lang === "pt" ? `Salvo localmente ${time}` : `Saved locally ${time}`;
+  if (lang === "pt") return `Salvo localmente ${time}`;
+  if (lang === "es") return `Guardado localmente ${time}`;
+  return `Saved locally ${time}`;
 }
 
 function centerPanForNode(node: StoryNode, zoom: number, layout: { left: number; right: number }, consoleOpen: boolean) {
@@ -487,9 +492,11 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
 function confirmExportWithLintErrors(project: ChoiceForgeProject, lang: Language): boolean {
   const errors = project.lints.filter((lint) => lint.level === "error");
   if (!errors.length) return true;
-  return window.confirm(lang === "pt"
-    ? `O projeto tem ${errors.length} erro(s) de linter. Exportar mesmo assim?`
-    : `The project has ${errors.length} linter error(s). Export anyway?`);
+  return window.confirm(
+    lang === "pt" ? `O projeto tem ${errors.length} erro(s) de linter. Exportar mesmo assim?`
+    : lang === "es" ? `El proyecto tiene ${errors.length} error(es) de linter. ¿Exportar de todas formas?`
+    : `The project has ${errors.length} linter error(s). Export anyway?`
+  );
 }
 
 async function importChoiceForgeProject(files: File[], currentProject: ChoiceForgeProject, setProject: (project: ChoiceForgeProject) => void, onDone: () => void, lang: Language) {
@@ -530,7 +537,12 @@ async function importChoiceForgeProject(files: File[], currentProject: ChoiceFor
   } catch (error) {
     console.error("ChoiceForge import failed", error);
     const reason = error instanceof Error && error.message ? `\n\n${error.message}` : "";
-    window.alert((lang === "pt" ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge, project.json, ou selecione todos os arquivos .txt do projeto juntos." : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip, project.json, or select all project .txt files together.") + reason);
+    const importMsg = lang === "pt"
+      ? "Nao foi possivel importar este projeto. Use um .zip ChoiceScript/ChoiceForge, project.json, ou selecione todos os arquivos .txt do projeto juntos."
+      : lang === "es"
+      ? "No se pudo importar este proyecto. Use un .zip de ChoiceScript/ChoiceForge, project.json, o seleccione todos los archivos .txt del proyecto juntos."
+      : "Could not import this project. Use a ChoiceScript/ChoiceForge .zip, project.json, or select all project .txt files together.";
+    window.alert(importMsg + reason);
   }
 }
 

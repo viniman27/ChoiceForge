@@ -58,13 +58,14 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         </div>
         <code style={{ marginLeft: 12 }}>{data.sceneTitle}</code>
         <span className="dim">/</span>
-        <code>{lang === "pt" ? "primeira_decisao" : "first_decision"}</code>
+        <code>{lang === "pt" ? "primeira_decisao" : lang === "es" ? "primera_decision" : "first_decision"}</code>
       </div>
 
       <div className="top-actions">
         <select className="ghost-btn" value={lang} onChange={(event) => onLangChange(event.target.value as Language)}>
           <option value="pt">PT-BR</option>
           <option value="en">EN</option>
+          <option value="es">ES</option>
         </select>
         <select className="ghost-btn" value={theme} onChange={(event) => onThemeChange(event.target.value as Theme)}>
           <option value="light">light</option>
@@ -77,19 +78,19 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         </select>
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
-        <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : "Save"}</button>
+        <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : lang === "es" ? "Guardar" : "Save"}</button>
         {saveStatus && <span className="save-status">{saveStatus}</span>}
         <button className="ghost-btn" onClick={onResetProject}>Reset</button>
         <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
-          {lang === "pt" ? "Importar" : "Import"}
+          {lang === "en" ? "Import" : "Importar"}
         </button>
         <button className="ghost-btn" onClick={() => void openImportFolderPicker(onImport)}>
-          {lang === "pt" ? "Pasta" : "Folder"}
+          {lang === "pt" ? "Pasta" : lang === "es" ? "Carpeta" : "Folder"}
         </button>
-        <button className="ghost-btn" onClick={onExport}>{lang === "pt" ? "Exportar" : "Export"}</button>
+        <button className="ghost-btn" onClick={onExport}>{lang === "en" ? "Export" : "Exportar"}</button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
-          {lang === "pt" ? "Jogar" : "Play"}
+          {lang === "pt" ? "Jogar" : lang === "es" ? "Jugar" : "Play"}
         </button>
       </div>
     </header>
