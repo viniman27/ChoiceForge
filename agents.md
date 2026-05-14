@@ -329,6 +329,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 6
+- **Upgraded PlaytestView with full node type coverage and variable interpolation.**
+  - `src/components/PlaytestView.tsx`:
+    - **`gosub_scene`**: cross-scene subroutine — pushes `{scene, nodeId}` return entry, jumps to target scene (optionally at the entry label node), returns via `*return`.
+    - **`return` stack** refactored from `string[]` to `Array<{scene: string; nodeId: string}>` for cross-scene support; `*gosub` and `*gosub_scene` both push typed entries.
+    - **`rand`**: auto-advances — rolls a random integer in [min, max], stores result in the variable, follows the flow edge.
+    - **`set`**: auto-advances — applies all variable sets, follows the flow edge.
+    - **`input_text` / `input_number`**: shows an inline form with a labeled text/number input and a Confirm button; stores the typed value in the variable and advances on submit.
+    - **`image`**: renders the asset's `dataUrl` as an `<img>` if found in project assets, or shows a placeholder text box.
+    - **`fake_choice`**: displays all options as disabled (decorative) buttons, then shows Continue.
+    - **`page_break`**: Continue button now shows the configured label (e.g. "Next Chapter") instead of generic "Continue".
+    - **Variable interpolation**: `interpolate(text, stats)` replaces `${variable}` references in node body and prompt text with live stat values.
+    - **Conditional choice options**: `*if (cond) #option` options are now hidden when condition is false; `*selectable_if` options remain visible but disabled.
+  - `styles.css`: added `.playtest-image`, `.playtest-image-placeholder`, `.playtest-input-form`, `.playtest-input-label`, `.playtest-input` rules.
+  - Build: clean (zero TS errors). Tests: 66/66 pass.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 5
 - **Completed import/parser hardening for `gosub_scene` and `image`** (closes gap #7).
   - `src/domain/choicescriptImport.ts`:

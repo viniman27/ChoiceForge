@@ -6,11 +6,14 @@ interface PlaytestViewProps {
   onClose: () => void;
 }
 
+type ReturnEntry = { scene: string; nodeId: string };
+
 export function PlaytestView({ project, onClose }: PlaytestViewProps) {
   const [sceneName, setSceneName] = useState(project.sceneTitle);
   const [nodeId, setNodeId] = useState("n1");
   const [stats, setStats] = useState(() => initialStats(project.variables));
-  const [returnStack, setReturnStack] = useState<string[]>([]);
+  const [returnStack, setReturnStack] = useState<ReturnEntry[]>([]);
+  const [inputValue, setInputValue] = useState("");
   const graph = getSceneGraph(project, sceneName);
   const node = graph.nodes.find((candidate) => candidate.id === nodeId) ?? graph.nodes[0] ?? null;
 
@@ -19,7 +22,10 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
     setNodeId("n1");
     setStats(initialStats(project.variables));
     setReturnStack([]);
+    setInputValue("");
   }, [project]);
+
+  useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
 
   useEffect(() => {
     if (!node) return;
@@ -47,23 +53,74 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
     }
     if (node.type === "gosub") {
       const target = graph.edges.find((edge) => edge.from === node.id && edge.kind === "goto")?.to;
-      const returnTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (target) {
-        if (returnTarget) setReturnStack((current) => [...current, returnTarget]);
+        if (flowTarget) setReturnStack((current) => [...current, { scene: sceneName, nodeId: flowTarget }]);
         setNodeId(target);
       }
     }
+    if (node.type === "gosub_scene" && node.target) {
+      const entryLabel = node.body?.trim();
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      const targetGraph = getSceneGraph(project, node.target);
+      const labelNode = entryLabel
+        ? targetGraph.nodes.find((candidate) => candidate.type === "label" && candidate.title === `*label ${entryLabel}`)
+        : null;
+      setReturnStack((current) => [...current, { scene: sceneName, nodeId: flowTarget ?? "" }]);
+      setSceneName(node.target);
+      setNodeId(labelNode?.id ?? "n1");
+    }
     if (node.type === "return") {
-      const target = returnStack.at(-1);
-      if (target) {
+      const top = returnStack.at(-1);
+      if (top) {
         setReturnStack((current) => current.slice(0, -1));
-        setNodeId(target);
+        setSceneName(top.scene);
+        setNodeId(top.nodeId);
       }
+    }
+    if (node.type === "rand") {
+      const min = Math.ceil(Number(node.inputMin ?? "1"));
+      const max = Math.floor(Number(node.inputMax ?? "100"));
+      const value = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (node.inputVar) setStats((current) => ({ ...current, [node.inputVar!]: value }));
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
+    }
+    if (node.type === "set") {
+      if (node.sets?.length) setStats((current) => applySets(current, node.sets!, project.variables));
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
     }
   }, [graph.edges, node, project, project.variables, returnStack, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];
-  const flowTarget = useMemo(() => (node ? graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to : undefined), [graph.edges, node]);
+  const flowTarget = useMemo(
+    () => (node ? graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to : undefined),
+    [graph.edges, node],
+  );
+  const imageAsset = node?.type === "image"
+    ? (project.assets ?? []).find((asset) => asset.fileName === node.target)
+    : null;
+
+  const advance = (nextId: string) => {
+    setStats((current) => applySets(current, node?.sets ?? [], project.variables));
+    setNodeId(nextId);
+  };
+
+  const submitInput = (value: string) => {
+    if (!node?.inputVar) return;
+    const varDef = project.variables.find((candidate) => candidate.name === node.inputVar);
+    const parsed: string | number = varDef?.type === "number" ? Number(value) || 0 : value;
+    setStats((current) => ({ ...current, [node.inputVar!]: parsed }));
+    if (flowTarget) setNodeId(flowTarget);
+  };
+
+  const isInputNode = node?.type === "input_text" || node?.type === "input_number";
+  const showContinue = Boolean(flowTarget)
+    && node?.type !== "choice"
+    && node?.type !== "ending"
+    && node?.type !== "input_text"
+    && node?.type !== "input_number";
 
   return (
     <section className="playtest">
@@ -73,7 +130,13 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
           <h1>{sceneName}.txt</h1>
         </div>
         <div className="playtest-actions">
-          <button className="ghost-btn" onClick={() => { setSceneName(project.sceneTitle); setNodeId("n1"); setStats(initialStats(project.variables)); setReturnStack([]); }}>Restart</button>
+          <button className="ghost-btn" onClick={() => {
+            setSceneName(project.sceneTitle);
+            setNodeId("n1");
+            setStats(initialStats(project.variables));
+            setReturnStack([]);
+            setInputValue("");
+          }}>Restart</button>
           <button className="ghost-btn" onClick={onClose}>Close</button>
         </div>
       </header>
@@ -94,22 +157,50 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
           ) : (
             <>
               <div className="playtest-node"><code>{node.id}</code><span>{node.title}</span></div>
-              {node.body && <p className="playtest-text">{node.body}</p>}
-              {node.type === "checkpoint" && <p className="playtest-note">Checkpoint saved: {node.title.replace("*save_checkpoint", "").trim()}</p>}
-              {node.type === "restore_checkpoint" && <p className="playtest-note">Checkpoint restore requested.</p>}
-              {node.type === "return" && <p className="playtest-note">Subroutine returned.</p>}
-              {node.type === "ending" && <p className="playtest-note">Ending reached.</p>}
+
+              {node.type === "image" && (
+                imageAsset?.dataUrl
+                  ? <img className="playtest-image" src={imageAsset.dataUrl} alt={node.prompt ?? node.target ?? ""} />
+                  : <div className="playtest-image-placeholder">[image: {node.target || "unnamed"}]</div>
+              )}
+
+              {node.body && node.type !== "image" && (
+                <p className="playtest-text">{interpolate(node.body, stats)}</p>
+              )}
+
+              {node.type === "checkpoint" && (
+                <p className="playtest-note">Checkpoint saved: {node.title.replace("*save_checkpoint", "").trim()}</p>
+              )}
+              {node.type === "restore_checkpoint" && (
+                <p className="playtest-note">Checkpoint restore requested.</p>
+              )}
+              {node.type === "ending" && <p className="playtest-note">The End.</p>}
               {node.type === "finish" && <p className="playtest-note">Scene finished.</p>}
-              {node.prompt && <p className="playtest-prompt">{node.prompt}</p>}
+
+              {node.prompt && (
+                <p className="playtest-prompt">{interpolate(node.prompt, stats)}</p>
+              )}
+
+              {node.type === "fake_choice" && (
+                <div className="playtest-options">
+                  {node.fakeOptions?.map((option, index) => (
+                    <button key={`${option.text}-${index}`} disabled>
+                      <span>#{index + 1}</span>
+                      {option.text}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {options.length > 0 && (
                 <div className="playtest-options">
                   {options.map((option, index) => {
-                    const enabled = option.cond ? evaluateExpression(option.cond.expr, stats) : true;
+                    const condMet = option.cond ? evaluateExpression(option.cond.expr, stats) : true;
+                    if (option.cond?.type === "if" && !condMet) return null;
                     return (
                       <button
                         key={`${option.text}-${index}`}
-                        disabled={!enabled}
+                        disabled={!condMet}
                         onClick={() => {
                           setStats((current) => applySets(current, option.sets ?? [], project.variables));
                           setNodeId(option.to);
@@ -123,9 +214,38 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
                 </div>
               )}
 
-              {flowTarget && node.type !== "choice" && node.type !== "return" && node.type !== "restore_checkpoint" && node.type !== "ending" && node.type !== "finish" && (
-                <button className="playtest-continue" onClick={() => { setStats((current) => applySets(current, node.sets ?? [], project.variables)); setNodeId(flowTarget); }}>
-                  Continue
+              {isInputNode && (
+                <form
+                  className="playtest-input-form"
+                  onSubmit={(event) => { event.preventDefault(); submitInput(inputValue); }}
+                >
+                  <label className="playtest-input-label">{node.inputVar}</label>
+                  <input
+                    key={`${sceneName}_${nodeId}`}
+                    className="playtest-input"
+                    type={node.type === "input_number" ? "number" : "text"}
+                    min={node.type === "input_number" ? node.inputMin : undefined}
+                    max={node.type === "input_number" ? node.inputMax : undefined}
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    autoFocus
+                    placeholder={
+                      node.type === "input_number"
+                        ? `${node.inputMin ?? "0"}–${node.inputMax ?? "100"}`
+                        : "Type here…"
+                    }
+                  />
+                  <button type="submit" className="playtest-continue" disabled={!inputValue.trim()}>
+                    Confirm
+                  </button>
+                </form>
+              )}
+
+              {showContinue && (
+                <button className="playtest-continue" onClick={() => advance(flowTarget!)}>
+                  {node?.type === "page_break"
+                    ? node.title.replace("*page_break", "").trim() || "Continue"
+                    : "Continue"}
                 </button>
               )}
             </>
@@ -169,6 +289,10 @@ function parseValue(value: string, variable: VariableSummary | undefined): strin
   if (variable?.type === "boolean") return value === "true";
   if (variable?.type === "number") return Number(value) || 0;
   return value.replace(/^"|"$/g, "");
+}
+
+function interpolate(text: string, stats: Record<string, string | number | boolean>): string {
+  return text.replace(/\$\{([a-zA-Z_][\w]*)\}/g, (_, name: string) => String(stats[name] ?? `{${name}}`));
 }
 
 function evaluateExpression(expression: string, stats: Record<string, string | number | boolean>): boolean {
