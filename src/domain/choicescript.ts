@@ -726,6 +726,12 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
     if (command === "achievement") {
       lintPreservedAchievementLine(projectAchievements, declaredAchievements, trimmed, lineNumber, issues);
     }
+    if (command === "title" && !sourceCommandValue(trimmed, "*title")) {
+      issues.push({ level: "error", msg: "startup.txt has an empty *title", scene: "startup", line: lineNumber });
+    }
+    if (command === "author" && !sourceCommandValue(trimmed, "*author")) {
+      issues.push({ level: "error", msg: "startup.txt has an empty *author", scene: "startup", line: lineNumber });
+    }
 
     if (command === "scene_list") {
       foundSceneList = true;

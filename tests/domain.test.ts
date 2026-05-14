@@ -469,6 +469,22 @@ test("lints preserved startup global declarations", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 14 && issue.msg.includes("empty title: untitled")));
 });
 
+test("lints empty preserved startup metadata", () => {
+  const project = {
+    ...minimalProject(),
+    startupSource: [
+      "*title",
+      "*author",
+      "*scene_list",
+      "  intro",
+    ].join("\n"),
+  };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 1 && issue.msg.includes("empty *title")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 2 && issue.msg.includes("empty *author")));
+});
+
 test("imports gosub arguments and params without corrupting label targets", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*gosub add_truth_fragment \"SPINE\"",
