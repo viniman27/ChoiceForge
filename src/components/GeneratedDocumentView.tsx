@@ -79,7 +79,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           )}
           {sourcePreserved && onConvertSource && (
             <button className="ghost-btn" disabled={dirty} title={dirty ? "Save changes before converting." : "Convert this imported source into visual graph editing."} onClick={onConvertSource}>
-              Convert to visual editing
+              {dirty ? "Save before convert" : "Convert to visual editing"}
             </button>
           )}
           {editable && (
