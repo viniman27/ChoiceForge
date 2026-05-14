@@ -434,6 +434,8 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const labels = new Map<string, number>();
   const referencedLabels: Array<{ label: string; line: number }> = [];
+  const savedCheckpoints = new Set<string>();
+  const restoredCheckpoints: Array<{ slot: string; line: number }> = [];
   const lines = sourceText.split(/\r?\n/);
 
   issues.push({ level: "info", msg: infoMessage, scene: sceneName, line: 1 });
@@ -461,6 +463,12 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
     }
+    if (command === "save_checkpoint") {
+      savedCheckpoints.add(sourceCommandValue(trimmed, "*save_checkpoint"));
+    }
+    if (command === "restore_checkpoint") {
+      restoredCheckpoints.push({ slot: sourceCommandValue(trimmed, "*restore_checkpoint"), line: lineNumber });
+    }
     if (command === "set") {
       lintPreservedSetLine(variables, variableTypes, trimmed, sceneName, lineNumber, issues);
     }
@@ -484,6 +492,12 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
 
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
+  });
+  restoredCheckpoints.forEach(({ slot, line }) => {
+    if (!savedCheckpoints.has(slot)) {
+      const label = slot ? ` "${slot}"` : "";
+      issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in this scene`, scene: sceneName, line });
+    }
   });
 }
 
