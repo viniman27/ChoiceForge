@@ -455,8 +455,10 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       lintPreservedJumpLine(referencedLabels, "*gosub", label, sceneName, lineNumber, issues);
     }
     if (command === "goto_scene") {
-      const target = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "");
-      if (!target) issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, line: lineNumber });
+      const rawTarget = sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "";
+      const target = normalizeSourceIdentifier(rawTarget);
+      if (!rawTarget) issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, line: lineNumber });
+      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
     }
     if (command === "set") {

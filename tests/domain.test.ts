@@ -290,6 +290,7 @@ test("lints preserved source without graph approximation false positives", () =>
       "*set score =",
       "*set name + 1",
       "*goto_scene missing_scene",
+      "*goto_scene bad-scene",
       "*if missing_condition",
       "  *finish",
       "*selectable_if (missing_choice) #Locked Door",
@@ -320,16 +321,17 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 7 && issue.msg.includes("empty value: score")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 8 && issue.msg.includes("invalid operator for string: +")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("missing scene")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 10 && issue.msg.includes("undeclared variable: missing_condition")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 12 && issue.msg.includes("undeclared variable: missing_choice")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("undeclared variable: missing_input")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("invalid bounds: 10 1")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("invalid variable identifier")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 23 && issue.msg.includes("duplicate *label in source: helper")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("*label has an invalid identifier: bad-name")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 25 && issue.msg.includes("*goto needs a label target")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 26 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
-  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 12 && issue.msg.includes("locked")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 10 && issue.msg.includes("invalid scene identifier: bad-scene")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 11 && issue.msg.includes("undeclared variable: missing_condition")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("undeclared variable: missing_choice")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("undeclared variable: missing_input")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("invalid bounds: 10 1")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 22 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("duplicate *label in source: helper")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 25 && issue.msg.includes("*label has an invalid identifier: bad-name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 26 && issue.msg.includes("*goto needs a label target")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
+  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.node && issue.msg.includes("incoming connection")));
