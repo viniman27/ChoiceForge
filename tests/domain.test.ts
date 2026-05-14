@@ -370,6 +370,7 @@ test("lints preserved startup and stats source by line", () => {
       "*scene_list",
       "  ch1",
       "*create score 0",
+      "*create name \"Alex\"",
       "*goto_scene missing_scene",
     ].join("\n")),
     textEntry("choicescript_stats.txt", [
@@ -378,6 +379,8 @@ test("lints preserved startup and stats source by line", () => {
       "  percent score Score",
       "  slider score Bad",
       "  text bad-name Bad",
+      "  percent name Bad Percent",
+      "  text score Bad Text",
       "Plain stats prose.",
     ].join("\n")),
     textEntry("ch1.txt", "Chapter one.\n*ending"),
@@ -385,12 +388,14 @@ test("lints preserved startup and stats source by line", () => {
   const issues = lintProject(project);
 
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
-  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 6 && issue.msg.includes("missing scene")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 7 && issue.msg.includes("missing scene")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 2 && issue.msg.includes("undeclared variable: missing")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 4 && issue.msg.includes("invalid row type: slider")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 5 && issue.msg.includes("invalid variable identifier")));
-  assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 6));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 6 && issue.msg.includes("*stat_chart percent requires a number variable: name")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 7 && issue.msg.includes("*stat_chart text requires a string variable: score")));
+  assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 8));
 });
 
 test("warns about preserved returns without gosub commands", () => {

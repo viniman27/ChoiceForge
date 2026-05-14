@@ -485,7 +485,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
 function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
-  const variables = new Set(project.variables.map((variable) => variable.name));
+  const variableNames = new Set(project.variables.map((variable) => variable.name));
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const localVariables = new Map<string, number>();
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
@@ -538,19 +538,19 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, line: lineNumber });
     }
     if (command === "set") {
-      lintPreservedSetLine(variables, variableTypes, trimmed, sceneName, lineNumber, issues);
+      lintPreservedSetLine(variableNames, variableTypes, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "temp") {
-      lintPreservedTempLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
+      lintPreservedTempLine(variableNames, localVariables, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "params") {
-      lintPreservedParamsLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
+      lintPreservedParamsLine(variableNames, localVariables, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "input_text" || command === "input_number" || command === "rand") {
-      lintPreservedInputCommand(variables, variableTypes, command, trimmed, sceneName, lineNumber, issues);
+      lintPreservedInputCommand(variableNames, variableTypes, command, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "if" || command === "elseif" || command === "selectable_if") {
-      lintPreservedConditionLine(command, sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
+      lintPreservedConditionLine(command, sourceConditionExpression(trimmed, command), variableNames, issues, sceneName, lineNumber);
     }
     const achievementMatch = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i);
     if (achievementMatch) {
@@ -901,7 +901,7 @@ function lintPreservedAchievementLine(
 function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
   lintPreservedScriptSource(project, sourceText, "choicescript_stats", "stats screen exports preserved ChoiceScript source", issues);
 
-  const variables = new Set(project.variables.map((variable) => variable.name));
+  const statVariables = new Map(project.variables.map((variable) => [variable.name, variable]));
   let inStatChart = false;
   sourceText.split(/\r?\n/).forEach((line, index) => {
     const lineNumber = index + 1;
@@ -930,8 +930,15 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
       issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
       return;
     }
-    if (variable && !variables.has(variable)) {
+    const projectVariable = statVariables.get(variable);
+    if (variable && !projectVariable) {
       issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+    }
+    if ((chartType === "percent" || chartType === "opposed_pair") && projectVariable && projectVariable.type !== "number") {
+      issues.push({ level: "error", msg: `*stat_chart ${chartType} requires a number variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+    }
+    if (chartType === "text" && projectVariable && projectVariable.type !== "string") {
+      issues.push({ level: "error", msg: `*stat_chart text requires a string variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
     }
   });
 }
