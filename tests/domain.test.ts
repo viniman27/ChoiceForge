@@ -979,6 +979,18 @@ test("lints label nodes that collide with generated labels", () => {
   assert.ok(errors.some((message) => message.includes("collides with a generated ChoiceForge label")));
 });
 
+test("lints empty project title and author", () => {
+  const project = {
+    ...minimalProject(),
+    title: " ",
+    author: "",
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("project has an empty title")));
+  assert.ok(errors.some((message) => message.includes("project has an empty author")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [

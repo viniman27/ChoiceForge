@@ -265,6 +265,9 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 }
 
 function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
+  if (!project.title.trim()) issues.push({ level: "error", msg: "project has an empty title", scene: null });
+  if (!project.author.trim()) issues.push({ level: "error", msg: "project has an empty author", scene: null });
+
   findDuplicates(project.scenes.map((scene) => scene.name))
     .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, scene: null }));
   findDuplicates(project.variables.map((variable) => variable.name))
