@@ -298,6 +298,15 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (achievement.id.trim() && !isValidChoiceScriptIdentifier(achievement.id)) {
       issues.push({ level: "error", msg: `achievement has an invalid identifier: ${achievement.id}`, scene: null });
     }
+    if (!achievement.title.trim()) {
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty title`, scene: null });
+    }
+    if (!(achievement.preDesc || achievement.desc).trim()) {
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty locked description`, scene: null });
+    }
+    if (!(achievement.postDesc || achievement.desc).trim()) {
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty unlocked description`, scene: null });
+    }
     if (!Number.isFinite(achievement.points) || achievement.points < 0) {
       issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, scene: null });
     }

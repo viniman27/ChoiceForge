@@ -991,6 +991,22 @@ test("lints empty project title and author", () => {
   assert.ok(errors.some((message) => message.includes("project has an empty author")));
 });
 
+test("lints empty achievement metadata", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [
+      { id: "empty_title", title: " ", points: 5, desc: "Known", preDesc: "Locked", postDesc: "Unlocked" },
+      { id: "empty_locked", title: "Locked", points: 5, desc: "", preDesc: " ", postDesc: "Unlocked" },
+      { id: "empty_unlocked", title: "Unlocked", points: 5, desc: "", preDesc: "Locked", postDesc: "" },
+    ],
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("achievement \"empty_title\" has an empty title")));
+  assert.ok(errors.some((message) => message.includes("achievement \"empty_locked\" has an empty locked description")));
+  assert.ok(errors.some((message) => message.includes("achievement \"empty_unlocked\" has an empty unlocked description")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [
