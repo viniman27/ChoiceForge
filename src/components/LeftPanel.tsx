@@ -283,6 +283,16 @@ function ScenesList({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
   const preservedScenes = data.scenes.filter((scene) => sceneHasPreservedSource(data, scene)).length;
+  const sceneErrors = useMemo(() => {
+    const counts = new Map<string, { errors: number; warnings: number }>();
+    data.lints.forEach((issue) => {
+      if (!issue.scene) return;
+      const current = counts.get(issue.scene) ?? { errors: 0, warnings: 0 };
+      if (issue.level === "error") counts.set(issue.scene, { ...current, errors: current.errors + 1 });
+      else if (issue.level === "warning") counts.set(issue.scene, { ...current, warnings: current.warnings + 1 });
+    });
+    return counts;
+  }, [data.lints]);
   const generatedScenes = data.scenes.length - preservedScenes;
   return (
     <div className="scene-list">
@@ -301,6 +311,7 @@ function ScenesList({
         {data.scenes.map((scene) => {
           const movable = !scene.isStart && !scene.special;
           const sourceStatus = sceneSourceStatus(data, scene);
+          const counts = sceneErrors.get(scene.name);
           return (
           <li
             key={scene.id}
@@ -344,6 +355,8 @@ function ScenesList({
                 {scene.special && <span className="scene-tag">stats</span>}
                 <span className={`scene-tag source-${sourceStatus}`}>{sourceStatus}</span>
                 {scene.warning && <span className="scene-tag warn">!</span>}
+                {counts?.errors ? <span className="scene-tag scene-err">{counts.errors}e</span> : null}
+                {counts?.warnings ? <span className="scene-tag scene-warn">{counts.warnings}w</span> : null}
               </div>
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
