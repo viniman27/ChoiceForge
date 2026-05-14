@@ -416,6 +416,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, node: node.id });
     }
 
+    if (node.type === "checkpoint" && !checkpointSlot(node.title, "*save_checkpoint")) {
+      issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, node: node.id });
+    }
+
     if (node.type === "restore_checkpoint") {
       const slot = checkpointSlot(node.title, "*restore_checkpoint");
       if (!checkpointSlots.has(slot)) {
@@ -474,7 +478,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
     }
     if (command === "save_checkpoint") {
-      savedCheckpoints.add(sourceCommandValue(trimmed, "*save_checkpoint"));
+      const slot = sourceCommandValue(trimmed, "*save_checkpoint");
+      if (!slot) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });
+      savedCheckpoints.add(slot);
     }
     if (command === "restore_checkpoint") {
       restoredCheckpoints.push({ slot: sourceCommandValue(trimmed, "*restore_checkpoint"), line: lineNumber });

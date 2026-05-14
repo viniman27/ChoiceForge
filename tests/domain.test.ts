@@ -311,6 +311,7 @@ test("lints preserved source without graph approximation false positives", () =>
       "*save_checkpoint safe",
       "*restore_checkpoint missing",
       "*page_break",
+      "*save_checkpoint",
       "*params frag",
       "*if frag",
       "  *input_text frag",
@@ -336,6 +337,7 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*page_break needs a button label")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 31 && issue.msg.includes("*save_checkpoint needs a checkpoint name")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
@@ -647,6 +649,24 @@ test("lints empty visual page break labels", () => {
   const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
 
   assert.ok(errors.some((message) => message.includes("*page_break needs a button label")));
+});
+
+test("lints empty visual checkpoint names", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "checkpoint", x: 0, y: 0, w: 280, title: "*save_checkpoint " },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*save_checkpoint needs a checkpoint name")));
 });
 
 test("normalizes edited ChoiceForge command identifiers", () => {
