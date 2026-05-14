@@ -15,7 +15,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ### Done
 - Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
-- Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
+- Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, malformed asset data URLs, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
 - Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
 - Per-scene graph persistence via `sceneData` — each scene has independent nodes/edges
 - Scene CRUD: create, rename (with cross-reference updates), duplicate, delete, reorder
