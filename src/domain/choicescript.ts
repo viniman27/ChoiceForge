@@ -274,6 +274,8 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     .forEach((name) => issues.push({ level: "error", msg: `duplicate variable name: ${name}`, scene: null }));
   findDuplicates(project.achievements.map((achievement) => achievement.id))
     .forEach((id) => issues.push({ level: "error", msg: `duplicate achievement id: ${id}`, scene: null }));
+  findDuplicates((project.assets ?? []).map((asset) => asset.id))
+    .forEach((id) => issues.push({ level: "warning", msg: `duplicate asset id: ${id}`, scene: null }));
   findDuplicates((project.assets ?? []).map((asset) => asset.path))
     .forEach((path) => issues.push({ level: "warning", msg: `duplicate asset path: ${path}`, scene: null }));
 
@@ -313,6 +315,9 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   });
   (project.assets ?? []).forEach((asset) => {
     if (!asset.path.trim()) issues.push({ level: "warning", msg: `asset "${asset.id}" has an empty path`, scene: null });
+    if (asset.path.trim() && !isSafeAssetPath(asset.path)) {
+      issues.push({ level: "error", msg: `asset "${asset.id}" has an unsafe export path: ${asset.path}`, scene: null });
+    }
   });
 }
 
@@ -325,6 +330,13 @@ function isValidVariableInitial(variable: ChoiceForgeProject["variables"][number
 
 function isValidChoiceScriptIdentifier(value: string): boolean {
   return /^[a-z_][a-z0-9_]*$/.test(value);
+}
+
+function isSafeAssetPath(path: string): boolean {
+  const normalized = path.trim();
+  if (!normalized || normalized.includes("\\")) return false;
+  if (normalized.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(normalized)) return false;
+  return normalized.split("/").every((part) => part && part !== "." && part !== "..");
 }
 
 function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {

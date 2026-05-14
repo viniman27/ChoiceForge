@@ -1021,6 +1021,24 @@ test("lints fractional achievement points", () => {
   assert.ok(errors.some((message) => message.includes("achievement \"fractional\" has invalid points")));
 });
 
+test("lints unsafe asset metadata", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "logo", path: "images/logo.png", kind: "image" as const, desc: "Logo" },
+      { id: "logo", path: "../outside.png", kind: "image" as const, desc: "Duplicate id and unsafe path" },
+      { id: "absolute", path: "/tmp/file.png", kind: "image" as const, desc: "Absolute path" },
+      { id: "windows", path: "images\\file.png", kind: "image" as const, desc: "Backslash path" },
+    ],
+  };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.level === "warning" && issue.msg.includes("duplicate asset id: logo")));
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("asset \"logo\" has an unsafe export path: ../outside.png")));
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("asset \"absolute\" has an unsafe export path: /tmp/file.png")));
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("asset \"windows\" has an unsafe export path: images\\file.png")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [
