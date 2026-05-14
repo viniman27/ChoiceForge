@@ -327,6 +327,23 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ---
 
+## Session Log
+
+### 2026-05-14 — Claude Code (claude-sonnet-4-6)
+- First Claude Code session. Contextualised the full codebase: read agents.md, types.ts, App.tsx, RightPanel.tsx, NodeCard.tsx, domain tests, package.json, and spec.
+- Confirmed 58 tests pass (`npm test`), zero errors.
+- Created `CLAUDE.md` at project root for Claude-specific workflow guidance.
+- **Gap assessment for project completion (priority order):**
+  1. **Inline CodeMirror in node body fields** — passage/comment body textareas in `RightPanel.tsx` are plain `<textarea>`. CodeMirror deps are already installed. Adding syntax highlighting for `${var}`, `@{var|opt}`, and `*command` tokens is the highest-value UX gap remaining.
+  2. **Official ChoiceScript runtime play-test** — Internal playtest exists but uses graph traversal, not the real engine. The official CS runtime (MIT) could be bundled and given the exported zip files to run in a sandboxed iframe.
+  3. **Missing NodeTypes from spec** — `*gosub_scene` (cross-scene subroutines) and `*image` (with alignment/alt text) are in the spec but not in `NodeType`. Low risk to add following the "Adding a New Node Type" checklist in this file.
+  4. **Test coverage** — 58 tests cover domain/import/generator well. No component-level tests yet (no Vitest/Playwright).
+  5. **Tauri/desktop packaging** — Nice-to-have; the web app on Cloudflare Pages serves the use case.
+  6. **Spanish i18n** — The i18n system (`I18nLabels`) supports it; just needs a third locale object.
+- Nothing broken. Codebase is healthy.
+
+---
+
 ## Running Locally
 
 ```bash
