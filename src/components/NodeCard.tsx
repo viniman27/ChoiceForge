@@ -23,6 +23,7 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   gosub_scene: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*gosub_scene" },
   image: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "*image" },
   temp: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*temp" },
+  params: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*params" },
 };
 
 export function NodeIcon({ type }: { type: NodeType }) {
@@ -57,6 +58,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "gosub_scene") return <svg {...common}><path d="M2 6h6M7 3l3 3-3 3M2 3v6" /></svg>;
   if (type === "image") return <svg {...common}><path d="M2 2h8v8H2z" /><path d="M2 8l2-3 2 2 1-1 3 2" /></svg>;
   if (type === "temp") return <svg {...common}><path d="M2 4h8M2 8h6M6 2v4" /><circle cx="9" cy="9" r="1.5" /></svg>;
+  if (type === "params") return <svg {...common}><path d="M2 6h2M10 6h-2M4 6a2 2 0 0 0 4 0 2 2 0 0 0-4 0" /><path d="M3 3h6M3 9h6" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
 }
 

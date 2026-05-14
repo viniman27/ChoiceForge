@@ -329,6 +329,10 @@ export default function App() {
             actions.addNode(type, id, position);
             setSelectedId(id);
           }}
+          onDuplicateNode={(id) => {
+            const newId = actions.duplicateNode(id);
+            if (newId) setSelectedId(newId);
+          }}
           onDeleteNode={(id) => {
             actions.deleteNode(id);
             setSelectedId(null);

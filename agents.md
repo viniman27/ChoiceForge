@@ -13,7 +13,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ## Current Implementation Status
 
 ### Done
-- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements (22 NodeTypes including `temp`)
+- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements (23 NodeTypes including `temp` and `params`)
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
 - Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, duplicate exported asset files, malformed asset data URLs, asset export path collisions, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, scene reachability (`lintSceneReachability` warns when scenes have no incoming connections), temp variable shadowing, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
 - Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
@@ -328,6 +328,30 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 11
+- **Implemented node duplication (Ctrl+D) and the `*params` node type.**
+  - **Node duplication:**
+    - `src/state/projectStore.ts`: added `duplicateNode(id): string | null` action — uses `structuredClone` to deep-copy the node, offsets position by 24px diagonally, assigns next sequential ID (max over all scene graphs), increments current-scene node count, returns new node ID.
+    - `src/components/GraphCanvas.tsx`: added `onDuplicateNode` prop; Ctrl+D keyboard shortcut fires before Delete/Backspace; "dup" toolbar button.
+    - `src/App.tsx`: wires `onDuplicateNode` — calls `actions.duplicateNode(id)` and selects the newly created node.
+  - **`*params` node type** (subroutine parameter declarations):
+    - `src/domain/types.ts`: added `"params"` to the `NodeType` union (23 types total).
+    - `src/domain/choicescript.ts`:
+      - Code generation: emits `*params {body}` where body is the space-separated param names. Excluded `params` from the generic body narrative push.
+      - `lintSceneGraph`: collects param names from all `params` nodes into `paramsVarNames` (alongside `tempVarNames`) so param identifiers are treated as locally-declared — prevents false "undeclared variable" warnings. Validates each param is a valid CS identifier; warns if it shadows a global; errors on duplicate param names within the same node; errors if the node has no param names at all.
+    - `src/domain/choicescriptImport.ts`:
+      - `simpleCommandNode`: added `params` case — parses `*params name1 name2` into a params node with normalized identifiers stored in `body`.
+      - `isChoiceForgeBodyStop`: added `"*params"` prefix so body parsing stops before a `*params` line.
+      - `defaultImportedWidth`: added `params` to the 280px group.
+      - `updateChoiceForgeCommandNode`: added `params` case for round-trip re-import of exported params nodes.
+    - `src/state/projectStore.ts`: `defaultNodeTitle` → `"*params"`, `defaultNodeWidth` → 280px, `createStoryNode` → `{ body: "" }`.
+    - `src/components/NodeCard.tsx`: `typeColors` entry (shares `c-set` color); `NodeIcon` SVG (pill/parameter shape).
+    - `src/components/RightPanel.tsx`: inspector panel — single text input for space-separated param names; title auto-updates to match; hint note explaining subroutine usage.
+    - `src/components/PlaytestView.tsx`: auto-advances (follows flow edge, no runtime arg injection in playtest).
+    - `src/components/Dashboard.tsx`: `params: "var(--c-set)"` added to `summarizeNodeTypes` colors.
+    - `src/data/sampleProject.ts`: added `params` label in PT (`parametros`), EN (`params`), ES (`parámetros`).
+    - `tests/domain.test.ts`: 8 new tests (86 total, all pass): code gen with names, code gen with empty body, lint error on no names, lint error on invalid identifier, lint error on duplicate names, lint warning on global shadow, no false undeclared-variable warnings, import of standalone `*params` lines.
 
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 10
 - **Implemented Redo (Ctrl+Shift+Z) and per-scene lint count badges.**

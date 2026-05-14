@@ -101,6 +101,10 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
+    if (node.type === "params") {
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
+    }
   }, [graph.edges, node, project, project.variables, returnStack, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];

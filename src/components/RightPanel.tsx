@@ -220,6 +220,25 @@ function ContentTab({
     );
   }
 
+  if (node.type === "params") {
+    return (
+      <div className="ip-content">
+        <label className="ip-label">parameter names</label>
+        <input
+          className="command-input"
+          value={node.body ?? ""}
+          placeholder="param1 param2"
+          onChange={(event) => {
+            const raw = event.target.value;
+            const names = raw.trim().split(/\s+/).filter(Boolean);
+            onUpdateNode(node.id, { body: raw, title: `*params${names.length ? ` ${names.join(" ")}` : ""}` });
+          }}
+        />
+        <p className="ip-hint">Space-separated names for gosub arguments. Must appear after *label at the top of a subroutine.</p>
+      </div>
+    );
+  }
+
   if (node.type === "image") {
     return (
       <div className="ip-content">

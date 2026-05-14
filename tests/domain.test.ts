@@ -1729,6 +1729,137 @@ test("imports *temp lines as temp nodes with variable name and initial value", (
   assert.equal(tempNode?.w, 280);
 });
 
+test("generates *params command from params node body", () => {
+  const node: StoryNode = { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params target amount", body: "target amount" };
+  const code = generateNodeChoiceScript(node, []);
+  assert.ok(code.includes("*params target amount"));
+});
+
+test("generates no *params line when params node body is empty", () => {
+  const node: StoryNode = { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params", body: "" };
+  const code = generateNodeChoiceScript(node, []);
+  assert.ok(!code.includes("*params"));
+});
+
+test("lints params node with no parameter names as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params", body: "" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params", body: "" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("*params has no parameter names")));
+});
+
+test("lints params node with invalid identifier as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params 1bad", body: "1bad" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params 1bad", body: "1bad" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("invalid parameter identifier")));
+});
+
+test("lints params node with duplicate parameter names as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params x x", body: "x x" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params x x", body: "x x" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("duplicate parameter name: x")));
+});
+
+test("lints params node that shadows a global variable as warning", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "gold", type: "number", initial: "0", fairmath: false, desc: "" }],
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params gold", body: "gold" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params gold", body: "gold" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((issue) => issue.level === "warning" && issue.msg.includes("*params shadows a global variable: gold")));
+});
+
+test("params variable does not cause false undeclared-variable warnings", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params received", body: "received" },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "passage", body: "You got ${received}." },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 280, title: "*params received", body: "received" },
+          { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "passage", body: "You got ${received}." },
+          { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+        ],
+        edges: [
+          { from: "n1", to: "n2", kind: "flow" },
+          { from: "n2", to: "n3", kind: "flow" },
+        ],
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((issue) => issue.msg.includes("received")));
+});
+
+test("imports standalone *params lines as params nodes", () => {
+  const graph = importChoiceScriptSceneText("sub", "*params target amount");
+  const paramsNode = graph.nodes.find((node) => node.type === "params");
+  assert.ok(paramsNode, "params node should be imported");
+  assert.equal(paramsNode?.body, "target amount");
+  assert.equal(paramsNode?.w, 280);
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
