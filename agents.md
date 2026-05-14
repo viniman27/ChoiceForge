@@ -329,6 +329,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 7
+- **Implemented variable usage counting across all project scenes.**
+  - `src/domain/choicescript.ts`: added exported `computeVariableUses(project)` function — scans all nodes in all scenes (sets, inputVar, body `${var}` refs, option conditions/sets, branch conditions/sets) plus preserved source texts (`*set`, `*if`/`*elseif` expressions, `*input_*`/`*rand` targets). Returns `Map<string, number>`.
+  - `src/components/LeftPanel.tsx`: `VariablesList` now calls `computeVariableUses` via `useMemo`; displays a `var-uses` count badge in a new "uses" column; zero-use variables shown in warning amber.
+  - `src/components/Dashboard.tsx`: added "unused variables" KPI card (warn color when > 0, green when all used); added "variable usage" bar chart card showing all variables with usage counts, zero-use bars highlighted in warning amber.
+  - `directions.css`: added `kpi-card[data-accent="warn"]` and `[data-accent="ok"]` styles.
+  - `styles.css`: added `.var-uses` and `.var-uses.is-zero` badge styles.
+  - `tests/domain.test.ts`: 2 new tests — graph-node counting (body refs + conditions + sets) and preserved-source counting. 68 tests total, all pass.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 6
 - **Upgraded PlaytestView with full node type coverage and variable interpolation.**
   - `src/components/PlaytestView.tsx`:

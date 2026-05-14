@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sampleProjects } from "../src/data/sampleProject.ts";
-import { createExportPackage, generateNodeChoiceScript, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { computeVariableUses, createExportPackage, generateNodeChoiceScript, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { layoutProjectGraphs } from "../src/domain/graphLayout.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph, StoryNode } from "../src/domain/types.ts";
@@ -1400,6 +1400,64 @@ test("warns about image nodes with missing filename", () => {
   const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
 
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
+});
+
+test("counts variable uses across nodes, conditions, and sets", () => {
+  const graph = {
+    nodes: [
+      { id: "n1", type: "passage" as const, x: 0, y: 0, w: 300, title: "p1", body: "Hello ${courage}." },
+      {
+        id: "n2", type: "choice" as const, x: 0, y: 160, w: 340, title: "c1", prompt: "Choose.",
+        options: [
+          { text: "Fight", to: "n3", cond: { type: "if" as const, expr: "courage > 50" }, sets: [{ var: "courage", op: "+" as const, val: "10" }] },
+        ],
+      },
+      { id: "n3", type: "set" as const, x: 0, y: 320, w: 240, title: "*set name", sets: [{ var: "name", op: "=" as const, val: "\"Alex\"" }] },
+      { id: "n4", type: "finish" as const, x: 0, y: 480, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" as const }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "courage", type: "number" as const, initial: "50", desc: "Courage", uses: 0, fairmath: false },
+      { name: "name", type: "string" as const, initial: "\"Hero\"", desc: "Name", uses: 0 },
+      { name: "unused", type: "boolean" as const, initial: "false", desc: "Unused", uses: 0 },
+    ],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const uses = computeVariableUses(project);
+
+  assert.equal(uses.get("courage"), 3); // body ref + condition + set
+  assert.equal(uses.get("name"), 1);    // set only
+  assert.equal(uses.get("unused"), 0);  // never referenced
+});
+
+test("counts variable uses in preserved source text", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "courage", type: "number" as const, initial: "50", desc: "Courage", uses: 0, fairmath: false },
+      { name: "name", type: "string" as const, initial: "\"Hero\"", desc: "Name", uses: 0 },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: [
+          "*if courage > 40",
+          "  Good, ${name}!",
+          "*set courage + 5",
+        ].join("\n"),
+      },
+    },
+  };
+  const uses = computeVariableUses(project);
+
+  assert.equal(uses.get("courage"), 2); // *if condition + *set target
+  assert.equal(uses.get("name"), 1);    // body interpolation
 });
 
 test("imports gosub_scene and image command nodes", () => {

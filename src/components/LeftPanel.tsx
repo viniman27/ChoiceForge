@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { computeVariableUses } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
@@ -391,40 +392,45 @@ function VariablesList({
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
   onDeleteVariable: (name: string) => void;
 }) {
+  const variableUses = useMemo(() => computeVariableUses(data), [data]);
   return (
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th></th></tr></thead>
+        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th>uses</th><th></th></tr></thead>
         <tbody>
-          {data.variables.map((variable) => (
-            <tr key={variable.name}>
-              <td>
-                <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
-                  <option value="number">num</option>
-                  <option value="string">str</option>
-                  <option value="boolean">bool</option>
-                </select>
-              </td>
-              <td>
-                <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
-              </td>
-              <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
-              <td>
-                <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(variable.fairmath)}
-                    disabled={variable.type !== "number"}
-                    onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
-                  />
-                  <span>{variable.fairmath ? "percent" : "text"}</span>
-                </label>
-              </td>
-              <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
-              <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
-            </tr>
-          ))}
+          {data.variables.map((variable) => {
+            const uses = variableUses.get(variable.name) ?? 0;
+            return (
+              <tr key={variable.name}>
+                <td>
+                  <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
+                    <option value="number">num</option>
+                    <option value="string">str</option>
+                    <option value="boolean">bool</option>
+                  </select>
+                </td>
+                <td>
+                  <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
+                </td>
+                <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
+                <td>
+                  <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(variable.fairmath)}
+                      disabled={variable.type !== "number"}
+                      onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
+                    />
+                    <span>{variable.fairmath ? "percent" : "text"}</span>
+                  </label>
+                </td>
+                <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
+                <td><span className={`var-uses ${uses === 0 ? "is-zero" : ""}`}>{uses}</span></td>
+                <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
