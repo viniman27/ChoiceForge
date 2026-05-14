@@ -937,6 +937,9 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
     if ((chartType === "percent" || chartType === "opposed_pair") && projectVariable && projectVariable.type !== "number") {
       issues.push({ level: "error", msg: `*stat_chart ${chartType} requires a number variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
     }
+    if (chartType === "percent" && projectVariable?.type === "number" && !projectVariable.fairmath) {
+      issues.push({ level: "warning", msg: `*stat_chart percent uses a number variable without percent stat format: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+    }
     if (chartType === "text" && projectVariable && projectVariable.type !== "string") {
       issues.push({ level: "error", msg: `*stat_chart text requires a string variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
     }
