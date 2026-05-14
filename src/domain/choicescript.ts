@@ -448,11 +448,11 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     }
     if (command === "goto") {
       const label = sourceCommandValue(trimmed, "*goto").split(/\s+/)[0] ?? "";
-      if (label) referencedLabels.push({ label, line: lineNumber });
+      lintPreservedJumpLine(referencedLabels, "*goto", label, sceneName, lineNumber, issues);
     }
     if (command === "gosub") {
       const label = sourceCommandValue(trimmed, "*gosub").split(/\s+/)[0] ?? "";
-      if (label) referencedLabels.push({ label, line: lineNumber });
+      lintPreservedJumpLine(referencedLabels, "*gosub", label, sceneName, lineNumber, issues);
     }
     if (command === "goto_scene") {
       const target = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "");
@@ -499,6 +499,25 @@ function lintPreservedLabelLine(labels: Map<string, number>, label: string, scen
     return;
   }
   labels.set(label, lineNumber);
+}
+
+function lintPreservedJumpLine(
+  referencedLabels: Array<{ label: string; line: number }>,
+  command: "*goto" | "*gosub",
+  label: string,
+  sceneName: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  if (!label) {
+    issues.push({ level: "error", msg: `${command} needs a label target`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (!isValidChoiceScriptIdentifier(label)) {
+    issues.push({ level: "error", msg: `${command} has an invalid label identifier: ${label}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  referencedLabels.push({ label, line: lineNumber });
 }
 
 function lintPreservedTempLine(
