@@ -1367,6 +1367,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .ip-content, .ip-logic, .ip-raw { display: flex; flex-direction: column; gap: 10px; }
 .ip-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.05em; }
+.ip-hint { font-size: 11px; color: var(--ink-mute); line-height: 1.5; margin: 0; }
 .stat-node-note {
   display: inline-flex;
   align-items: center;

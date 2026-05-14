@@ -24,7 +24,8 @@ export type NodeType =
   | "input_number"
   | "rand"
   | "gosub_scene"
-  | "image";
+  | "image"
+  | "temp";
 
 export interface SceneSummary {
   id: string;

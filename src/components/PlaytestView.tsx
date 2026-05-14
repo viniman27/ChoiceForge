@@ -91,6 +91,16 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
+    if (node.type === "temp") {
+      if (node.inputVar) {
+        const raw = node.body?.trim() ?? "0";
+        const numVal = Number(raw);
+        const parsed = raw === "true" ? true : raw === "false" ? false : Number.isFinite(numVal) ? numVal : raw;
+        setStats((current) => ({ ...current, [node.inputVar!]: parsed }));
+      }
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
+    }
   }, [graph.edges, node, project, project.variables, returnStack, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];

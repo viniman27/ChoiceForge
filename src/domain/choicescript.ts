@@ -24,7 +24,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
   lines.push(`*label ${nodeLabel}`);
   if (node.type === "label") lines.push(`*label ${stripCommandPrefix(node.title, "*label")}`);
-  if (node.type !== "comment" && node.body?.trim()) lines.push(node.body);
+  if (node.type !== "comment" && node.type !== "temp" && node.body?.trim()) lines.push(node.body);
   node.sets?.forEach((set) => lines.push(generateSet(set)));
 
   if (node.type === "choice") {
@@ -79,6 +79,11 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (node.type === "input_text") lines.push(`*input_text ${node.inputVar ?? stripCommandPrefix(node.title, "*input_text")}`);
   if (node.type === "input_number") lines.push(`*input_number ${node.inputVar ?? stripCommandPrefix(node.title, "*input_number")} ${node.inputMin ?? "0"} ${node.inputMax ?? "100"}`);
   if (node.type === "rand") lines.push(`*rand ${node.inputVar ?? stripCommandPrefix(node.title, "*rand")} ${node.inputMin ?? "1"} ${node.inputMax ?? "100"}`);
+  if (node.type === "temp") {
+    const varName = node.inputVar ?? stripCommandPrefix(node.title, "*temp");
+    const initial = node.body?.trim() ?? "0";
+    lines.push(`*temp ${varName} ${initial}`);
+  }
 
   const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
   if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
@@ -458,7 +463,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const humanLabels = graph.nodes
     .filter((node) => node.type === "label")
     .map((node) => ({ node, label: stripCommandPrefix(node.title, "*label") }));
-  const variables = new Set(project.variables.map((variable) => variable.name));
+  const tempVarNames = new Set(
+    graph.nodes.filter((node) => node.type === "temp" && node.inputVar?.trim()).map((node) => node.inputVar!.trim()),
+  );
+  const variables = new Set([...project.variables.map((variable) => variable.name), ...tempVarNames]);
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
@@ -580,6 +588,18 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);
+    }
+
+    if (node.type === "temp") {
+      const varName = (node.inputVar ?? stripCommandPrefix(node.title, "*temp")).trim();
+      if (!varName || !isValidChoiceScriptIdentifier(varName)) {
+        issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${varName || "(empty)"}`, scene: sceneName, node: node.id });
+      } else if (project.variables.some((variable) => variable.name === varName)) {
+        issues.push({ level: "warning", msg: `*temp shadows a global variable: ${varName}`, scene: sceneName, node: node.id });
+      }
+      if (!node.body?.trim()) {
+        issues.push({ level: "warning", msg: `*temp "${varName}" has no initial value (defaults to 0)`, scene: sceneName, node: node.id });
+      }
     }
   });
 }
