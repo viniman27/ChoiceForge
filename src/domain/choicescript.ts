@@ -687,7 +687,7 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
   const listedScenes = new Map<string, number>();
   const declaredVariables = new Map<string, number>();
   const declaredAchievements = new Map<string, number>();
-  const projectVariables = new Set(project.variables.map((variable) => variable.name));
+  const projectVariables = new Map(project.variables.map((variable) => [variable.name, variable]));
   const projectAchievements = new Set(project.achievements.map((achievement) => achievement.id));
   let foundSceneList = false;
   let inSceneList = false;
@@ -756,7 +756,7 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
 }
 
 function lintPreservedCreateLine(
-  projectVariables: Set<string>,
+  projectVariables: Map<string, ChoiceForgeProject["variables"][number]>,
   declaredVariables: Map<string, number>,
   line: string,
   lineNumber: number,
@@ -772,6 +772,10 @@ function lintPreservedCreateLine(
   }
   if (!initial.trim()) {
     issues.push({ level: "error", msg: `*create has an empty initial value: ${normalizedName}`, scene: "startup", line: lineNumber });
+  }
+  const projectVariable = projectVariables.get(normalizedName);
+  if (projectVariable && initial.trim() && !isValidVariableInitial({ ...projectVariable, initial })) {
+    issues.push({ level: "error", msg: `*create ${normalizedName} has an invalid ${projectVariable.type} initial value: ${initial}`, scene: "startup", line: lineNumber });
   }
   if (declaredVariables.has(normalizedName)) {
     issues.push({ level: "error", msg: `startup.txt repeats *create variable: ${normalizedName}`, scene: "startup", line: lineNumber });

@@ -420,7 +420,10 @@ test("lints preserved startup scene list against project scenes", () => {
 test("lints preserved startup global declarations", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
-    variables: [{ name: "score", type: "number", initial: "0", desc: "Score", fairmath: false }],
+    variables: [
+      { name: "score", type: "number", initial: "0", desc: "Score", fairmath: false },
+      { name: "flag", type: "boolean", initial: "false", desc: "Flag", fairmath: false },
+    ],
     achievements: [
       { id: "first", title: "First", desc: "First step", points: 10, hidden: false },
       { id: "untitled", title: "Untitled", desc: "Missing title", points: 5, hidden: false },
@@ -434,6 +437,7 @@ test("lints preserved startup global declarations", () => {
       "*create score 1",
       "*create bad-name 0",
       "*create extra 0",
+      "*create flag maybe",
       "*achievement first visible 10 First",
       "*achievement first visible 10 First Again",
       "*achievement bad-ach visible -1 Broken",
@@ -446,10 +450,11 @@ test("lints preserved startup global declarations", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 6 && issue.msg.includes("repeats *create variable: score")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 7 && issue.msg.includes("invalid variable identifier")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 8 && issue.msg.includes("missing from project metadata: extra")));
-  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 10 && issue.msg.includes("repeats *achievement: first")));
-  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 11 && issue.msg.includes("invalid identifier")));
-  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 12 && issue.msg.includes("missing from project metadata: extra")));
-  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 13 && issue.msg.includes("empty title: untitled")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 9 && issue.msg.includes("invalid boolean initial value: maybe")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 11 && issue.msg.includes("repeats *achievement: first")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 12 && issue.msg.includes("invalid identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 13 && issue.msg.includes("missing from project metadata: extra")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 14 && issue.msg.includes("empty title: untitled")));
 });
 
 test("imports gosub arguments and params without corrupting label targets", () => {
