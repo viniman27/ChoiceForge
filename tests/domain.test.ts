@@ -371,6 +371,24 @@ test("lints preserved startup and stats source by line", () => {
   assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 6));
 });
 
+test("warns about preserved returns without gosub commands", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Return Lint",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+    ].join("\n")),
+    textEntry("ch1.txt", [
+      "A stray subroutine return.",
+      "*return",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 2 && issue.msg.includes("*return appears in a scene with no *gosub")));
+});
+
 test("lints preserved startup scene list against project scenes", () => {
   const project = {
     ...minimalProject(),

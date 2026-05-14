@@ -436,6 +436,8 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const referencedLabels: Array<{ label: string; line: number }> = [];
   const savedCheckpoints = new Set<string>();
   const restoredCheckpoints: Array<{ slot: string; line: number }> = [];
+  const returnLines: number[] = [];
+  let hasGosub = false;
   const lines = sourceText.split(/\r?\n/);
 
   issues.push({ level: "info", msg: infoMessage, scene: sceneName, line: 1 });
@@ -453,8 +455,12 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       lintPreservedJumpLine(referencedLabels, "*goto", label, sceneName, lineNumber, issues);
     }
     if (command === "gosub") {
+      hasGosub = true;
       const label = sourceCommandValue(trimmed, "*gosub").split(/\s+/)[0] ?? "";
       lintPreservedJumpLine(referencedLabels, "*gosub", label, sceneName, lineNumber, issues);
+    }
+    if (command === "return") {
+      returnLines.push(lineNumber);
     }
     if (command === "goto_scene") {
       const rawTarget = sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "";
@@ -499,6 +505,11 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in this scene`, scene: sceneName, line });
     }
   });
+  if (!hasGosub) {
+    returnLines.forEach((line) => {
+      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub commands", scene: sceneName, line });
+    });
+  }
 }
 
 function lintPreservedLabelLine(labels: Map<string, number>, label: string, sceneName: string, lineNumber: number, issues: LintIssue[]) {
