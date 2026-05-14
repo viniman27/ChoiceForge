@@ -329,6 +329,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 10
+- **Implemented Redo (Ctrl+Shift+Z) and per-scene lint count badges.**
+  - `src/state/projectStore.ts`:
+    - Added `futureRef = useRef<ChoiceForgeProject[]>([])` and `futureLength` state alongside the existing `historyRef`/`historyLength`.
+    - `pushHistory` now also clears `futureRef`/`futureLength` whenever a new action is committed (any new edit invalidates the redo stack).
+    - `undo()` refactored to run inside `setProjectState` updater — captures current state before restore, pushes it to `futureRef`.
+    - `redo()` added — mirrors `undo()` in reverse: pops from `futureRef`, pushes current to `historyRef`, restores state.
+    - `ProjectActions` interface extended with `canRedo: boolean` and `redo: () => void`.
+  - `src/components/TopBar.tsx`: added `canRedo`/`onRedo` props; added `<button>Redo</button>` next to Undo with `title="Ctrl+Shift+Z"`.
+  - `src/App.tsx`: added keyboard handler for Ctrl/Cmd+Shift+Z → `actions.redo()`; passes `canRedo`/`onRedo` to `TopBar`.
+  - `src/components/LeftPanel.tsx` (`ScenesList`):
+    - Added `useMemo` that groups `data.lints` by `issue.scene` into a `Map<string, {errors, warnings}>`.
+    - Each scene row now shows `Xe` (error count) and `Xw` (warning count) badges when > 0, styled in red/amber respectively.
+  - `styles.css`: added `.scene-tag.scene-err` (red tint) and `.scene-tag.scene-warn` (amber tint) badge styles.
+  - 78 tests, all passing; zero TS errors.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 9
 - **Added `*temp` node type for scene-local variable declarations.**
   - `src/domain/types.ts`: added `"temp"` to the `NodeType` union (22 types total).

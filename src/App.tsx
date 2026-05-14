@@ -91,6 +91,16 @@ export default function App() {
         setSaveStatus(formatSaveStatus(lang));
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z") {
+        if (isTypingTarget(event.target)) return;
+        event.preventDefault();
+        actions.redo();
+        setSelectedId(null);
+        setGeneratedDocumentId(null);
+        setGeneratedDocumentLine(null);
+        setPlayOpen(false);
+        return;
+      }
       if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
       if (isTypingTarget(event.target)) return;
       event.preventDefault();
@@ -154,9 +164,17 @@ export default function App() {
         onViewChange={setView}
         onMetadataChange={actions.updateMetadata}
         canUndo={actions.canUndo}
+        canRedo={actions.canRedo}
         textModeActive={generatedDocumentId === "scene"}
         onUndo={() => {
           actions.undo();
+          setSelectedId(null);
+          setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
+          setPlayOpen(false);
+        }}
+        onRedo={() => {
+          actions.redo();
           setSelectedId(null);
           setGeneratedDocumentId(null);
           setGeneratedDocumentLine(null);

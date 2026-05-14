@@ -29,7 +29,9 @@ function saveProjectSnapshot(project: ChoiceForgeProject) {
 
 export interface ProjectActions {
   canUndo: boolean;
+  canRedo: boolean;
   undo: () => void;
+  redo: () => void;
   saveNow: () => void;
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
@@ -67,12 +69,16 @@ export interface ProjectActions {
 export function useProjectStore() {
   const [project, setProjectState] = useState(loadInitialProject);
   const [historyLength, setHistoryLength] = useState(0);
+  const [futureLength, setFutureLength] = useState(0);
   const historyRef = useRef<ChoiceForgeProject[]>([]);
+  const futureRef = useRef<ChoiceForgeProject[]>([]);
 
   const pushHistory = useCallback((snapshot: ChoiceForgeProject) => {
     const nextHistory = [...historyRef.current, cloneProject(snapshot)].slice(-HISTORY_LIMIT);
     historyRef.current = nextHistory;
     setHistoryLength(nextHistory.length);
+    futureRef.current = [];
+    setFutureLength(0);
   }, []);
 
   const setTrackedProjectState = useCallback((updater: ChoiceForgeProject | ((current: ChoiceForgeProject) => ChoiceForgeProject)) => {
@@ -109,15 +115,36 @@ export function useProjectStore() {
 
   const actions = useMemo<ProjectActions>(() => ({
     canUndo: historyLength > 0,
+    canRedo: futureLength > 0,
     undo: () => {
       const previous = historyRef.current.at(-1);
       if (!previous) return;
-      const nextHistory = historyRef.current.slice(0, -1);
-      historyRef.current = nextHistory;
-      setHistoryLength(nextHistory.length);
-      const restored = commitProject(hydrateProject(cloneProject(previous)));
-      setProjectState(restored);
-      saveProjectSnapshot(restored);
+      setProjectState((current) => {
+        const nextHistory = historyRef.current.slice(0, -1);
+        historyRef.current = nextHistory;
+        setHistoryLength(nextHistory.length);
+        const nextFuture = [...futureRef.current, cloneProject(current)].slice(-HISTORY_LIMIT);
+        futureRef.current = nextFuture;
+        setFutureLength(nextFuture.length);
+        const restored = commitProject(hydrateProject(cloneProject(previous)));
+        saveProjectSnapshot(restored);
+        return restored;
+      });
+    },
+    redo: () => {
+      const next = futureRef.current.at(-1);
+      if (!next) return;
+      setProjectState((current) => {
+        const nextFuture = futureRef.current.slice(0, -1);
+        futureRef.current = nextFuture;
+        setFutureLength(nextFuture.length);
+        const nextHistory = [...historyRef.current, cloneProject(current)].slice(-HISTORY_LIMIT);
+        historyRef.current = nextHistory;
+        setHistoryLength(nextHistory.length);
+        const restored = commitProject(hydrateProject(cloneProject(next)));
+        saveProjectSnapshot(restored);
+        return restored;
+      });
     },
     saveNow: () => {
       setProjectState((current) => {
