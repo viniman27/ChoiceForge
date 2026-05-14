@@ -279,6 +279,8 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     .forEach((id) => issues.push({ level: "warning", msg: `duplicate asset id: ${id}`, scene: null }));
   findDuplicates((project.assets ?? []).map((asset) => asset.path))
     .forEach((path) => issues.push({ level: "warning", msg: `duplicate asset path: ${path}`, scene: null }));
+  findDuplicates((project.assets ?? []).filter((asset) => asset.dataUrl).map((asset) => asset.path))
+    .forEach((path) => issues.push({ level: "error", msg: `duplicate exported asset path: ${path}`, scene: null }));
 
   project.scenes.forEach((scene) => {
     if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", scene: null });

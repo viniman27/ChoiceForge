@@ -1077,6 +1077,21 @@ test("lints asset export path collisions", () => {
   assert.ok(errors.some((message) => message.includes("asset \"stats_asset\" export path conflicts with a generated file: choicescript_stats.txt")));
 });
 
+test("lints duplicate exported asset paths", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "first", path: "images/shared.png", kind: "image" as const, desc: "First", dataUrl: "data:text/plain;base64,SGVsbG8=" },
+      { id: "second", path: "images/shared.png", kind: "image" as const, desc: "Second", dataUrl: "data:text/plain;base64,SGVsbG8=" },
+      { id: "metadata_only", path: "images/shared.png", kind: "image" as const, desc: "No data" },
+    ],
+  };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((issue) => issue.level === "warning" && issue.msg.includes("duplicate asset path: images/shared.png")));
+  assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("duplicate exported asset path: images/shared.png")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [
