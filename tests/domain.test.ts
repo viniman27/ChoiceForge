@@ -315,6 +315,9 @@ test("lints preserved source without graph approximation false positives", () =>
       "*achieve",
       "*achieve bad-achievement",
       "*achieve missing_achievement",
+      "*if",
+      "*elseif",
+      "*selectable_if #No Condition",
       "*params frag",
       "*if frag",
       "  *input_text frag",
@@ -344,6 +347,9 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 32 && issue.msg.includes("*achieve needs an achievement id")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 33 && issue.msg.includes("*achieve has an invalid achievement identifier: bad-achievement")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 34 && issue.msg.includes("*achieve uses an undeclared achievement: missing_achievement")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 35 && issue.msg.includes("*if condition is empty")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 36 && issue.msg.includes("*elseif condition is empty")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 37 && issue.msg.includes("*selectable_if condition is empty")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));

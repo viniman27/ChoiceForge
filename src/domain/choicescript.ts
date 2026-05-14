@@ -501,7 +501,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       lintPreservedInputCommand(variables, command, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "if" || command === "elseif" || command === "selectable_if") {
-      lintSourceExpression(sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
+      lintPreservedConditionLine(command, sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
     }
     const achievementMatch = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i);
     if (achievementMatch) {
@@ -678,6 +678,21 @@ function lintPreservedInputCommand(
   if (!rawMin || !rawMax || !Number.isFinite(min) || !Number.isFinite(max) || min > max) {
     issues.push({ level: "error", msg: `*${command} has invalid bounds: ${rawMin || "(empty)"} ${rawMax || "(empty)"}`, scene: sceneName, line: lineNumber });
   }
+}
+
+function lintPreservedConditionLine(
+  command: string,
+  expression: string,
+  variables: Set<string>,
+  issues: LintIssue[],
+  sceneName: string,
+  lineNumber: number,
+) {
+  if (!expression.trim()) {
+    issues.push({ level: "error", msg: `*${command} condition is empty`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  lintSourceExpression(expression, variables, issues, sceneName, lineNumber);
 }
 
 function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
@@ -1215,7 +1230,7 @@ function sourceConditionExpression(line: string, command: string): string {
   const value = sourceCommandValue(line, `*${command}`).trim();
   const parenthesized = value.match(/^\((.*?)\)(?:\s+#.*)?$/)?.[1];
   if (parenthesized !== undefined) return parenthesized;
-  return value.replace(/\s+#.*$/, "");
+  return value.replace(/(?:^|\s)#.*$/, "");
 }
 
 function normalizeSourceExpressionIdentifiers(expression: string): string {
