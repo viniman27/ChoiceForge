@@ -293,9 +293,14 @@ test("lints preserved source without graph approximation false positives", () =>
       "*set local_flag true",
       "*if local_flag",
       "  *finish",
+      "*input_text local_flag",
+      "*rand local_flag 1 2",
+      "*input_number missing_input 10 1",
+      "*rand bad-name 1 2",
       "*label helper",
       "*params frag",
       "*if frag",
+      "  *input_text frag",
       "  *return",
     ].join("\n")),
   ]);
@@ -306,6 +311,9 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 6 && issue.msg.includes("missing scene")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 7 && issue.msg.includes("undeclared variable: missing_condition")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("undeclared variable: missing_choice")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 17 && issue.msg.includes("undeclared variable: missing_input")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 17 && issue.msg.includes("invalid bounds: 10 1")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 18 && issue.msg.includes("invalid variable identifier")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));

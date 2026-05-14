@@ -469,8 +469,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       lintPreservedParamsLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "input_text" || command === "input_number" || command === "rand") {
-      const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
-      if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+      lintPreservedInputCommand(variables, command, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "if" || command === "elseif" || command === "selectable_if") {
       lintSourceExpression(sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
@@ -536,6 +535,31 @@ function lintPreservedParamsLine(
     localVariables.set(normalizedName, lineNumber);
     variables.add(normalizedName);
   });
+}
+
+function lintPreservedInputCommand(
+  variables: Set<string>,
+  command: string,
+  line: string,
+  sceneName: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const [rawVariable = "", rawMin = "", rawMax = ""] = sourceCommandValue(line, `*${command}`).split(/\s+/);
+  const variable = normalizeSourceIdentifier(rawVariable);
+  if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
+    issues.push({ level: "error", msg: `*${command} has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (!variables.has(variable)) {
+    issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+  }
+  if (command !== "input_number" && command !== "rand") return;
+  const min = Number(rawMin);
+  const max = Number(rawMax);
+  if (!rawMin || !rawMax || !Number.isFinite(min) || !Number.isFinite(max) || min > max) {
+    issues.push({ level: "error", msg: `*${command} has invalid bounds: ${rawMin || "(empty)"} ${rawMax || "(empty)"}`, scene: sceneName, line: lineNumber });
+  }
 }
 
 function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: string, issues: LintIssue[]) {
