@@ -1039,6 +1039,22 @@ test("lints unsafe asset metadata", () => {
   assert.ok(issues.some((issue) => issue.level === "error" && issue.msg.includes("asset \"windows\" has an unsafe export path: images\\file.png")));
 });
 
+test("lints malformed asset data urls", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "missing_comma", path: "data/missing.txt", kind: "data" as const, desc: "Missing comma", dataUrl: "data:text/plain;base64" },
+      { id: "bad_base64", path: "data/bad.txt", kind: "data" as const, desc: "Bad base64", dataUrl: "data:text/plain;base64,SGVsbG8!" },
+      { id: "bad_uri", path: "data/bad-uri.txt", kind: "data" as const, desc: "Bad URI", dataUrl: "data:text/plain,%" },
+    ],
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("asset \"missing_comma\" has a malformed data URL")));
+  assert.ok(errors.some((message) => message.includes("asset \"bad_base64\" has invalid base64 data")));
+  assert.ok(errors.some((message) => message.includes("asset \"bad_uri\" has invalid URL-encoded data")));
+});
+
 test("lints invalid ChoiceScript identifiers", () => {
   const graph: SceneGraph = {
     nodes: [

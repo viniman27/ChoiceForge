@@ -318,6 +318,10 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (asset.path.trim() && !isSafeAssetPath(asset.path)) {
       issues.push({ level: "error", msg: `asset "${asset.id}" has an unsafe export path: ${asset.path}`, scene: null });
     }
+    const dataUrlIssue = asset.dataUrl ? assetDataUrlIssue(asset.dataUrl) : null;
+    if (dataUrlIssue) {
+      issues.push({ level: "error", msg: `asset "${asset.id}" has ${dataUrlIssue}`, scene: null });
+    }
   });
 }
 
@@ -337,6 +341,27 @@ function isSafeAssetPath(path: string): boolean {
   if (!normalized || normalized.includes("\\")) return false;
   if (normalized.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(normalized)) return false;
   return normalized.split("/").every((part) => part && part !== "." && part !== "..");
+}
+
+function assetDataUrlIssue(dataUrl: string): string | null {
+  if (!dataUrl.startsWith("data:")) return null;
+  const separator = dataUrl.indexOf(",");
+  if (separator === -1) return "a malformed data URL";
+  const header = dataUrl.slice(0, separator);
+  const data = dataUrl.slice(separator + 1);
+  if (header.includes(";base64")) {
+    const normalized = data.replace(/\s/g, "");
+    if (normalized.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) || /=/.test(normalized.replace(/=+$/, ""))) {
+      return "invalid base64 data";
+    }
+    return null;
+  }
+  try {
+    decodeURIComponent(data);
+  } catch {
+    return "invalid URL-encoded data";
+  }
+  return null;
 }
 
 function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneName: string, issues: LintIssue[]) {
