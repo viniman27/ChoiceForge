@@ -498,7 +498,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       lintPreservedParamsLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "input_text" || command === "input_number" || command === "rand") {
-      lintPreservedInputCommand(variables, command, trimmed, sceneName, lineNumber, issues);
+      lintPreservedInputCommand(variables, variableTypes, command, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "if" || command === "elseif" || command === "selectable_if") {
       lintPreservedConditionLine(command, sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
@@ -657,6 +657,7 @@ function lintPreservedSetLine(
 
 function lintPreservedInputCommand(
   variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
   command: string,
   line: string,
   sceneName: string,
@@ -671,6 +672,13 @@ function lintPreservedInputCommand(
   }
   if (!variables.has(variable)) {
     issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+  }
+  const globalVariable = variableTypes.get(variable);
+  if (command === "input_text" && globalVariable && globalVariable.type !== "string") {
+    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variable}`, scene: sceneName, line: lineNumber });
+  }
+  if ((command === "input_number" || command === "rand") && globalVariable && globalVariable.type !== "number") {
+    issues.push({ level: "error", msg: `*${command} requires a number variable: ${variable}`, scene: sceneName, line: lineNumber });
   }
   if (command !== "input_number" && command !== "rand") return;
   const min = Number(rawMin);

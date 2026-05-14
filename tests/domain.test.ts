@@ -301,6 +301,9 @@ test("lints preserved source without graph approximation false positives", () =>
       "  *finish",
       "*input_text local_flag",
       "*rand local_flag 1 2",
+      "*input_text score",
+      "*input_number name 1 2",
+      "*rand name 1 2",
       "*input_number missing_input 10 1",
       "*rand bad-name 1 2",
       "*label helper",
@@ -334,22 +337,25 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 10 && issue.msg.includes("invalid scene identifier: bad-scene")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 11 && issue.msg.includes("undeclared variable: missing_condition")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("undeclared variable: missing_choice")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("undeclared variable: missing_input")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("invalid bounds: 10 1")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 22 && issue.msg.includes("invalid variable identifier")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("duplicate *label in source: helper")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 25 && issue.msg.includes("*label has an invalid identifier: bad-name")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 26 && issue.msg.includes("*goto needs a label target")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*page_break needs a button label")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 31 && issue.msg.includes("*save_checkpoint needs a checkpoint name")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 32 && issue.msg.includes("*achieve needs an achievement id")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 33 && issue.msg.includes("*achieve has an invalid achievement identifier: bad-achievement")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 34 && issue.msg.includes("*achieve uses an undeclared achievement: missing_achievement")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 35 && issue.msg.includes("*if condition is empty")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 36 && issue.msg.includes("*elseif condition is empty")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 37 && issue.msg.includes("*selectable_if condition is empty")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("*input_text requires a string variable: score")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 22 && issue.msg.includes("*input_number requires a number variable: name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 23 && issue.msg.includes("*rand requires a number variable: name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("undeclared variable: missing_input")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("invalid bounds: 10 1")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 25 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("duplicate *label in source: helper")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 28 && issue.msg.includes("*label has an invalid identifier: bad-name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*goto needs a label target")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 32 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 33 && issue.msg.includes("*page_break needs a button label")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 34 && issue.msg.includes("*save_checkpoint needs a checkpoint name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 35 && issue.msg.includes("*achieve needs an achievement id")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 36 && issue.msg.includes("*achieve has an invalid achievement identifier: bad-achievement")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 37 && issue.msg.includes("*achieve uses an undeclared achievement: missing_achievement")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 38 && issue.msg.includes("*if condition is empty")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 39 && issue.msg.includes("*elseif condition is empty")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 40 && issue.msg.includes("*selectable_if condition is empty")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
