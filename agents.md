@@ -278,7 +278,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 | Generated file editor | Editable, CodeMirror-backed, line-highlightable, dirty-state aware, and applies changes back to project |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
 | Import parser | Handles common/simple ChoiceScript commands, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
-| Preserved source linting | Implemented for imported scenes, startup, stats, scene lists, global declarations, stat charts, label definitions, `*goto`/`*gosub`/`*goto_scene` targets, checkpoint saves/restores, `*page_break` labels, `*return` without `*gosub`, conditions, `*set` values/operators, input/rand bounds, `*temp`, and `*params`; still not a complete ChoiceScript semantic validator |
+| Preserved source linting | Implemented for imported scenes, startup, stats, scene lists, global declarations, stat charts, label definitions, `*goto`/`*gosub`/`*goto_scene` targets, checkpoint saves/restores, `*page_break` labels, `*achieve` targets, `*return` without `*gosub`, conditions, `*set` values/operators, input/rand bounds, `*temp`, and `*params`; still not a complete ChoiceScript semantic validator |
 | Tests | Minimal domain/import/generator coverage exists via Node's built-in test runner; no UI/browser test coverage yet |
 | Global search | Implemented for scenes, nodes, variables, achievements, assets, and preserved source text |
 | Lint console | Expandable and navigable; issue text is still not localized |
