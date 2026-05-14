@@ -307,7 +307,7 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (!(achievement.postDesc || achievement.desc).trim()) {
       issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty unlocked description`, scene: null });
     }
-    if (!Number.isFinite(achievement.points) || achievement.points < 0) {
+    if (!Number.isInteger(achievement.points) || achievement.points < 0) {
       issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, scene: null });
     }
   });
@@ -846,7 +846,7 @@ function lintPreservedAchievementLine(
   if (!visibility || (visibility !== "visible" && visibility !== "hidden")) {
     issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility || "(empty)"}`, scene: "startup", line: lineNumber });
   }
-  if (!rawPoints || !Number.isFinite(points) || points < 0) {
+  if (!rawPoints || !Number.isInteger(points) || points < 0) {
     issues.push({ level: "error", msg: `*achievement has invalid points: ${rawPoints || "(empty)"}`, scene: "startup", line: lineNumber });
   }
   if (!title) {

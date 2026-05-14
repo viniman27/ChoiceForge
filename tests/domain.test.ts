@@ -455,6 +455,7 @@ test("lints preserved startup global declarations", () => {
       "*achievement bad-ach visible -1 Broken",
       "*achievement extra hidden 5 Extra",
       "*achievement untitled visible 5",
+      "*achievement fractional visible 1.5 Fractional",
     ].join("\n"),
   };
   const issues = lintProject(project);
@@ -467,6 +468,7 @@ test("lints preserved startup global declarations", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 12 && issue.msg.includes("invalid identifier")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 13 && issue.msg.includes("missing from project metadata: extra")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 14 && issue.msg.includes("empty title: untitled")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 15 && issue.msg.includes("invalid points: 1.5")));
 });
 
 test("lints empty preserved startup metadata", () => {
@@ -1005,6 +1007,18 @@ test("lints empty achievement metadata", () => {
   assert.ok(errors.some((message) => message.includes("achievement \"empty_title\" has an empty title")));
   assert.ok(errors.some((message) => message.includes("achievement \"empty_locked\" has an empty locked description")));
   assert.ok(errors.some((message) => message.includes("achievement \"empty_unlocked\" has an empty unlocked description")));
+});
+
+test("lints fractional achievement points", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [
+      { id: "fractional", title: "Fractional", points: 1.5, desc: "Fractional points.", preDesc: "Locked", postDesc: "Unlocked" },
+    ],
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("achievement \"fractional\" has invalid points")));
 });
 
 test("lints invalid ChoiceScript identifiers", () => {
