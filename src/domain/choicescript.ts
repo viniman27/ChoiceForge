@@ -432,7 +432,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const localVariables = new Map<string, number>();
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
-  const labels = new Set<string>();
+  const labels = new Map<string, number>();
   const referencedLabels: Array<{ label: string; line: number }> = [];
   const lines = sourceText.split(/\r?\n/);
 
@@ -444,7 +444,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     const command = sourceCommand(trimmed);
     if (command === "label") {
       const label = sourceCommandValue(trimmed, "*label").split(/\s+/)[0] ?? "";
-      if (label) labels.add(label);
+      lintPreservedLabelLine(labels, label, sceneName, lineNumber, issues);
     }
     if (command === "goto") {
       const label = sourceCommandValue(trimmed, "*goto").split(/\s+/)[0] ?? "";
@@ -483,6 +483,22 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
   });
+}
+
+function lintPreservedLabelLine(labels: Map<string, number>, label: string, sceneName: string, lineNumber: number, issues: LintIssue[]) {
+  if (!label) {
+    issues.push({ level: "error", msg: "*label needs a name", scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (!isValidChoiceScriptIdentifier(label)) {
+    issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (labels.has(label)) {
+    issues.push({ level: "error", msg: `duplicate *label in source: ${label}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  labels.set(label, lineNumber);
 }
 
 function lintPreservedTempLine(

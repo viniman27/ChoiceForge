@@ -303,6 +303,8 @@ test("lints preserved source without graph approximation false positives", () =>
       "*input_number missing_input 10 1",
       "*rand bad-name 1 2",
       "*label helper",
+      "*label helper",
+      "*label bad-name",
       "*params frag",
       "*if frag",
       "  *input_text frag",
@@ -321,6 +323,8 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("undeclared variable: missing_input")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("invalid bounds: 10 1")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 23 && issue.msg.includes("duplicate *label in source: helper")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("*label has an invalid identifier: bad-name")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 12 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
