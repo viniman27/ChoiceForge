@@ -857,6 +857,11 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: var(--c-set-tint);
   border-radius: 3px;
 }
+.cm-cs-multi {
+  color: var(--accent-3);
+  background: color-mix(in oklch, var(--accent-3) 14%, transparent);
+  border-radius: 3px;
+}
 
 .playtest {
   grid-area: canvas;
@@ -1365,6 +1370,41 @@ input, select, textarea { font-family: inherit; color: inherit; }
   text-wrap: pretty;
 }
 .narr-editor:focus { border-color: var(--accent-1); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-1) 18%, transparent); }
+
+.node-body-editor {
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-2);
+  background: var(--paper-1);
+  overflow: hidden;
+}
+.node-body-editor:focus-within {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-1) 18%, transparent);
+}
+.node-body-editor .cm-editor {
+  min-height: 120px;
+  background: transparent;
+}
+.node-body-editor .cm-scroller {
+  font-family: var(--ff-narr);
+  font-size: 14px;
+  line-height: 1.5;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.node-body-editor .cm-content {
+  padding: 12px 14px;
+  caret-color: var(--accent-1);
+  color: var(--ink);
+  min-height: 120px;
+}
+.node-body-editor .cm-line { padding: 0; }
+.node-body-editor .cm-gutters { display: none; }
+.node-body-editor .cm-cursor { border-left-color: var(--accent-1); }
+.node-body-editor .cm-selectionBackground,
+.node-body-editor .cm-focused .cm-selectionBackground {
+  background: color-mix(in oklch, var(--accent-2) 24%, transparent);
+}
 .ip-editor-foot { display: flex; align-items: center; gap: 6px; padding: 4px 0 0; font-size: 11px; }
 .chip-btn { font-family: var(--ff-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--r-1); border: 1px solid var(--paper-edge); background: var(--paper-1); color: var(--ink-2); }
 .chip-btn:hover { background: var(--paper-3); }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { NodeIcon, typeColors } from "./NodeCard";
+import { NodeBodyEditor } from "./NodeBodyEditor";
 
 interface RightPanelProps {
   node: StoryNode | null;
@@ -92,7 +93,7 @@ function ContentTab({
     return (
       <div className="ip-content">
         <label className="ip-label">{labels.bodyLabel}</label>
-        <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
         <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
         <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
       </div>
@@ -184,7 +185,7 @@ function ContentTab({
     return (
       <div className="ip-content">
         <label className="ip-label">comment</label>
-        <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
       </div>
     );
   }
@@ -357,7 +358,7 @@ function InputNodeFields({
       {node.type !== "rand" && (
         <>
           <label className="ip-label">prompt text</label>
-          <textarea className="narr-editor" value={node.body ?? ""} onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} spellCheck />
+          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
         </>
       )}
       <label className="ip-label">target variable</label>
