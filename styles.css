@@ -578,7 +578,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ach-title { font-weight: 600; font-size: 12px; }
 .ach-hidden { color: var(--accent-1); font-size: 10px; }
 .ach-desc { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
-.ach-id { font-size: 10px; color: var(--ink-mute); margin-top: 4px; display: block; }
+.ach-id { font-size: 10px; color: var(--ink-mute); }
+.ach-footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .ach-points {
   width: 42px;
   height: 32px;

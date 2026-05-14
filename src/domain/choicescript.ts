@@ -269,8 +269,66 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
     lintSceneGraph(project, graph, sceneName, issues);
   });
 
+  lintSceneReachability(project, sceneNames, issues);
+
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
   return issues;
+}
+
+function lintSceneReachability(project: ChoiceForgeProject, sceneNames: string[], issues: LintIssue[]) {
+  if (sceneNames.length < 2) return;
+  const sceneSet = new Set(sceneNames);
+  const outgoing = new Map<string, Set<string>>(sceneNames.map((name) => [name, new Set()]));
+  const addRef = (from: string, to: string) => {
+    if (sceneSet.has(to) && from !== to) outgoing.get(from)?.add(to);
+  };
+  sceneNames.forEach((sceneName, index) => {
+    const graph = getSceneGraph(project, sceneName);
+    graph.nodes.forEach((node) => {
+      if ((node.type === "goto_scene" || node.type === "gosub_scene") && node.target?.trim()) {
+        addRef(sceneName, node.target.trim());
+      }
+    });
+    const hasFinish = graph.nodes.some((node) => node.type === "finish");
+    if (hasFinish && index + 1 < sceneNames.length) {
+      addRef(sceneName, sceneNames[index + 1]!);
+    }
+    if (graph.sourceText) {
+      let sourceHasFinish = false;
+      graph.sourceText.split(/\r?\n/).forEach((line) => {
+        const cmd = sourceCommand(line.trim());
+        if (cmd === "goto_scene" || cmd === "gosub_scene") {
+          const target = normalizeSourceIdentifier(sourceCommandValue(line.trim(), `*${cmd}`).split(/\s+/)[0] ?? "");
+          if (target) addRef(sceneName, target);
+        }
+        if (cmd === "finish") sourceHasFinish = true;
+      });
+      if (sourceHasFinish && index + 1 < sceneNames.length) {
+        addRef(sceneName, sceneNames[index + 1]!);
+      }
+    }
+  });
+  const reachable = new Set<string>();
+  const visit = (name: string) => {
+    if (!sceneSet.has(name) || reachable.has(name)) return;
+    reachable.add(name);
+    outgoing.get(name)?.forEach(visit);
+  };
+  visit(sceneNames[0]!);
+  if (project.startupSource) {
+    project.startupSource.split(/\r?\n/).forEach((line) => {
+      const cmd = sourceCommand(line.trim());
+      if (cmd === "goto_scene" || cmd === "gosub_scene") {
+        const target = normalizeSourceIdentifier(sourceCommandValue(line.trim(), `*${cmd}`).split(/\s+/)[0] ?? "");
+        if (target) visit(target);
+      }
+    });
+  }
+  sceneNames.forEach((name) => {
+    if (!reachable.has(name)) {
+      issues.push({ level: "warning", msg: `scene "${name}" has no incoming connections from other scenes`, scene: null });
+    }
+  });
 }
 
 function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
@@ -1427,5 +1485,32 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
   if (project.startupSource) scanSource(project.startupSource);
   if (project.statsSource) scanSource(project.statsSource);
 
+  return counts;
+}
+
+export function computeAchievementUses(project: ChoiceForgeProject): Map<string, number> {
+  const counts = new Map(project.achievements.map((a) => [a.id, 0]));
+  const ids = new Set(project.achievements.map((a) => a.id));
+  const tally = (id: string) => {
+    if (ids.has(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
+  };
+  const scanText = (text: string) => extractAchievementCommandTargets(text).forEach(tally);
+  const scanNode = (node: StoryNode) => scanText(node.body ?? "");
+  const scanSource = (text: string) => {
+    text.split(/\r?\n/).forEach((line) => {
+      const cmd = sourceCommand(line.trim());
+      if (cmd === "achieve") {
+        const id = normalizeSourceIdentifier(sourceCommandValue(line.trim(), "*achieve").trim());
+        if (id) tally(id);
+      }
+    });
+  };
+  const graphs = project.sceneData ? Object.values(project.sceneData) : [{ nodes: project.nodes, edges: project.edges }];
+  graphs.forEach((graph) => {
+    graph.nodes.forEach(scanNode);
+    if (graph.sourceText) scanSource(graph.sourceText);
+  });
+  if (project.startupSource) scanSource(project.startupSource);
+  if (project.statsSource) scanSource(project.statsSource);
   return counts;
 }

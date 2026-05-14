@@ -1,4 +1,4 @@
-import { computeVariableUses } from "../domain/choicescript";
+import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
 import type { ChoiceForgeProject, I18nLabels, NodeType, StoryNode } from "../domain/types";
 
 export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void }) {
@@ -18,6 +18,9 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
   const variableUses = computeVariableUses(data);
   const unusedVariables = data.variables.filter((variable) => (variableUses.get(variable.name) ?? 0) === 0);
   const maxVarUses = Math.max(1, ...[...variableUses.values()]);
+  const achievementUses = computeAchievementUses(data);
+  const unusedAchievements = data.achievements.filter((a) => (achievementUses.get(a.id) ?? 0) === 0);
+  const maxAchUses = Math.max(1, ...[...achievementUses.values()]);
 
   return (
     <div className="dashboard-overlay">
@@ -34,6 +37,7 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
         <div className="kpi-card" data-accent="3"><span className="kpi-label">choices / options</span><span className="kpi-value">{choiceCount}/{optionCount}</span></div>
         <div className="kpi-card" data-accent="4"><span className="kpi-label">endings in this scene</span><span className="kpi-value">{endingCount}</span></div>
         <div className="kpi-card" data-accent={unusedVariables.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused variables</span><span className="kpi-value">{unusedVariables.length}</span></div>
+        <div className="kpi-card" data-accent={unusedAchievements.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused achievements</span><span className="kpi-value">{unusedAchievements.length}</span></div>
 
         <div className="dash-card wide">
           <div className="dash-card-head"><span className="dash-card-title">words by scene</span></div>
@@ -78,6 +82,27 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
                   <span className="bar-name" title={`${variable.type} — ${variable.desc || variable.name}`}>{variable.name}</span>
                   <span className="bar-track">
                     <span className="bar-fill" style={{ width: `${(uses / maxVarUses) * 100}%`, background: uses === 0 ? "var(--warn)" : "var(--c-set)" }} />
+                  </span>
+                  <span className="bar-val" style={{ color: uses === 0 ? "var(--warn)" : undefined }}>{uses}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {data.achievements.length > 0 && (
+          <div className="dash-card wide">
+            <div className="dash-card-head">
+              <span className="dash-card-title">achievement usage</span>
+              <span className="dash-card-meta">{data.achievements.length} declared, {unusedAchievements.length} unused</span>
+            </div>
+            {data.achievements.map((achievement) => {
+              const uses = achievementUses.get(achievement.id) ?? 0;
+              return (
+                <div className="bar-row" key={achievement.id}>
+                  <span className="bar-name" title={`${achievement.points}pts — ${achievement.title}`}>{achievement.id}</span>
+                  <span className="bar-track">
+                    <span className="bar-fill" style={{ width: `${(uses / maxAchUses) * 100}%`, background: uses === 0 ? "var(--warn)" : "var(--accent-3)" }} />
                   </span>
                   <span className="bar-val" style={{ color: uses === 0 ? "var(--warn)" : undefined }}>{uses}</span>
                 </div>

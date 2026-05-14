@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { computeVariableUses } from "../domain/choicescript";
+import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
@@ -459,11 +459,14 @@ function AchievementsList({
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
 }) {
+  const achievementUses = useMemo(() => computeAchievementUses(data), [data]);
   return (
     <div className="ach-list">
       <div className="section-title"><span>*achievement</span><button className="ghost-btn" onClick={onAddAchievement}>+ {labels.addAch}</button></div>
       <ul>
-        {data.achievements.map((achievement) => (
+        {data.achievements.map((achievement) => {
+          const uses = achievementUses.get(achievement.id) ?? 0;
+          return (
           <li key={achievement.id} className={`ach-item ${achievement.hidden ? "is-hidden" : ""}`}>
             <input
               className="ach-medal ach-points"
@@ -514,10 +517,14 @@ function AchievementsList({
                 aria-label="achievement post description"
                 placeholder="description after unlock"
               />
-              <code className="ach-id">*achieve {achievement.id}</code>
+              <div className="ach-footer-row">
+                <code className="ach-id">*achieve {achievement.id}</code>
+                <span className={`var-uses ${uses === 0 ? "is-zero" : ""}`}>{uses} use{uses !== 1 ? "s" : ""}</span>
+              </div>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
