@@ -503,9 +503,17 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "if" || command === "elseif" || command === "selectable_if") {
       lintSourceExpression(sourceConditionExpression(trimmed, command), variables, issues, sceneName, lineNumber);
     }
-    const achievement = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i)?.[1]?.trim();
-    if (achievement && !achievements.has(normalizeSourceIdentifier(achievement))) {
-      issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${normalizeSourceIdentifier(achievement)}`, scene: sceneName, line: lineNumber });
+    const achievementMatch = trimmed.match(/^\*achieve(?:\s+(.+?))?\s*$/i);
+    if (achievementMatch) {
+      const rawAchievement = (achievementMatch[1] ?? "").trim();
+      const achievement = normalizeSourceIdentifier(rawAchievement);
+      if (!rawAchievement) {
+        issues.push({ level: "error", msg: "*achieve needs an achievement id", scene: sceneName, line: lineNumber });
+      } else if (!isValidChoiceScriptIdentifier(rawAchievement)) {
+        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${rawAchievement}`, scene: sceneName, line: lineNumber });
+      } else if (!achievements.has(achievement)) {
+        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achievement}`, scene: sceneName, line: lineNumber });
+      }
     }
   });
 

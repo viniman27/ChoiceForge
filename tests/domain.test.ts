@@ -312,6 +312,9 @@ test("lints preserved source without graph approximation false positives", () =>
       "*restore_checkpoint missing",
       "*page_break",
       "*save_checkpoint",
+      "*achieve",
+      "*achieve bad-achievement",
+      "*achieve missing_achievement",
       "*params frag",
       "*if frag",
       "  *input_text frag",
@@ -338,6 +341,9 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*page_break needs a button label")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 31 && issue.msg.includes("*save_checkpoint needs a checkpoint name")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 32 && issue.msg.includes("*achieve needs an achievement id")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 33 && issue.msg.includes("*achieve has an invalid achievement identifier: bad-achievement")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 34 && issue.msg.includes("*achieve uses an undeclared achievement: missing_achievement")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 13 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
