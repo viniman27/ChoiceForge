@@ -789,19 +789,23 @@ function lintPreservedAchievementLine(
   lineNumber: number,
   issues: LintIssue[],
 ) {
-  const [, rawId = "", visibility = "", rawPoints = ""] = line.split(/\s+/, 4);
+  const [rawId = "", visibility = "", rawPoints = "", ...titleParts] = sourceCommandValue(line, "*achievement").split(/\s+/);
   const normalizedId = normalizeSourceIdentifier(rawId);
   const points = Number(rawPoints);
+  const title = titleParts.join(" ").trim();
 
   if (!rawId || !isValidChoiceScriptIdentifier(rawId)) {
     issues.push({ level: "error", msg: `*achievement has an invalid identifier: ${rawId || "(empty)"}`, scene: "startup", line: lineNumber });
     return;
   }
-  if (visibility && visibility !== "visible" && visibility !== "hidden") {
-    issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility}`, scene: "startup", line: lineNumber });
+  if (!visibility || (visibility !== "visible" && visibility !== "hidden")) {
+    issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility || "(empty)"}`, scene: "startup", line: lineNumber });
   }
   if (!rawPoints || !Number.isFinite(points) || points < 0) {
     issues.push({ level: "error", msg: `*achievement has invalid points: ${rawPoints || "(empty)"}`, scene: "startup", line: lineNumber });
+  }
+  if (!title) {
+    issues.push({ level: "error", msg: `*achievement has an empty title: ${normalizedId}`, scene: "startup", line: lineNumber });
   }
   if (declaredAchievements.has(normalizedId)) {
     issues.push({ level: "error", msg: `startup.txt repeats *achievement: ${normalizedId}`, scene: "startup", line: lineNumber });

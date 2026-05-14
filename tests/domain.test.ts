@@ -421,7 +421,10 @@ test("lints preserved startup global declarations", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
     variables: [{ name: "score", type: "number", initial: "0", desc: "Score", fairmath: false }],
-    achievements: [{ id: "first", title: "First", desc: "First step", points: 10, hidden: false }],
+    achievements: [
+      { id: "first", title: "First", desc: "First step", points: 10, hidden: false },
+      { id: "untitled", title: "Untitled", desc: "Missing title", points: 5, hidden: false },
+    ],
     startupSource: [
       "*title Globals",
       "*author Writer",
@@ -435,6 +438,7 @@ test("lints preserved startup global declarations", () => {
       "*achievement first visible 10 First Again",
       "*achievement bad-ach visible -1 Broken",
       "*achievement extra hidden 5 Extra",
+      "*achievement untitled visible 5",
     ].join("\n"),
   };
   const issues = lintProject(project);
@@ -445,6 +449,7 @@ test("lints preserved startup global declarations", () => {
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 10 && issue.msg.includes("repeats *achievement: first")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 11 && issue.msg.includes("invalid identifier")));
   assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 12 && issue.msg.includes("missing from project metadata: extra")));
+  assert.ok(issues.some((issue) => issue.scene === "startup" && issue.line === 13 && issue.msg.includes("empty title: untitled")));
 });
 
 test("imports gosub arguments and params without corrupting label targets", () => {
