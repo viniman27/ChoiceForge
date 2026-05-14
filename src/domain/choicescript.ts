@@ -429,6 +429,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const variables = new Set(project.variables.map((variable) => variable.name));
+  const variableTypes = new Map(project.variables.map((variable) => [variable.name, variable]));
   const localVariables = new Map<string, number>();
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const labels = new Set<string>();
@@ -459,8 +460,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
     }
     if (command === "set") {
-      const variable = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
-      if (variable && !variables.has(variable)) issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+      lintPreservedSetLine(variables, variableTypes, trimmed, sceneName, lineNumber, issues);
     }
     if (command === "temp") {
       lintPreservedTempLine(variables, localVariables, trimmed, sceneName, lineNumber, issues);
@@ -535,6 +535,41 @@ function lintPreservedParamsLine(
     localVariables.set(normalizedName, lineNumber);
     variables.add(normalizedName);
   });
+}
+
+function lintPreservedSetLine(
+  variables: Set<string>,
+  variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
+  line: string,
+  sceneName: string,
+  lineNumber: number,
+  issues: LintIssue[],
+) {
+  const [rawVariable = "", maybeOp = "", ...rest] = sourceCommandValue(line, "*set").split(/\s+/);
+  const variable = normalizeSourceIdentifier(rawVariable);
+  if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
+    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  if (!maybeOp) {
+    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  const isExplicitOperator = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+  if (isExplicitOperator && !rest.join(" ").trim()) {
+    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, scene: sceneName, line: lineNumber });
+  }
+  if (!variables.has(variable)) {
+    issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+    return;
+  }
+  const globalVariable = variableTypes.get(variable);
+  if (globalVariable && globalVariable.type !== "number" && isExplicitOperator && maybeOp !== "=") {
+    issues.push({ level: "error", msg: `*set ${variable} uses an invalid operator for ${globalVariable.type}: ${maybeOp}`, scene: sceneName, line: lineNumber });
+  }
+  if (globalVariable?.type === "number" && (maybeOp === "%+" || maybeOp === "%-") && !globalVariable.fairmath) {
+    issues.push({ level: "warning", msg: `*set ${variable} uses fairmath without a percent stat format`, scene: sceneName, line: lineNumber });
+  }
 }
 
 function lintPreservedInputCommand(

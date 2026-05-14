@@ -258,6 +258,7 @@ test("preserves imported stats source in export package", () => {
       "*scene_list",
       "  ch1",
       "*create score 0",
+      "*create name \"Alex\"",
     ].join("\n")),
     textEntry("choicescript_stats.txt", statsSource),
     textEntry("ch1.txt", "Chapter one.\n*ending"),
@@ -277,6 +278,7 @@ test("lints preserved source without graph approximation false positives", () =>
       "*scene_list",
       "  ch1",
       "*create score 0",
+      "*create name \"Alex\"",
     ].join("\n")),
     textEntry("ch1.txt", [
       "*choice",
@@ -284,6 +286,9 @@ test("lints preserved source without graph approximation false positives", () =>
       "    *set score +1",
       "  #Two",
       "    *set missing +1",
+      "*set score %+ 10",
+      "*set score =",
+      "*set name + 1",
       "*goto_scene missing_scene",
       "*if missing_condition",
       "  *finish",
@@ -308,13 +313,15 @@ test("lints preserved source without graph approximation false positives", () =>
 
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 1 && issue.msg.includes("preserved ChoiceScript")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 5 && issue.msg.includes("undeclared variable: missing")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 6 && issue.msg.includes("missing scene")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 7 && issue.msg.includes("undeclared variable: missing_condition")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("undeclared variable: missing_choice")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 17 && issue.msg.includes("undeclared variable: missing_input")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 17 && issue.msg.includes("invalid bounds: 10 1")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 18 && issue.msg.includes("invalid variable identifier")));
-  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("locked")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 7 && issue.msg.includes("empty value: score")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 8 && issue.msg.includes("invalid operator for string: +")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 9 && issue.msg.includes("missing scene")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 10 && issue.msg.includes("undeclared variable: missing_condition")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 12 && issue.msg.includes("undeclared variable: missing_choice")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("undeclared variable: missing_input")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 20 && issue.msg.includes("invalid bounds: 10 1")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 21 && issue.msg.includes("invalid variable identifier")));
+  assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.line === 12 && issue.msg.includes("locked")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("local_flag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.msg.includes("frag")));
   assert.ok(!issues.some((issue) => issue.scene === "ch1" && issue.node && issue.msg.includes("incoming connection")));
