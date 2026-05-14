@@ -29,7 +29,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, assets, and preserved imported source; source matches can open the text editor at the matched line
-- Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion
+- Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
 - Choice option reuse modes: default, `*hide_reuse`, `*disable_reuse`, and `*allow_reuse`
@@ -275,7 +275,7 @@ The canvas (`GraphCanvas.tsx`) is **custom-built** — there is no React Flow, C
 
 | Area | Status |
 |------|--------|
-| Generated file editor | Editable, CodeMirror-backed, line-highlightable, and applies changes back to project |
+| Generated file editor | Editable, CodeMirror-backed, line-highlightable, dirty-state aware, and applies changes back to project |
 | Internal playtest | Useful graph smoke test, not the official ChoiceScript runtime |
 | Import parser | Handles common/simple ChoiceScript commands, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and common inline `*choice`/`*if` bodies, not a full AST or full language roundtrip |
 | Preserved source linting | Implemented for imported scenes, startup, stats, scene lists, global declarations, stat charts, conditions, `*temp`, and `*params`; still not a complete ChoiceScript semantic validator |
