@@ -329,6 +329,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 8
+- **Implemented scene reachability linting and achievement usage tracking.**
+  - `src/domain/choicescript.ts`:
+    - `lintSceneReachability(project, sceneNames, issues)`: private function called from `lintProject`. Builds an outgoing-edge graph for all visual scenes by scanning `goto_scene`/`gosub_scene` node targets and `finish` chain (finish in scene N implies reachability of scene N+1). Also scans preserved `startup.txt` source for `*goto_scene`/`*gosub_scene` calls. BFS from first scene; emits `warning` for any scene with no incoming path.
+    - `computeAchievementUses(project)`: exported function, mirrors `computeVariableUses`. Scans all scene-graph node bodies via `extractAchievementCommandTargets` and preserved source texts via `*achieve` command matching. Returns `Map<string, number>`.
+  - `src/components/LeftPanel.tsx`: `AchievementsList` now calls `computeAchievementUses` via `useMemo`; displays a `var-uses` badge with use count next to the `*achieve id` code snippet; zero-use achievements shown in warning amber.
+  - `src/components/Dashboard.tsx`: added "unused achievements" KPI card (warn/ok accent); added "achievement usage" bar chart card (amber bars for unused, accent-3 for used).
+  - `styles.css`: added `.ach-footer-row` flex row to hold `*achieve` snippet and usage badge side by side.
+  - `tests/domain.test.ts`: 4 new tests (72 total, all pass):
+    1. `lintSceneReachability warns on unreachable scenes` — goto_scene only connects intro→scene2; scene3 has no incoming edges → warning.
+    2. `lintSceneReachability does not warn when all scenes are reachable via finish chain` — consecutive finish nodes propagate reachability.
+    3. `computeAchievementUses counts *achieve commands in node bodies` — two achievements, one used twice, one unused.
+    4. `computeAchievementUses counts *achieve in preserved source text` — achievement scanning in preserved scene source.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 7
 - **Implemented variable usage counting across all project scenes.**
   - `src/domain/choicescript.ts`: added exported `computeVariableUses(project)` function — scans all nodes in all scenes (sets, inputVar, body `${var}` refs, option conditions/sets, branch conditions/sets) plus preserved source texts (`*set`, `*if`/`*elseif` expressions, `*input_*`/`*rand` targets). Returns `Map<string, number>`.

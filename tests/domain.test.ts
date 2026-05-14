@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sampleProjects } from "../src/data/sampleProject.ts";
-import { computeVariableUses, createExportPackage, generateNodeChoiceScript, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
+import { computeAchievementUses, computeVariableUses, createExportPackage, generateNodeChoiceScript, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../src/domain/choicescript.ts";
 import { layoutProjectGraphs } from "../src/domain/graphLayout.ts";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "../src/domain/choicescriptImport.ts";
 import type { ChoiceForgeProject, SceneGraph, StoryNode } from "../src/domain/types.ts";
@@ -1536,6 +1536,100 @@ test("lints gosub_scene and image in preserved script source", () => {
   assert.ok(errors.some((message) => message.includes("*gosub_scene has an invalid scene identifier")));
   assert.ok(errors.some((message) => message.includes("*gosub_scene points to a missing scene")));
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
+});
+
+test("lintSceneReachability warns on unreachable scenes", () => {
+  const makeGraph = (nodes: { id: string; type: string; target?: string }[]): SceneGraph => ({
+    nodes: nodes.map((n) => ({ ...n, x: 0, y: 0, w: 240, title: n.type })) as StoryNode[],
+    edges: [],
+  });
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 1, current: true },
+      { id: "scene2", name: "scene2", words: 0, nodes: 1 },
+      { id: "scene3", name: "scene3", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: {
+      intro: makeGraph([{ id: "n1", type: "goto_scene", target: "scene2" }]),
+      scene2: makeGraph([{ id: "n2", type: "ending" }]),
+      scene3: makeGraph([{ id: "n3", type: "ending" }]),
+    },
+    sceneTitle: "intro",
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+  assert.ok(warnings.some((message) => message.includes('"scene3" has no incoming connections')));
+  assert.ok(!warnings.some((message) => message.includes('"intro" has no incoming connections')));
+  assert.ok(!warnings.some((message) => message.includes('"scene2" has no incoming connections')));
+});
+
+test("lintSceneReachability does not warn when all scenes are reachable via finish chain", () => {
+  const makeGraph = (nodes: { id: string; type: string }[]): SceneGraph => ({
+    nodes: nodes.map((n) => ({ ...n, x: 0, y: 0, w: 240, title: n.type })) as StoryNode[],
+    edges: [],
+  });
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "ch1", name: "ch1", words: 0, nodes: 1, current: true },
+      { id: "ch2", name: "ch2", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: {
+      ch1: makeGraph([{ id: "n1", type: "finish" }]),
+      ch2: makeGraph([{ id: "n2", type: "finish" }]),
+    },
+    sceneTitle: "ch1",
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+  assert.ok(!warnings.some((message) => message.includes("has no incoming connections")));
+});
+
+test("computeAchievementUses counts *achieve commands in node bodies", () => {
+  const n1: StoryNode = { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "s", body: "*achieve brave\nSome text.\n*achieve brave" };
+  const n2: StoryNode = { id: "n2", type: "passage", x: 0, y: 0, w: 300, title: "s", body: "*achieve clever" };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [
+      { id: "brave", title: "Brave", desc: "desc", points: 10 },
+      { id: "clever", title: "Clever", desc: "desc", points: 10 },
+      { id: "unused", title: "Unused", desc: "desc", points: 10 },
+    ],
+    nodes: [n1, n2],
+    edges: [],
+    sceneData: { intro: { nodes: [n1, n2], edges: [] } },
+  };
+  const uses = computeAchievementUses(project);
+  assert.equal(uses.get("brave"), 2);
+  assert.equal(uses.get("clever"), 1);
+  assert.equal(uses.get("unused"), 0);
+});
+
+test("computeAchievementUses counts *achieve in preserved source text", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [
+      { id: "hero", title: "Hero", desc: "desc", points: 50 },
+      { id: "ghost", title: "Ghost", desc: "desc", points: 5 },
+    ],
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "*achieve hero\nSome prose.\n*achieve hero\n*achieve ghost",
+      },
+    },
+    nodes: [],
+    edges: [],
+  };
+  const uses = computeAchievementUses(project);
+  assert.equal(uses.get("hero"), 2);
+  assert.equal(uses.get("ghost"), 1);
 });
 
 function minimalProject(): ChoiceForgeProject {
