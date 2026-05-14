@@ -412,6 +412,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub nodes", scene: sceneName, node: node.id });
     }
 
+    if (node.type === "page_break" && !stripCommandPrefix(node.title, "*page_break")) {
+      issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, node: node.id });
+    }
+
     if (node.type === "restore_checkpoint") {
       const slot = checkpointSlot(node.title, "*restore_checkpoint");
       if (!checkpointSlots.has(slot)) {

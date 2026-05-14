@@ -631,6 +631,24 @@ test("warns about restore checkpoints without matching saves", () => {
   assert.ok(warnings.some((message) => message.includes("no matching *save_checkpoint")));
 });
 
+test("lints empty visual page break labels", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "page_break", x: 0, y: 0, w: 280, title: "*page_break " },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const errors = lintProject(project).filter((issue) => issue.level === "error").map((issue) => issue.msg);
+
+  assert.ok(errors.some((message) => message.includes("*page_break needs a button label")));
+});
+
 test("normalizes edited ChoiceForge command identifiers", () => {
   const currentGraph: SceneGraph = {
     nodes: [
