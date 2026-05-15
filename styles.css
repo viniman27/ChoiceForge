@@ -1227,6 +1227,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .node-status-todo { background: color-mix(in oklch, var(--warn) 18%, var(--paper-2)); color: oklch(50% 0.12 75); }
 .node-status-done { background: color-mix(in oklch, var(--ok) 18%, var(--paper-2)); color: oklch(40% 0.14 155); }
+.node-note-dot { font-size: 11px; color: var(--ink-mute); cursor: default; }
 
 .node-body { padding: 8px 12px 6px; }
 .narrative {
@@ -1748,6 +1749,23 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-size: 10px;
 }
 
+.ip-notes {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--paper-edge);
+  background: var(--paper-2);
+}
+.ip-notes-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.04em; }
+.ip-notes-area {
+  background: var(--paper-1); border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1); color: var(--ink);
+  font-family: var(--ff-narr); font-size: 12px; line-height: 1.5;
+  padding: 6px 8px; resize: vertical; min-height: 56px; max-height: 180px;
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.ip-notes-area:focus { border-color: var(--ink-mute); }
+.ip-notes-area:disabled { opacity: 0.5; }
+.ip-notes-area::placeholder { color: var(--ink-faint); font-style: italic; }
 .ip-footer {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 16px; border-top: 1px solid var(--paper-edge);

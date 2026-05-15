@@ -116,6 +116,7 @@ export interface StoryNode {
   w: number;
   title: string;
   status?: NodeStatus;
+  note?: string;
   body?: string;
   prompt?: string;
   sets?: VariableSet[];
