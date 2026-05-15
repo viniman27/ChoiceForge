@@ -1402,6 +1402,24 @@ test("warns about image nodes with missing filename", () => {
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
 });
 
+test("warns when a passage node exceeds 600 words", () => {
+  const longBody = Array(601).fill("word").join(" ");
+  const shortBody = Array(600).fill("word").join(" ");
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "long", body: longBody },
+      { id: "n2", type: "passage", x: 0, y: 200, w: 300, title: "exact", body: shortBody },
+      { id: "n3", type: "finish", x: 0, y: 400, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((msg) => msg.includes("long") && msg.includes("601 words")));
+  assert.ok(!warnings.some((msg) => msg.includes("exact") && msg.includes("words")));
+});
+
 test("counts variable uses across nodes, conditions, and sets", () => {
   const graph = {
     nodes: [

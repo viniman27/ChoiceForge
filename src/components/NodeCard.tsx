@@ -222,8 +222,13 @@ export function NodeCard({ node, density, labels, selected, hasError, isDimmed, 
       {isRich && node.target && node.type !== "image" && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
       {isRich && node.type === "image" && node.target && <div className="node-target"><code>{node.target}</code></div>}
       {isRich && node.inputVar && <div className="node-target">-&gt; <code>{node.inputVar}</code></div>}
+      {isRich && node.type === "passage" && node.body && (() => { const wc = countCardWords(node.body); return wc > 0 ? <div className={`node-wc${wc > 600 ? " node-wc-long" : ""}`}>{wc} words</div> : null; })()}
       <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
       <div className="anchor anchor-out no-drag" title={labels.dragToConnect} onPointerDown={(event) => onConnectStart(event, node.id)} />
     </div>
   );
+}
+
+function countCardWords(text: string): number {
+  return text.replace(/\$\{[^}]+\}/g, " ").replace(/@\{[^}]+\}/g, " ").split(/\s+/).filter(Boolean).length;
 }
