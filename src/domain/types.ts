@@ -170,6 +170,7 @@ export interface I18nLabels {
   achievements: string;
   assets: string;
   search: string;
+  replace: string;
   inspector: string;
   play: string;
   export: string;
