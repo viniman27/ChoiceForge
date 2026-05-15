@@ -1,7 +1,7 @@
 export type Language = "pt" | "en" | "es";
 export type Theme = "light" | "dark";
 export type Density = "minimal" | "medium" | "rich";
-export type EditorView = "editor" | "dashboard";
+export type EditorView = "editor" | "dashboard" | "map";
 
 export type NodeType =
   | "passage"

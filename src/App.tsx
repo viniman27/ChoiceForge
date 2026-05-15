@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, type CSSProperties } from "react";
 import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
+import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
 import { PlaytestView } from "./components/PlaytestView";
@@ -408,6 +409,33 @@ export default function App() {
         }}
       />
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
+      {view === "map" && (
+        <SceneMapView
+          data={lintedProject}
+          labels={i18n[lang]}
+          activeSceneId={activeSceneId}
+          onSelectScene={(id) => {
+            const scene = lintedProject.scenes.find((s) => s.id === id);
+            setPlayOpen(false);
+            if (scene?.isStart) {
+              setGeneratedDocumentId("startup");
+              setGeneratedDocumentLine(null);
+              setSelectedId(null);
+            } else if (scene?.special) {
+              setGeneratedDocumentId("stats");
+              setGeneratedDocumentLine(null);
+              setSelectedId(null);
+            } else {
+              const hasPreserved = Boolean(scene && lintedProject.sceneData?.[scene.name]?.sourceText);
+              setGeneratedDocumentId(hasPreserved ? "scene" : null);
+              setGeneratedDocumentLine(null);
+              actions.selectScene(id);
+              setSelectedId(hasPreserved ? null : "n1");
+            }
+            setView("editor");
+          }}
+        />
+      )}
     </div>
   );
 }

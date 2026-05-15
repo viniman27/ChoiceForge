@@ -32,6 +32,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Find & Replace (Ctrl H) in the left panel: replace text in node body/prompt/options across the current scene or all scenes at once; returns count of replacements and shows a transient status message
 - Copy/paste nodes (Ctrl+C / Ctrl+V): clipboard persists across scene switches; paste places nodes centered on the viewport, remaps internal edges, and selects all pasted nodes
 - `set` node type added to the canvas toolbar (was missing despite being a core ChoiceScript command)
+- Scene Map view ("map" tab in TopBar): pannable/zoomable grid of all scene cards with SVG arrows for goto_scene (solid) and gosub_scene (dashed) connections; click to navigate to any scene
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -331,6 +332,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 15
+- **Added Scene Map view (top-bar "map" button) — bird's-eye overview of all scenes and their cross-scene connections.**
+  - `src/domain/types.ts`: extended `EditorView` to `"editor" | "dashboard" | "map"`.
+  - `src/components/TopBar.tsx`: added "map" button in the tab-toggle between "editor" and "stats".
+  - `src/components/SceneMapView.tsx` (new file):
+    - Scenes are laid out in a 4-column grid in scene_list order (startup first, stats last).
+    - SVG arrows connect scenes for every unique `*goto_scene` (solid) and `*gosub_scene` (dashed) reference found in any scene graph.
+    - Each card shows: scene name, source status badge, lint error/warning counts, word count, and node count.
+    - Active scene card is highlighted with an accent border.
+    - Pan with drag, zoom with Ctrl+scroll — same pattern as the main canvas.
+    - Clicking a card navigates to that scene and switches back to the editor view.
+  - `src/App.tsx`: wired the map view as a `position: fixed` overlay (same as Dashboard). `onSelectScene` handles startup/stats/regular scenes and resets document/playtest state before navigating.
+  - `directions.css`: added scene map CSS (`.scene-map-wrap`, `.map-card`, `.map-card-head`, `.map-scene-name`, `.map-card-stats`, `.scene-map-legend`, `.scene-map-inner`, `.scene-map-svg`).
+  - The map overlay uses CSS variables `--left-panel-width` / `--right-panel-width` so it respects panel resizing.
+  - 86 tests, all passing; zero TS errors; clean production build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 14
 - **Fixed missing `*set` node in the canvas toolbar and added copy/paste for nodes.**
