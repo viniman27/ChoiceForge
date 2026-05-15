@@ -344,6 +344,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 42
+- **PlaytestView: choice history trail in the stats sidebar.**
+  - New `TrailEntry` discriminated union (`{ kind: "scene"; name }` | `{ kind: "choice"; text; num }`).
+  - `playTrail` state initialised to `[{ kind: "scene", name: project.sceneTitle }]` and reset on restart/project change.
+  - Scene transitions (`goto_scene`, `finish`) append a `scene` entry in the auto-advance useEffect.
+  - Choice selections append a `choice` entry inline in the option `onClick`.
+  - Rendered below the variable list in `.playtest-stats` as a `.pt-trail` block: scene entries shown in mono/muted as "→ name", choice entries shown as "#N text" with full text in a `title` tooltip and text-overflow ellipsis.
+  - The list caps at `max-height: 220px` with `overflow-y: auto` to stay compact even after many steps.
+  - CSS: `.pt-trail`, `.pt-trail-head`, `.pt-trail-list`, `.pt-trail-scene`, `.pt-trail-choice` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 41
 - **PlaytestView: accumulated page text + navigate-to-editor.**
   - Passage nodes with a flow target now auto-advance instead of requiring a "Continue" click per node. Their body and note are pushed to `pageBlocks: PageBlock[]` state; the accumulated text renders above the first interactive node (choice, page_break, input, etc.) separated by a thin horizontal rule.
