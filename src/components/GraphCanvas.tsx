@@ -481,7 +481,7 @@ export function GraphCanvas({
         <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
       </div>
       {selCount > 1 && (
-        <div className="sel-count-badge">{selCount} selected</div>
+        <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} />
       )}
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
       {pendingConnect && (
@@ -541,6 +541,128 @@ function EdgeDropPicker({
       </div>
     </div>
   );
+}
+
+function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes }: {
+  selCount: number;
+  selectedIds: Set<string>;
+  data: ChoiceForgeProject;
+  density: Density;
+  onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
+}) {
+  const sel = data.nodes.filter((n) => selectedIds.has(n.id));
+  const hs = () => Object.fromEntries(sel.map((n) => [n.id, estimateNodeHeight(data, n.id, density)]));
+
+  const alignLeft = () => {
+    const minX = Math.min(...sel.map((n) => n.x));
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: minX, y: n.y })));
+  };
+  const alignCenterH = () => {
+    const minX = Math.min(...sel.map((n) => n.x));
+    const maxX = Math.max(...sel.map((n) => n.x + n.w));
+    const cx = (minX + maxX) / 2;
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: Math.round(cx - n.w / 2), y: n.y })));
+  };
+  const alignRight = () => {
+    const maxX = Math.max(...sel.map((n) => n.x + n.w));
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: maxX - n.w, y: n.y })));
+  };
+  const alignTop = () => {
+    const minY = Math.min(...sel.map((n) => n.y));
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: minY })));
+  };
+  const alignMiddleV = () => {
+    const heights = hs();
+    const minY = Math.min(...sel.map((n) => n.y));
+    const maxBY = Math.max(...sel.map((n) => n.y + heights[n.id]));
+    const cy = (minY + maxBY) / 2;
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: Math.round(cy - heights[n.id] / 2) })));
+  };
+  const alignBottom = () => {
+    const heights = hs();
+    const maxBY = Math.max(...sel.map((n) => n.y + heights[n.id]));
+    onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: maxBY - heights[n.id] })));
+  };
+  const distributeH = () => {
+    if (sel.length < 3) return;
+    const sorted = [...sel].sort((a, b) => a.x - b.x);
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    const span = last.x - (first.x + first.w);
+    const innerW = sorted.slice(1, -1).reduce((s, n) => s + n.w, 0);
+    const gap = (span - innerW) / (sorted.length - 1);
+    const moves = [{ id: first.id, x: first.x, y: first.y }];
+    let cursor = first.x + first.w + gap;
+    for (let i = 1; i < sorted.length - 1; i++) {
+      moves.push({ id: sorted[i].id, x: Math.round(cursor), y: sorted[i].y });
+      cursor += sorted[i].w + gap;
+    }
+    moves.push({ id: last.id, x: last.x, y: last.y });
+    onMoveNodes(moves);
+  };
+  const distributeV = () => {
+    if (sel.length < 3) return;
+    const heights = hs();
+    const sorted = [...sel].sort((a, b) => a.y - b.y);
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    const span = last.y - (first.y + heights[first.id]);
+    const innerH = sorted.slice(1, -1).reduce((s, n) => s + heights[n.id], 0);
+    const gap = (span - innerH) / (sorted.length - 1);
+    const moves = [{ id: first.id, x: first.x, y: first.y }];
+    let cursor = first.y + heights[first.id] + gap;
+    for (let i = 1; i < sorted.length - 1; i++) {
+      moves.push({ id: sorted[i].id, x: sorted[i].x, y: Math.round(cursor) });
+      cursor += heights[sorted[i].id] + gap;
+    }
+    moves.push({ id: last.id, x: last.x, y: last.y });
+    onMoveNodes(moves);
+  };
+
+  type Btn = { icon: string; title: string; onClick: () => void; disabled?: boolean };
+  const groups: (Btn | null)[] = [
+    { icon: "al", title: "Align left edges", onClick: alignLeft },
+    { icon: "ach", title: "Align horizontal centers", onClick: alignCenterH },
+    { icon: "ar", title: "Align right edges", onClick: alignRight },
+    null,
+    { icon: "at", title: "Align top edges", onClick: alignTop },
+    { icon: "amv", title: "Align vertical centers", onClick: alignMiddleV },
+    { icon: "ab", title: "Align bottom edges", onClick: alignBottom },
+    null,
+    { icon: "dh", title: "Distribute horizontally (need ≥3)", onClick: distributeH, disabled: sel.length < 3 },
+    { icon: "dv", title: "Distribute vertically (need ≥3)", onClick: distributeV, disabled: sel.length < 3 },
+  ];
+
+  return (
+    <div className="sel-bar">
+      <span className="sel-bar-count">{selCount} selected</span>
+      <div className="sel-bar-sep" />
+      {groups.map((btn, i) =>
+        btn === null
+          ? <div key={i} className="sel-bar-div" />
+          : (
+            <button key={btn.icon} className="sel-bar-btn" title={btn.title} onClick={btn.onClick} disabled={btn.disabled}>
+              <AlignIcon type={btn.icon} />
+            </button>
+          )
+      )}
+    </div>
+  );
+}
+
+function AlignIcon({ type }: { type: string }) {
+  const p = {
+    width: 14, height: 14, viewBox: "0 0 14 14",
+    fill: "none", stroke: "currentColor", strokeWidth: 1.3,
+    strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
+  };
+  if (type === "al") return <svg {...p}><line x1="2" y1="1" x2="2" y2="13" /><rect x="2" y="3" width="5" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="2" y="8.5" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "ach") return <svg {...p}><line x1="7" y1="1" x2="7" y2="13" /><rect x="3" y="3" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="4.5" y="8.5" width="5" height="2.5" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "ar") return <svg {...p}><line x1="12" y1="1" x2="12" y2="13" /><rect x="5" y="3" width="7" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="4" y="8.5" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "at") return <svg {...p}><line x1="1" y1="2" x2="13" y2="2" /><rect x="2" y="2" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><rect x="7" y="2" width="2.5" height="8" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "amv") return <svg {...p}><line x1="1" y1="7" x2="13" y2="7" /><rect x="2" y="4" width="2.5" height="6" rx="0.4" fill="currentColor" stroke="none" /><rect x="7" y="2" width="2.5" height="10" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "ab") return <svg {...p}><line x1="1" y1="12" x2="13" y2="12" /><rect x="2" y="5" width="2.5" height="7" rx="0.4" fill="currentColor" stroke="none" /><rect x="7" y="3" width="2.5" height="9" rx="0.4" fill="currentColor" stroke="none" /></svg>;
+  if (type === "dh") return <svg {...p}><rect x="1" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><rect x="5.75" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><rect x="10.5" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><line x1="3.5" y1="7" x2="5.75" y2="7" /><line x1="8.25" y1="7" x2="10.5" y2="7" /></svg>;
+  if (type === "dv") return <svg {...p}><rect x="3" y="1" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="3" y="5.75" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="3" y="10.5" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><line x1="7" y1="3.5" x2="7" y2="5.75" /><line x1="7" y1="8.25" x2="7" y2="10.5" /></svg>;
+  return null;
 }
 
 function loadToolbarWidth(): number {
