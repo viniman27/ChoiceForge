@@ -39,6 +39,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Keyboard shortcut overlay: press `?` (when not typing) to toggle a modal listing all shortcuts; dismiss with Escape or click-outside
 - Command palette (Ctrl+K): fuzzy-search all scenes, nodes, variables, achievements, and static commands; arrow-key navigation, Enter to activate
 - Edge-drop quick node creation: drag a connection port to empty canvas → type-picker popup with 8 common types → new node created and connected in one gesture
+- Node writing-status markers: tag any node as `todo` or `done` from the inspector; badge shown on the card; per-scene progress bar in the scene list
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -338,6 +339,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 20
+- **Added node writing-status markers (todo / done) + per-scene progress bar.**
+  - `src/domain/types.ts`: added `NodeStatus = "todo" | "done"` and `status?: NodeStatus` to `StoryNode`.
+  - `src/components/NodeCard.tsx`: renders a `.node-status` badge in the node header when `node.status` is set. Color-coded: todo = yellow/orange, done = green.
+  - `src/components/RightPanel.tsx`: added `.ip-status-row` with two toggle buttons (`todo` / `done`) below the title input in `ip-head`. Clicking an already-active status clears it (sets `undefined`). Disabled when source is preserved.
+  - `src/components/LeftPanel.tsx`: added `sceneDoneCounts` memo (computes done/total per scene from `data.nodes` for the current scene and `sceneData` for others). Shows a 3px green progress bar (`.scene-progress-track / .scene-progress-fill`) between the scene name row and stats row, only when at least one node is marked done.
+  - `styles.css`: added `.node-status`, `.node-status-todo`, `.node-status-done`, `.ip-status-row`, `.ip-status-btn`, per-status active states, `.scene-progress-track`, `.scene-progress-fill`.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 19
 - **Added edge-drop quick node creation — drag a connection port to empty canvas to get a node type picker.**

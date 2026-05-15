@@ -360,6 +360,19 @@ function ScenesList({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
   const preservedScenes = data.scenes.filter((scene) => sceneHasPreservedSource(data, scene)).length;
+  const sceneDoneCounts = useMemo(() => {
+    const map = new Map<string, { done: number; total: number }>();
+    const getNodes = (scene: (typeof data.scenes)[0]) => {
+      if (scene.name === data.sceneTitle) return data.nodes;
+      return data.sceneData?.[scene.name]?.nodes ?? [];
+    };
+    for (const scene of data.scenes) {
+      const nodes = getNodes(scene);
+      if (!nodes.length) continue;
+      map.set(scene.name, { done: nodes.filter((n) => n.status === "done").length, total: nodes.length });
+    }
+    return map;
+  }, [data.nodes, data.sceneData, data.sceneTitle, data.scenes]);
   const sceneErrors = useMemo(() => {
     const counts = new Map<string, { errors: number; warnings: number }>();
     data.lints.forEach((issue) => {
@@ -435,6 +448,11 @@ function ScenesList({
                 {counts?.errors ? <span className="scene-tag scene-err">{counts.errors}e</span> : null}
                 {counts?.warnings ? <span className="scene-tag scene-warn">{counts.warnings}w</span> : null}
               </div>
+              {(() => { const dc = sceneDoneCounts.get(scene.name); return dc && dc.done > 0 ? (
+                <div className="scene-progress-track" title={`${dc.done}/${dc.total} nodes done`}>
+                  <div className="scene-progress-fill" style={{ width: `${Math.round((dc.done / dc.total) * 100)}%` }} />
+                </div>
+              ) : null; })()}
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">

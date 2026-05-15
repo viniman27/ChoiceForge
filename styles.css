@@ -521,6 +521,11 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .scene-tag.source-graph { background: var(--c-choice-tint); color: var(--c-choice); }
 .scene-tag.source-generated { background: var(--paper-3); color: var(--ink-mute); }
 .scene-stats { font-size: 10px; color: var(--ink-mute); font-family: var(--ff-mono); margin-top: 2px; }
+.scene-progress-track {
+  height: 3px; background: var(--paper-edge); border-radius: 999px;
+  margin: 3px 0 2px; overflow: hidden;
+}
+.scene-progress-fill { height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.3s ease; }
 .scene-item.is-special { opacity: 0.85; }
 .scene-edit {
   flex: 1;
@@ -1208,6 +1213,12 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-family: var(--ff-mono);
 }
 .node-flag.warn { background: var(--warn); color: var(--ink); }
+.node-status {
+  font-family: var(--ff-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 1px 5px; border-radius: 999px; white-space: nowrap;
+}
+.node-status-todo { background: color-mix(in oklch, var(--warn) 18%, var(--paper-2)); color: oklch(50% 0.12 75); }
+.node-status-done { background: color-mix(in oklch, var(--ok) 18%, var(--paper-2)); color: oklch(40% 0.14 155); }
 
 .node-body { padding: 8px 12px 6px; }
 .narrative {
@@ -1380,6 +1391,16 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-title:focus { background: var(--paper-1); border-radius: var(--r-1); padding: 2px 6px; }
 .ip-meta { display: flex; gap: 6px; font-size: 11px; color: var(--ink-mute); font-family: var(--ff-mono); }
 .ip-meta code { font-size: 11px; color: var(--ink-2); }
+.ip-status-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.ip-status-btn {
+  font-family: var(--ff-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid transparent;
+  cursor: pointer; background: var(--paper-3); color: var(--ink-mute);
+  transition: background 0.1s, color 0.1s;
+}
+.ip-status-btn:disabled { opacity: 0.4; cursor: default; }
+.ip-status-btn.ip-status-todo.is-active { background: color-mix(in oklch, var(--warn) 18%, var(--paper-2)); color: oklch(50% 0.12 75); border-color: var(--warn); }
+.ip-status-btn.ip-status-done.is-active { background: color-mix(in oklch, var(--ok) 18%, var(--paper-2)); color: oklch(40% 0.14 155); border-color: var(--ok); }
 .ip-source-lock {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
