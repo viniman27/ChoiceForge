@@ -343,6 +343,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 51
+- **Project snapshots — named, persistent restore points.**
+  - `SnapshotMeta` interface exported from `projectStore.ts`: `{ id, name, createdAt, wordCount, sceneCount }`.
+  - Storage: index at `choiceforge.snapshots.v1` (array of metas); data at `choiceforge.snapshot.data.<id>` (full project JSON). Separated so individual entries can be deleted without rewriting all of them.
+  - Up to 5 snapshots; oldest data key is removed from localStorage when the limit is exceeded.
+  - Three new actions on `ProjectActions`: `saveSnapshot(name)`, `restoreSnapshot(id)`, `deleteSnapshot(id)`.
+  - `projectRef` added to `useProjectStore` so `saveSnapshot` always reads current project inside the memoized actions object without adding it to deps.
+  - `snapshotIndex` returned from `useProjectStore()` alongside `{ project, lintedProject, actions }`.
+  - New component `SnapshotPanel.tsx`: backdrop modal with name input, save button, list of entries (name, formatted date, word count, scene count), Restore → confirm-step → confirm restore, del button.
+  - Restore wraps through `setTrackedProjectState` so it is undoable.
+  - TopBar: "Snapshots" button opens the panel; i18n-aware label (PT: "Snapshots", ES: "Capturas", EN: "Snapshots").
+  - CSS in `directions.css`: `.snap-backdrop`, `.snap-panel`, `.snap-head`, `.snap-title`, `.snap-close`, `.snap-desc`, `.snap-save-row`, `.snap-name-input`, `.snap-list`, `.snap-empty`, `.snap-entry`, `.snap-meta`, `.snap-name`, `.snap-detail`, `.snap-actions`, `.snap-confirm-restore`.
+  - Clean build; no domain changes, tests not required.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 50
 - **Passage word-count badge on canvas node cards.**
   - In `NodeCard.tsx`, passage nodes in `isRich` (dense) mode now show a `node-wc` div at the bottom of the card with the word count (e.g., `"42 words"`).

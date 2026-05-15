@@ -714,3 +714,47 @@
   font-size: 12px; color: var(--ink-2); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
+
+/* ─── Snapshot panel ─────────────────────────────── */
+.snap-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: oklch(0% 0 0 / 0.45);
+  display: flex; align-items: center; justify-content: center;
+}
+.snap-panel {
+  background: var(--paper-2); border: 1px solid var(--paper-edge);
+  border-radius: var(--r-3); box-shadow: 0 16px 48px oklch(0% 0 0 / 0.25);
+  width: 560px; max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.snap-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 10px; border-bottom: 1px solid var(--paper-edge); flex-shrink: 0;
+}
+.snap-title { font-family: var(--ff-mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+.snap-close { background: none; border: none; cursor: pointer; color: var(--ink-mute); font-size: 13px; padding: 2px 6px; border-radius: var(--r-1); }
+.snap-close:hover { background: var(--paper-3); color: var(--ink); }
+.snap-desc { font-size: 11px; color: var(--ink-mute); padding: 10px 18px 0; margin: 0; line-height: 1.5; }
+.snap-save-row {
+  display: flex; gap: 8px; padding: 12px 18px;
+  border-bottom: 1px solid var(--paper-edge); flex-shrink: 0;
+}
+.snap-name-input {
+  flex: 1; padding: 5px 8px; border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1); background: var(--paper-1);
+  font-family: var(--ff-sans); font-size: 13px; color: var(--ink);
+}
+.snap-name-input:focus { outline: none; border-color: var(--accent-1); }
+.snap-list { overflow-y: auto; flex: 1; padding: 8px 0; }
+.snap-empty { padding: 20px 18px; font-size: 12px; color: var(--ink-mute); text-align: center; }
+.snap-entry {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; border-bottom: 1px solid var(--paper-edge);
+}
+.snap-entry:last-child { border-bottom: none; }
+.snap-meta { flex: 1; min-width: 0; }
+.snap-name { display: block; font-size: 13px; color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snap-detail { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); }
+.snap-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.snap-confirm-restore { color: var(--warn) !important; }
