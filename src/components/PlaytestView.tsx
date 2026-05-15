@@ -4,16 +4,19 @@ import type { ChoiceForgeProject, SceneGraph, StoryNode, VariableSet, VariableSu
 interface PlaytestViewProps {
   project: ChoiceForgeProject;
   onClose: () => void;
+  onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }
 
 type ReturnEntry = { scene: string; nodeId: string };
+type PageBlock = { id: string; body?: string; note?: string };
 
-export function PlaytestView({ project, onClose }: PlaytestViewProps) {
+export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestViewProps) {
   const [sceneName, setSceneName] = useState(project.sceneTitle);
   const [nodeId, setNodeId] = useState("n1");
   const [stats, setStats] = useState(() => initialStats(project.variables));
   const [returnStack, setReturnStack] = useState<ReturnEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [pageBlocks, setPageBlocks] = useState<PageBlock[]>([]);
   const graph = getSceneGraph(project, sceneName);
   const node = graph.nodes.find((candidate) => candidate.id === nodeId) ?? graph.nodes[0] ?? null;
 
@@ -23,12 +26,21 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
     setStats(initialStats(project.variables));
     setReturnStack([]);
     setInputValue("");
+    setPageBlocks([]);
   }, [project]);
 
   useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
 
   useEffect(() => {
     if (!node) return;
+    if (node.type === "passage") {
+      const passageFlowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (passageFlowTarget) {
+        if (node.sets?.length) setStats((current) => applySets(current, node.sets!, project.variables));
+        setPageBlocks((prev) => [...prev, { id: node.id, body: node.body, note: node.note }]);
+        setNodeId(passageFlowTarget);
+      }
+    }
     if (node.type === "if") {
       const branch = node.branches?.find((candidate) => candidate.kind === "else" || evaluateExpression(candidate.expr ?? "false", stats));
       if (branch) {
@@ -116,6 +128,15 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
     ? (project.assets ?? []).find((asset) => asset.fileName === node.target)
     : null;
 
+  const restart = () => {
+    setSceneName(project.sceneTitle);
+    setNodeId("n1");
+    setStats(initialStats(project.variables));
+    setReturnStack([]);
+    setInputValue("");
+    setPageBlocks([]);
+  };
+
   const advance = (nextId: string) => {
     setStats((current) => applySets(current, node?.sets ?? [], project.variables));
     setNodeId(nextId);
@@ -131,6 +152,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
 
   const isInputNode = node?.type === "input_text" || node?.type === "input_number";
   const showContinue = Boolean(flowTarget)
+    && node?.type !== "passage"
     && node?.type !== "choice"
     && node?.type !== "ending"
     && node?.type !== "input_text"
@@ -144,13 +166,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
           <h1>{sceneName}.txt</h1>
         </div>
         <div className="playtest-actions">
-          <button className="ghost-btn" onClick={() => {
-            setSceneName(project.sceneTitle);
-            setNodeId("n1");
-            setStats(initialStats(project.variables));
-            setReturnStack([]);
-            setInputValue("");
-          }}>Restart</button>
+          <button className="ghost-btn" onClick={restart}>Restart</button>
           <button className="ghost-btn" onClick={onClose}>Close</button>
         </div>
       </header>
@@ -170,7 +186,29 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
             <p>Scene has no playable nodes.</p>
           ) : (
             <>
-              <div className="playtest-node"><code>{node.id}</code><span>{node.title}</span></div>
+              <div className="playtest-node">
+                <code>{node.id}</code>
+                <span>{node.title}</span>
+                {onNavigateToNode && (
+                  <button
+                    className="playtest-goto-btn"
+                    onClick={() => onNavigateToNode(sceneName, node.id)}
+                    title="Jump to this node in the editor"
+                  >↗ editor</button>
+                )}
+              </div>
+
+              {pageBlocks.length > 0 && (
+                <div className="playtest-history">
+                  {pageBlocks.map((block) => (
+                    <div key={block.id} className="playtest-history-block">
+                      {block.body && <p className="playtest-text">{interpolate(block.body, stats)}</p>}
+                      {block.note && <p className="playtest-note">✎ {block.note}</p>}
+                    </div>
+                  ))}
+                  <div className="playtest-history-sep" />
+                </div>
+              )}
 
               {node.type === "image" && (
                 imageAsset?.dataUrl
@@ -178,7 +216,11 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
                   : <div className="playtest-image-placeholder">[image: {node.target || "unnamed"}]</div>
               )}
 
-              {node.body && node.type !== "image" && (
+              {node.body && node.type !== "image" && node.type !== "passage" && (
+                <p className="playtest-text">{interpolate(node.body, stats)}</p>
+              )}
+
+              {node.type === "passage" && !graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow") && node.body && (
                 <p className="playtest-text">{interpolate(node.body, stats)}</p>
               )}
 
@@ -217,6 +259,7 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
                         disabled={!condMet}
                         onClick={() => {
                           setStats((current) => applySets(current, option.sets ?? [], project.variables));
+                          setPageBlocks([]);
                           setNodeId(option.to);
                         }}
                       >
@@ -256,7 +299,13 @@ export function PlaytestView({ project, onClose }: PlaytestViewProps) {
               )}
 
               {showContinue && (
-                <button className="playtest-continue" onClick={() => advance(flowTarget!)}>
+                <button
+                  className="playtest-continue"
+                  onClick={() => {
+                    if (node?.type === "page_break") setPageBlocks([]);
+                    advance(flowTarget!);
+                  }}
+                >
                   {node?.type === "page_break"
                     ? node.title.replace("*page_break", "").trim() || "Continue"
                     : "Continue"}

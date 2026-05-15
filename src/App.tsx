@@ -319,7 +319,7 @@ export default function App() {
         }}
       />
       {playOpen ? (
-        <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} />
+        <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setPlayOpen(false); }} />
       ) : generatedDocument ? (
         <Suspense fallback={<section className="generated-doc generated-doc-loading">Loading editor...</section>}>
           <GeneratedDocumentView

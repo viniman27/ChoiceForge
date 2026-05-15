@@ -344,6 +344,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 41
+- **PlaytestView: accumulated page text + navigate-to-editor.**
+  - Passage nodes with a flow target now auto-advance instead of requiring a "Continue" click per node. Their body and note are pushed to `pageBlocks: PageBlock[]` state; the accumulated text renders above the first interactive node (choice, page_break, input, etc.) separated by a thin horizontal rule.
+  - `pageBlocks` is cleared on: project change, Restart, choice selection, and page_break "Continue".
+  - A `onNavigateToNode?: (sceneName, nodeId) => void` prop was added. When provided, a small "↗ editor" button appears in the node header row; clicking it closes the playtest and selects the node in the editor (same `navigateToScene` + `setSelectedId` + `setPlayOpen(false)` pattern as Dashboard/Manuscript).
+  - `passage` excluded from `showContinue` so no Continue button flashes during auto-advance.
+  - `restart` logic extracted into a named function so both Restart button and project-reset effect reuse it cleanly.
+  - CSS: `.playtest-goto-btn`, `.playtest-history`, `.playtest-history-block + .playtest-history-block`, `.playtest-history-sep` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 40
 - **Manuscript view: clickable node titles and todo status badges.**
   - `ManuscriptViewProps` gained `onNavigateToNode?: (sceneName: string, nodeId: string) => void`. Passed from `App.tsx` using the same `navigateToScene` + `setSelectedId` + `setView("editor")` pattern as the Dashboard todo list.
