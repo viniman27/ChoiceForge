@@ -49,6 +49,7 @@ export interface ProjectActions {
   deleteNode: (id: string) => void;
   moveNodes: (moves: { id: string; x: number; y: number }[]) => void;
   deleteNodes: (ids: string[]) => void;
+  replaceInNodes: (find: string, replace: string, scope: "scene" | "all") => number;
   connectNodes: (from: string, to: string) => void;
   addFlowEdge: (from: string, to: string) => void;
   deleteFlowEdge: (from: string, to: string) => void;
@@ -314,6 +315,42 @@ export function useProjectStore() {
           )),
         }));
       });
+    },
+    replaceInNodes: (find, replace, scope) => {
+      if (!find) return 0;
+      let count = 0;
+      setTrackedProjectState((current) => {
+        count = 0;
+        const replaceText = (text: string): string => {
+          if (!text.includes(find)) return text;
+          count += text.split(find).length - 1;
+          return text.replaceAll(find, replace);
+        };
+        const replaceInNode = (node: StoryNode): StoryNode => ({
+          ...node,
+          body: node.body !== undefined ? replaceText(node.body) : undefined,
+          prompt: node.prompt !== undefined ? replaceText(node.prompt) : undefined,
+          options: node.options?.map((opt) => ({ ...opt, text: replaceText(opt.text) })),
+          fakeOptions: node.fakeOptions?.map((opt) => ({ ...opt, text: replaceText(opt.text) })),
+        });
+        if (scope === "scene") {
+          return commitProject(clearActiveSceneSource({
+            ...current,
+            nodes: current.nodes.map(replaceInNode),
+          }));
+        }
+        const newSceneData = current.sceneData
+          ? Object.fromEntries(
+              Object.entries(current.sceneData).map(([name, graph]) => [
+                name,
+                { nodes: graph.nodes.map(replaceInNode), edges: graph.edges },
+              ])
+            )
+          : undefined;
+        const currentNodes = newSceneData?.[current.sceneTitle]?.nodes ?? current.nodes.map(replaceInNode);
+        return commitProject({ ...current, nodes: currentNodes, sceneData: newSceneData });
+      });
+      return count;
     },
     connectNodes: (from, to) => {
       setTrackedProjectState((current) => {

@@ -25,6 +25,7 @@ interface LeftPanelProps {
   onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   onDeleteAsset: (id: string) => void;
   onSelectNode: (id: string) => void;
+  onReplace: (find: string, replace: string, scope: "scene" | "all") => number;
 }
 
 export function LeftPanel({
@@ -50,9 +51,14 @@ export function LeftPanel({
   onUpdateAsset,
   onDeleteAsset,
   onSelectNode,
+  onReplace,
 }: LeftPanelProps) {
   const [search, setSearch] = useState("");
+  const [replaceMode, setReplaceMode] = useState(false);
+  const [replaceText, setReplaceText] = useState("");
+  const [replaceStatus, setReplaceStatus] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement | null>(null);
   const searchResults = useMemo(() => searchProject(data, search), [data, search]);
   const tabs = [
     { id: "scenes", label: labels.leftTabs[0] },
@@ -62,11 +68,28 @@ export function LeftPanel({
   ];
 
   useEffect(() => {
+    if (!replaceStatus) return;
+    const handle = window.setTimeout(() => setReplaceStatus(null), 3000);
+    return () => window.clearTimeout(handle);
+  }, [replaceStatus]);
+
+  useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.key.toLowerCase() !== "f") return;
-      event.preventDefault();
-      searchInputRef.current?.focus();
-      searchInputRef.current?.select();
+      if (!(event.ctrlKey || event.metaKey)) return;
+      if (event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setReplaceMode(false);
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      if (!event.shiftKey && event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        setReplaceMode(true);
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
     };
     window.addEventListener("keydown", keyDown);
     return () => window.removeEventListener("keydown", keyDown);
@@ -74,12 +97,66 @@ export function LeftPanel({
 
   return (
     <aside className="left-panel">
-      <div className="search-bar">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="6" cy="6" r="4" /><path d="M9 9l3 3" />
-        </svg>
-        <input ref={searchInputRef} type="text" placeholder={labels.search} value={search} onChange={(event) => setSearch(event.target.value)} />
-        <kbd>Ctrl Shift F</kbd>
+      <div className={`search-bar ${replaceMode ? "is-replace-mode" : ""}`}>
+        <div className="search-row">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="6" cy="6" r="4" /><path d="M9 9l3 3" />
+          </svg>
+          <input ref={searchInputRef} type="text" placeholder={labels.search} value={search} onChange={(event) => setSearch(event.target.value)} />
+          <button
+            className={`search-toggle-replace ${replaceMode ? "is-active" : ""}`}
+            title={replaceMode ? "close replace" : "find & replace (Ctrl H)"}
+            onClick={() => {
+              const next = !replaceMode;
+              setReplaceMode(next);
+              if (next) setTimeout(() => replaceInputRef.current?.focus(), 0);
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+              <path d="M2 3h8M2 6h6M2 9h4M9 7l2 2-2 2" />
+            </svg>
+          </button>
+          {!replaceMode && <kbd>Ctrl Shift F</kbd>}
+        </div>
+        {replaceMode && (
+          <div className="replace-row">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M2 4h10M2 8h6M10 7l2 2-2 2" />
+            </svg>
+            <input
+              ref={replaceInputRef}
+              type="text"
+              placeholder={labels.replace}
+              value={replaceText}
+              onChange={(event) => setReplaceText(event.target.value)}
+            />
+            <div className="replace-actions">
+              <button
+                className="replace-btn"
+                title="replace in current scene"
+                disabled={!search.trim()}
+                onClick={() => {
+                  const count = onReplace(search, replaceText, "scene");
+                  setReplaceStatus(count === 0 ? (labels.words === "words" ? "no matches" : labels.words === "palabras" ? "sin coincidencias" : "nenhuma ocorrência") : `${count} replaced in scene`);
+                }}
+              >
+                scene
+              </button>
+              <button
+                className="replace-btn"
+                title="replace in all scenes"
+                disabled={!search.trim()}
+                onClick={() => {
+                  const count = onReplace(search, replaceText, "all");
+                  setReplaceStatus(count === 0 ? (labels.words === "words" ? "no matches" : labels.words === "palabras" ? "sin coincidencias" : "nenhuma ocorrência") : `${count} replaced in all`);
+                }}
+              >
+                all
+              </button>
+            </div>
+            {replaceStatus && <span className="replace-status">{replaceStatus}</span>}
+          </div>
+        )}
       </div>
       <div className="left-tabs">
         {tabs.map((tab) => (

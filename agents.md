@@ -29,6 +29,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
 - Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, assets, and preserved imported source; source matches can open the text editor at the matched line
+- Find & Replace (Ctrl H) in the left panel: replace text in node body/prompt/options across the current scene or all scenes at once; returns count of replacements and shows a transient status message
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -328,6 +329,25 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 13
+- **Implemented Find & Replace across node text.**
+  - `src/domain/types.ts`: added `replace: string` to `I18nLabels`.
+  - `src/data/sampleProject.ts`: added `replace` translation for PT ("Substituir..."), EN ("Replace..."), ES ("Reemplazar...").
+  - `src/state/projectStore.ts`: added `replaceInNodes(find, replace, scope: "scene"|"all"): number` action.
+    - "scene" scope: replaces in all `current.nodes` text fields and clears any preserved source text for the current scene.
+    - "all" scope: replaces in every scene graph in `sceneData` (drops sourceText for all), then extracts the updated current scene nodes.
+    - Replaces in: `node.body`, `node.prompt`, `node.options[].text`, `node.fakeOptions[].text`.
+    - Returns the count of replaced occurrences (safe across React StrictMode double-invoke via count reset inside updater).
+  - `src/components/LeftPanel.tsx`:
+    - New prop `onReplace: (find, replace, scope) => number`.
+    - Search bar restructured into `.search-row` wrapper (flex row) + optional `.replace-row` below.
+    - Toggle button (find-replace icon SVG) shows/hides the replace row; also triggered by Ctrl+H.
+    - Replace row: replace input + "scene" and "all" action buttons + transient status message (3s timeout).
+    - Ctrl+Shift+F focuses search and collapses replace mode; Ctrl+H opens replace mode.
+  - `src/App.tsx`: passed `onReplace={actions.replaceInNodes}` to LeftPanel.
+  - `styles.css`: added `.search-row`, `.search-toggle-replace`, `.replace-row`, `.replace-actions`, `.replace-btn`, `.replace-status`.
+  - 86 tests, all passing; zero TS errors; clean production build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 12
 - **Implemented multi-select on the canvas and fixed missing node types in the toolbar.**

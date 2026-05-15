@@ -268,6 +268,7 @@ export default function App() {
         onUpdateAsset={actions.updateAsset}
         onDeleteAsset={actions.deleteAsset}
         onSelectNode={focusNode}
+        onReplace={actions.replaceInNodes}
       />
       <button
         className="resize-handle resize-handle-left"
