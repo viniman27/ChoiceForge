@@ -368,7 +368,7 @@
   text-align: left;
   cursor: pointer;
   transition: box-shadow 0.1s, border-color 0.1s;
-  height: 96px;
+  min-height: 96px;
   box-sizing: border-box;
 }
 .map-card:hover { box-shadow: 0 2px 8px oklch(0% 0 0 / 0.1); border-color: var(--ink-faint); }
@@ -401,6 +401,22 @@
   font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute);
 }
 .map-dot { color: var(--ink-faint); }
+.map-card-todo {
+  background: color-mix(in oklch, var(--warn) 18%, var(--paper-2));
+  color: oklch(50% 0.14 75);
+}
+.map-progress-track {
+  height: 3px;
+  background: var(--paper-edge);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.map-progress-fill {
+  height: 100%;
+  background: var(--accent-2);
+  border-radius: 999px;
+}
 .scene-map-svg { pointer-events: none; }
 
 /* ─── Word goal ─────────────────────────────── */

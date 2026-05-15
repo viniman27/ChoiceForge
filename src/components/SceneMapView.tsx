@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChoiceForgeProject, I18nLabels, SceneSummary } from "../domain/types";
 
 const CARD_W = 220;
-const CARD_H = 96;
+const CARD_H = 116;
 const GAP_X = 100;
 const GAP_Y = 64;
 const COLS = 4;
@@ -59,6 +59,17 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
       if (seen.has(key)) return;
       seen.add(key);
       connections.push({ fromId: scene.id, toId: target.id, kind: node.type === "gosub_scene" ? "gosub" : "goto" });
+    });
+  });
+
+  const doneCounts = new Map<string, { done: number; total: number }>();
+  ordered.forEach((scene) => {
+    const nodes = scene.name === data.sceneTitle
+      ? data.nodes
+      : (data.sceneData?.[scene.name]?.nodes ?? []);
+    doneCounts.set(scene.id, {
+      done: nodes.filter((n) => n.status === "done").length,
+      total: nodes.length,
     });
   });
 
@@ -178,6 +189,9 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
           const isActive = activeSceneId === scene.id
             || (scene.isStart && activeSceneId === "startup")
             || (scene.special && activeSceneId === "stats");
+          const dc = doneCounts.get(scene.id);
+          const todoN = dc ? dc.total - dc.done : 0;
+          const donePct = dc && dc.total > 0 ? Math.round((dc.done / dc.total) * 100) : 0;
           return (
             <button
               key={scene.id}
@@ -194,6 +208,7 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
                 <span className={`scene-tag source-${sourceStatus}`}>{sourceStatus}</span>
                 {hasError && <span className="scene-tag scene-err">{counts!.errors}e</span>}
                 {hasWarning && <span className="scene-tag scene-warn">{counts!.warnings}w</span>}
+                {todoN > 0 && <span className="scene-tag map-card-todo">{todoN} todo</span>}
               </div>
               {scene.notes && <div className="map-card-notes">{scene.notes}</div>}
               <div className="map-card-stats">
@@ -201,6 +216,11 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
                 <span className="map-dot">·</span>
                 <span>{scene.nodes} {labels.nodes}</span>
               </div>
+              {dc && dc.done > 0 && (
+                <div className="map-progress-track" title={`${dc.done}/${dc.total} nodes done`}>
+                  <div className="map-progress-fill" style={{ width: `${donePct}%` }} />
+                </div>
+              )}
             </button>
           );
         })}

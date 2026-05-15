@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 45
+- **Scene Map: todo badge and progress bar on each card.**
+  - `doneCounts` map computed in `SceneMapView` (same pattern as LeftPanel): iterates each scene's nodes from `data.sceneData` (active scene uses `data.nodes`) to count `status === "done"` vs total.
+  - `todoN` (total − done) shown as an amber `.map-card-todo` tag in the meta row alongside lint counts, when > 0.
+  - A 3px progress bar (`.map-progress-track` / `.map-progress-fill`) appears at the card bottom when any nodes are done, filling proportionally to done/total. Shown only when `done > 0` (same as scene list behaviour).
+  - `CARD_H` bumped from 96 → 116 so SVG arrow endpoints clear the taller cards.
+  - `.map-card` changed from `height: 96px` to `min-height: 96px` to allow natural content growth.
+  - CSS: `.map-card-todo`, `.map-progress-track`, `.map-progress-fill` added to `directions.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 44
 - **Playtest: variable flash highlight on change.**
   - `changedVars: Set<string>` state + `flashTimerRef` track which variables are currently highlighted.
