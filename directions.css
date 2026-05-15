@@ -587,6 +587,23 @@
 .ms-scene { font-family: var(--ff-mono); font-size: 12px; font-weight: 600; color: var(--ink); }
 .ms-stats { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); }
 .ms-actions { display: flex; align-items: center; gap: 6px; }
+.ms-scope-toggle { display: flex; border: 1px solid var(--paper-edge); border-radius: var(--r-1); overflow: hidden; }
+.ms-scope-btn {
+  background: none; border: none; padding: 4px 10px;
+  font-size: 11px; font-family: var(--ff-mono); color: var(--ink-mute); cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.ms-scope-btn:hover { color: var(--ink); background: var(--paper-3); }
+.ms-scope-btn.is-active { background: var(--accent); color: #fff; }
+.ms-scene-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 40px 0 24px;
+  color: var(--ink-mute);
+}
+.ms-scene-divider::before,
+.ms-scene-divider::after { content: ""; flex: 1; height: 1px; background: var(--paper-edge); }
+.ms-scene-divider-name { font-family: var(--ff-mono); font-size: 10px; font-weight: 600; text-transform: lowercase; letter-spacing: 0.08em; white-space: nowrap; }
+.ms-scene-end { height: 32px; }
 .ms-action-btn {
   background: none; border: 1px solid var(--paper-edge);
   border-radius: var(--r-1); padding: 5px 12px;

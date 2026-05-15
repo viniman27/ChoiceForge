@@ -344,6 +344,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 31
+- **Added full-project manuscript scope — read and export the entire story in one view.**
+  - `src/components/ManuscriptView.tsx`:
+    - Added `scope: "scene" | "project"` state and `[scene] [project]` toggle buttons in the toolbar.
+    - `buildProjectSections(data)`: iterates `data.scenes` in order (excluding `special` stats screen), fetches each scene's graph from `data.sceneData` (or the live `data.nodes/edges` for the active scene), runs `narrativeOrder` per scene, and filters out empty scenes.
+    - In project scope: renders a centered `ms-scene-divider` (`~~~ scene_name.txt ~~~`) before each section, separated by `ms-scene-end` spacers.
+    - Word count, passage count, and reading time aggregate across all displayed sections.
+    - `generateProjectText`: emits all scenes with `~~~ scene ~~~` headers separated by blank lines.
+    - Download filename switches to `{title}_full_manuscript.txt` in project scope.
+    - Refactored text generation into shared `nodeListToLines(nodes)` helper used by both single-scene and project exports.
+  - `directions.css`: added `.ms-scope-toggle`, `.ms-scope-btn`, `.ms-scope-btn.is-active` (accent fill), `.ms-scene-divider` (centered rule with label), `.ms-scene-divider-name`, `.ms-scene-end`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 30
 - **Added canvas quick-filter (Ctrl+F) and fit-to-selection (Shift+F).**
   - **Canvas filter:**
