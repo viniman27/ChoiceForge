@@ -1458,21 +1458,49 @@ input, select, textarea { font-family: inherit; color: inherit; }
   pointer-events: none;
   border-radius: 3px;
 }
-.sel-count-badge {
+.sel-bar {
   position: absolute;
   bottom: 52px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--ink);
-  color: var(--paper-1);
-  font-size: 11px;
-  font-family: var(--ff-mono);
-  padding: 3px 10px;
-  border-radius: 20px;
-  pointer-events: none;
-  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--paper-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-2);
+  padding: 4px 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  z-index: 10;
+  user-select: none;
   white-space: nowrap;
 }
+.sel-bar-count {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-mute);
+  padding-right: 4px;
+}
+.sel-bar-sep {
+  width: 1px; height: 16px;
+  background: var(--paper-edge);
+  margin: 0 4px;
+}
+.sel-bar-div {
+  width: 1px; height: 12px;
+  background: var(--paper-edge);
+  margin: 0 2px;
+}
+.sel-bar-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+  background: none; border: none; border-radius: var(--r-1);
+  color: var(--ink-mute); cursor: pointer; padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.sel-bar-btn:hover { background: var(--paper-3); color: var(--ink); }
+.sel-bar-btn:disabled { opacity: 0.3; cursor: default; }
+.sel-bar-btn:disabled:hover { background: none; color: var(--ink-mute); }
 .stat-node-note {
   display: inline-flex;
   align-items: center;

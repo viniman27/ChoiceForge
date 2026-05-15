@@ -344,6 +344,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 29
+- **Added node alignment toolbar (appears when ≥2 nodes selected).**
+  - Replaced the plain "N selected" badge with a full `SelectionBar` component that floats at the bottom-center of the canvas.
+  - Buttons: align left edges, align horizontal centers, align right edges | align top edges, align vertical centers, align bottom edges | distribute horizontally, distribute vertically (last two disabled when < 3 nodes selected).
+  - Align operations compute the bounding box of selected nodes and reposition each node to the target edge/center. Vertical operations use `estimateNodeHeight` for accurate bottom/middle alignment.
+  - Distribute operations keep the outermost two nodes fixed and space inner nodes with equal whitespace gaps (not equal center-to-center, so mixed-width/height nodes look evenly spaced).
+  - `AlignIcon` component: 8 small 14×14 SVG icons with filled rectangles and ruler lines, consistent with `NodeIcon` style.
+  - `styles.css`: replaced `.sel-count-badge` with `.sel-bar`, `.sel-bar-count`, `.sel-bar-sep`, `.sel-bar-div`, `.sel-bar-btn` (hover + disabled states).
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 28
 - **Added manuscript export (download .txt + copy to clipboard).**
   - `src/components/ManuscriptView.tsx`:
