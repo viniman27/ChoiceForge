@@ -344,6 +344,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 28
+- **Added manuscript export (download .txt + copy to clipboard).**
+  - `src/components/ManuscriptView.tsx`:
+    - Added `generateManuscriptText(ordered, data)` function: outputs a clean plain-text document with title/author/scene header, `--- Passage Title ---` sections, `> Prompt` + numbered options for choices, and `* * *` for page breaks. Structural navigation nodes (goto, if, label, etc.) are omitted — the export targets editors and beta readers, not the runtime.
+    - Added `handleDownload`: creates a Blob and triggers a browser download as `{sceneTitle}_manuscript.txt`.
+    - Added `handleCopy`: writes the same text to `navigator.clipboard`; shows `✓ copied` feedback for 2 s.
+    - Toolbar restructured: `ms-actions` flex row holds the two new `.ms-action-btn` buttons and the existing back button.
+  - `directions.css`: added `.ms-actions`, `.ms-action-btn` (matches `.ms-close` styling with an accent hover).
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 27
 - **Double-click empty canvas to create a passage node + reading time in manuscript view.**
   - `src/components/GraphCanvas.tsx`: added `onDoubleClick` handler on the canvas-wrap div. When the target passes `isCanvasPanTarget` (i.e., empty canvas) and source is not preserved, creates a `passage` node centered on the double-clicked world position. Consistent with Twine and other node editors.

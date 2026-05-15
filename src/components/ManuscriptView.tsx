@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { COLOR_TAG_VALUES } from "./NodeCard";
 import type { ChoiceForgeProject, StoryEdge, StoryNode } from "../domain/types";
 
@@ -11,6 +12,25 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
   const wordCount = countWords(ordered);
   const passageCount = ordered.filter((n) => hasNarrativeContent(n)).length;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
+  const [copied, setCopied] = useState(false);
+
+  const handleDownload = () => {
+    const text = generateManuscriptText(ordered, data);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.sceneTitle}_manuscript.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopy = async () => {
+    const text = generateManuscriptText(ordered, data);
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="ms-wrap">
@@ -19,7 +39,15 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
           <span className="ms-scene">{data.sceneTitle}.txt</span>
           <span className="ms-stats">{wordCount.toLocaleString()} words · {passageCount} passages · ~{readingMinutes} min</span>
         </div>
-        <button className="ms-close" onClick={onClose}>← back to editor</button>
+        <div className="ms-actions">
+          <button className="ms-action-btn" onClick={handleCopy} title="Copy to clipboard">
+            {copied ? "✓ copied" : "copy"}
+          </button>
+          <button className="ms-action-btn" onClick={handleDownload} title="Download as .txt">
+            ↓ download
+          </button>
+          <button className="ms-close" onClick={onClose}>← back to editor</button>
+        </div>
       </div>
 
       <div className="ms-body">
@@ -117,6 +145,46 @@ function hasNarrativeContent(node: StoryNode): boolean {
 function countWords(nodes: StoryNode[]): number {
   const text = nodes.flatMap((n) => [n.body ?? "", n.prompt ?? "", ...(n.options?.map((o) => o.text) ?? [])]).join(" ");
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+function generateManuscriptText(ordered: StoryNode[], data: ChoiceForgeProject): string {
+  const ruler = "=".repeat(72);
+  const lines: string[] = [
+    `${data.title}`,
+    `by ${data.author}`,
+    `Scene: ${data.sceneTitle}`,
+    ruler,
+    "",
+  ];
+
+  for (const node of ordered) {
+    if (node.type === "passage") {
+      lines.push(`--- ${node.title} ---`, "");
+      if (node.body) {
+        lines.push(...node.body.split("\n\n").map((p) => p.replace(/\n/g, " ")));
+        lines.push("");
+      }
+      if (node.note) {
+        lines.push(`[Note: ${node.note}]`, "");
+      }
+    } else if (node.type === "choice" || node.type === "fake_choice") {
+      if (node.prompt) {
+        lines.push(`> ${node.prompt}`, "");
+      }
+      const opts = node.options ?? node.fakeOptions ?? [];
+      opts.forEach((opt, i) => {
+        lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`);
+      });
+      if (opts.length) lines.push("");
+      if (node.note) {
+        lines.push(`[Note: ${node.note}]`, "");
+      }
+    } else if (node.type === "page_break") {
+      lines.push("* * *", "");
+    }
+  }
+
+  return lines.join("\n").trimEnd() + "\n";
 }
 
 function narrativeOrder(nodes: StoryNode[], edges: StoryEdge[]): StoryNode[] {

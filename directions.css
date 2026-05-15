@@ -586,6 +586,14 @@
 .ms-meta { display: flex; flex-direction: column; gap: 2px; }
 .ms-scene { font-family: var(--ff-mono); font-size: 12px; font-weight: 600; color: var(--ink); }
 .ms-stats { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); }
+.ms-actions { display: flex; align-items: center; gap: 6px; }
+.ms-action-btn {
+  background: none; border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1); padding: 5px 12px;
+  font-size: 11px; font-family: var(--ff-mono); color: var(--ink-mute); cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+.ms-action-btn:hover { color: var(--accent); border-color: var(--accent); }
 .ms-close {
   background: none; border: 1px solid var(--paper-edge);
   border-radius: var(--r-1); padding: 5px 12px;
