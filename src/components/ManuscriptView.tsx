@@ -1,3 +1,4 @@
+import { COLOR_TAG_VALUES } from "./NodeCard";
 import type { ChoiceForgeProject, StoryEdge, StoryNode } from "../domain/types";
 
 interface ManuscriptViewProps {
@@ -33,7 +34,10 @@ function NodeBlock({ node }: { node: StoryNode }) {
   if (node.type === "passage") {
     return (
       <section className="ms-passage">
-        <h2 className="ms-node-title">{node.title}</h2>
+        <h2 className="ms-node-title">
+          {node.colorTag && <span className="ms-color-dot" style={{ background: COLOR_TAG_VALUES[node.colorTag] }} />}
+          {node.title}
+        </h2>
         {node.body && <div className="ms-prose">{renderBody(node.body)}</div>}
         {node.note && <aside className="ms-note">✎ {node.note}</aside>}
       </section>

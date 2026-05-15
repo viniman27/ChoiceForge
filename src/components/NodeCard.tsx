@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import type { Density, I18nLabels, NodeType, StoryNode, VariableSet } from "../domain/types";
+import type { Density, I18nLabels, NodeColorTag, NodeType, StoryNode, VariableSet } from "../domain/types";
+
+export const COLOR_TAG_VALUES: Record<NodeColorTag, string> = {
+  red:    "oklch(55% 0.20 25)",
+  orange: "oklch(62% 0.17 55)",
+  yellow: "oklch(72% 0.16 90)",
+  green:  "oklch(52% 0.15 155)",
+  blue:   "oklch(52% 0.16 240)",
+  purple: "oklch(52% 0.16 300)",
+};
 
 export const typeColors: Record<NodeType, { dot: string; tint: string; label: string }> = {
   passage: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "passage" },
@@ -124,8 +133,8 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
 
   return (
     <div
-      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${node.warning ? "has-warning" : ""}`}
-      style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint } as React.CSSProperties}
+      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${node.warning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""}`}
+      style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;
         event.stopPropagation();

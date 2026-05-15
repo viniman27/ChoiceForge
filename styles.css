@@ -1176,6 +1176,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .node.has-error { border-color: var(--err); border-style: dashed; }
 .node.has-warning { border-color: var(--warn); }
+.node.has-color-tag { border-left: 3.5px solid var(--ct, transparent); }
 .node:active { cursor: grabbing; }
 
 .node-head {
@@ -1410,6 +1411,20 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-status-btn:disabled { opacity: 0.4; cursor: default; }
 .ip-status-btn.ip-status-todo.is-active { background: color-mix(in oklch, var(--warn) 18%, var(--paper-2)); color: oklch(50% 0.12 75); border-color: var(--warn); }
 .ip-status-btn.ip-status-done.is-active { background: color-mix(in oklch, var(--ok) 18%, var(--paper-2)); color: oklch(40% 0.14 155); border-color: var(--ok); }
+.ip-color-row { display: flex; gap: 5px; align-items: center; margin-bottom: 2px; }
+.ip-color-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--ct); border: 2px solid transparent;
+  cursor: pointer; flex-shrink: 0; transition: transform 0.1s;
+}
+.ip-color-dot:hover { transform: scale(1.15); }
+.ip-color-dot.is-active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ct); }
+.ip-color-dot:disabled { opacity: 0.4; cursor: default; transform: none; }
+.ip-color-clear {
+  background: none; border: none; color: var(--ink-mute); font-size: 14px;
+  cursor: pointer; padding: 0 2px; line-height: 1; margin-left: 2px;
+}
+.ip-color-clear:hover { color: var(--err); }
 .ip-source-lock {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

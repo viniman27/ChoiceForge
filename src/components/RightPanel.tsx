@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
-import { NodeIcon, typeColors } from "./NodeCard";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
+import { COLOR_TAG_VALUES, NodeIcon, typeColors } from "./NodeCard";
 import { NodeBodyEditor } from "./NodeBodyEditor";
 
 interface RightPanelProps {
@@ -51,6 +51,21 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
               onClick={() => onUpdateNode(node.id, { status: node.status === s ? undefined : s })}
             >{s}</button>
           ))}
+        </div>
+        <div className="ip-color-row">
+          {(Object.keys(COLOR_TAG_VALUES) as NodeColorTag[]).map((tag) => (
+            <button
+              key={tag}
+              className={`ip-color-dot${node.colorTag === tag ? " is-active" : ""}`}
+              style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
+              title={tag}
+              disabled={sourcePreserved}
+              onClick={() => onUpdateNode(node.id, { colorTag: node.colorTag === tag ? undefined : tag })}
+            />
+          ))}
+          {node.colorTag && (
+            <button className="ip-color-clear" disabled={sourcePreserved} onClick={() => onUpdateNode(node.id, { colorTag: undefined })} title="clear color">×</button>
+          )}
         </div>
         <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
       </div>

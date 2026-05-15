@@ -107,6 +107,7 @@ export interface ConditionalBranch {
 }
 
 export type NodeStatus = "todo" | "done";
+export type NodeColorTag = "red" | "orange" | "yellow" | "green" | "blue" | "purple";
 
 export interface StoryNode {
   id: string;
@@ -116,6 +117,7 @@ export interface StoryNode {
   w: number;
   title: string;
   status?: NodeStatus;
+  colorTag?: NodeColorTag;
   note?: string;
   body?: string;
   prompt?: string;
