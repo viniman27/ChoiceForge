@@ -633,7 +633,14 @@
   color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.06em;
   margin: 0; padding-bottom: 6px;
   border-bottom: 1px solid var(--paper-edge);
-  display: flex; align-items: center;
+  display: flex; align-items: center; gap: 6px;
+}
+.ms-node-title-link { cursor: pointer; }
+.ms-node-title-link:hover { color: var(--accent-1); border-bottom-color: var(--accent-1); }
+.ms-todo-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 5px;
+  background: var(--warn); color: oklch(20% 0 0); border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
 }
 .ms-color-dot {
   display: inline-block; width: 8px; height: 8px;
