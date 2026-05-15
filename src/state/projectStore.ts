@@ -7,6 +7,32 @@ import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, No
 
 const STORAGE_KEY = "choiceforge.project.v2";
 const HISTORY_LIMIT = 50;
+const SNAPSHOTS_INDEX_KEY = "choiceforge.snapshots.v1";
+const MAX_SNAPSHOTS = 5;
+
+export interface SnapshotMeta {
+  id: string;
+  name: string;
+  createdAt: string;
+  wordCount: number;
+  sceneCount: number;
+}
+
+function snapshotDataKey(id: string) { return `choiceforge.snapshot.data.${id}`; }
+
+function loadSnapshotIndex(): SnapshotMeta[] {
+  try { return JSON.parse(window.localStorage.getItem(SNAPSHOTS_INDEX_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function persistSnapshotIndex(index: SnapshotMeta[]) {
+  window.localStorage.setItem(SNAPSHOTS_INDEX_KEY, JSON.stringify(index));
+}
+
+function loadSnapshotData(id: string): ChoiceForgeProject | null {
+  try { return JSON.parse(window.localStorage.getItem(snapshotDataKey(id)) ?? "null"); }
+  catch { return null; }
+}
 
 function cloneProject(project: ChoiceForgeProject): ChoiceForgeProject {
   return structuredClone(project);
@@ -70,6 +96,9 @@ export interface ProjectActions {
   addAsset: () => void;
   updateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   deleteAsset: (id: string) => void;
+  saveSnapshot: (name: string) => void;
+  restoreSnapshot: (id: string) => void;
+  deleteSnapshot: (id: string) => void;
 }
 
 export function useProjectStore() {
@@ -78,6 +107,9 @@ export function useProjectStore() {
   const [futureLength, setFutureLength] = useState(0);
   const historyRef = useRef<ChoiceForgeProject[]>([]);
   const futureRef = useRef<ChoiceForgeProject[]>([]);
+  const [snapshotIndex, setSnapshotIndex] = useState<SnapshotMeta[]>(loadSnapshotIndex);
+  const projectRef = useRef(project);
+  projectRef.current = project;
 
   const pushHistory = useCallback((snapshot: ChoiceForgeProject) => {
     const nextHistory = [...historyRef.current, cloneProject(snapshot)].slice(-HISTORY_LIMIT);
@@ -703,9 +735,41 @@ export function useProjectStore() {
         assets: (current.assets ?? []).filter((asset) => asset.id !== id),
       }));
     },
+    saveSnapshot: (name: string) => {
+      const current = projectRef.current;
+      const id = `snap_${Date.now()}`;
+      const meta: SnapshotMeta = {
+        id,
+        name: name.trim() || new Date().toLocaleString(),
+        createdAt: new Date().toISOString(),
+        wordCount: current.scenes.reduce((sum, s) => sum + s.words, 0),
+        sceneCount: current.scenes.filter((s) => !s.isStart && !s.special).length,
+      };
+      try { window.localStorage.setItem(snapshotDataKey(id), JSON.stringify(current)); } catch { return; }
+      setSnapshotIndex((prev) => {
+        const overflow = prev.slice(MAX_SNAPSHOTS - 1);
+        overflow.forEach((m) => window.localStorage.removeItem(snapshotDataKey(m.id)));
+        const next = [meta, ...prev].slice(0, MAX_SNAPSHOTS);
+        persistSnapshotIndex(next);
+        return next;
+      });
+    },
+    restoreSnapshot: (id: string) => {
+      const data = loadSnapshotData(id);
+      if (!data) return;
+      setTrackedProjectState(() => commitProject(hydrateProject(cloneProject(data))));
+    },
+    deleteSnapshot: (id: string) => {
+      window.localStorage.removeItem(snapshotDataKey(id));
+      setSnapshotIndex((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        persistSnapshotIndex(next);
+        return next;
+      });
+    },
   }), [historyLength, setTrackedProjectState]);
 
-  return { project, lintedProject, actions };
+  return { project, lintedProject, actions, snapshotIndex };
 }
 
 function renameVariableReferences(text: string, from: string, to: string): string {

@@ -5,6 +5,7 @@ import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
 import { ManuscriptView } from "./components/ManuscriptView";
+import { SnapshotPanel } from "./components/SnapshotPanel";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
@@ -50,7 +51,8 @@ export default function App() {
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { lintedProject, actions } = useProjectStore();
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const { lintedProject, actions, snapshotIndex } = useProjectStore();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -247,6 +249,7 @@ export default function App() {
           if (!confirmExportWithLintErrors(lintedProject, lang)) return;
           downloadGeneratedProject(lintedProject);
         }}
+        onSnapshots={() => setSnapshotsOpen(true)}
         onResetProject={() => {
           const confirmed = window.confirm(
             lang === "pt" ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
@@ -472,6 +475,15 @@ export default function App() {
           labels={i18n[lang]}
           activeSceneId={activeSceneId}
           onSelectScene={navigateToScene}
+        />
+      )}
+      {snapshotsOpen && (
+        <SnapshotPanel
+          snapshots={snapshotIndex}
+          onSave={(name) => actions.saveSnapshot(name)}
+          onRestore={(id) => { actions.restoreSnapshot(id); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }}
+          onDelete={(id) => actions.deleteSnapshot(id)}
+          onClose={() => setSnapshotsOpen(false)}
         />
       )}
       {shortcutsOpen && <KeyboardShortcutOverlay onClose={() => setShortcutsOpen(false)} />}
