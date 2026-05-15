@@ -344,6 +344,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 27
+- **Double-click empty canvas to create a passage node + reading time in manuscript view.**
+  - `src/components/GraphCanvas.tsx`: added `onDoubleClick` handler on the canvas-wrap div. When the target passes `isCanvasPanTarget` (i.e., empty canvas) and source is not preserved, creates a `passage` node centered on the double-clicked world position. Consistent with Twine and other node editors.
+  - `src/components/ManuscriptView.tsx`: added `readingMinutes = Math.ceil(wordCount / 200)` (200 wpm for interactive fiction). Stats line now reads `"N words · P passages · ~M min"`.
+  - `src/components/KeyboardShortcutOverlay.tsx`: added "double-click → Create passage node" entry under Canvas shortcuts.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 26
 - **Fixed canvas panning broken by multi-select box feature.**
   - Plain left drag on empty canvas now pans again (was being stolen by the selection box).

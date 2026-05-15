@@ -10,13 +10,14 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
   const ordered = narrativeOrder(data.nodes, data.edges);
   const wordCount = countWords(ordered);
   const passageCount = ordered.filter((n) => hasNarrativeContent(n)).length;
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
     <div className="ms-wrap">
       <div className="ms-toolbar">
         <div className="ms-meta">
           <span className="ms-scene">{data.sceneTitle}.txt</span>
-          <span className="ms-stats">{wordCount.toLocaleString()} words · {passageCount} passages</span>
+          <span className="ms-stats">{wordCount.toLocaleString()} words · {passageCount} passages · ~{readingMinutes} min</span>
         </div>
         <button className="ms-close" onClick={onClose}>← back to editor</button>
       </div>

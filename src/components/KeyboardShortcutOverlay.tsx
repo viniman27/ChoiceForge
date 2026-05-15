@@ -12,6 +12,7 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["drag"], label: "Pan canvas" },
       { keys: ["Space", "drag"], label: "Pan canvas (alt)" },
       { keys: ["Shift", "drag"], label: "Box select" },
+      { keys: ["double-click"], label: "Create passage node" },
       { keys: ["Ctrl", "scroll"], label: "Zoom in/out" },
       { keys: ["F"], label: "Fit view" },
       { keys: ["Escape"], label: "Deselect / close" },
