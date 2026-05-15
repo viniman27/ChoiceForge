@@ -47,6 +47,8 @@ export interface ProjectActions {
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
   duplicateNode: (id: string) => string | null;
   deleteNode: (id: string) => void;
+  moveNodes: (moves: { id: string; x: number; y: number }[]) => void;
+  deleteNodes: (ids: string[]) => void;
   connectNodes: (from: string, to: string) => void;
   addFlowEdge: (from: string, to: string) => void;
   deleteFlowEdge: (from: string, to: string) => void;
@@ -276,6 +278,39 @@ export function useProjectStore() {
           edges: current.edges.filter((edge) => edge.from !== id && edge.to !== id),
           scenes: current.scenes.map((scene) => (
             scene.name === current.sceneTitle ? { ...scene, nodes: Math.max(0, scene.nodes - 1) } : scene
+          )),
+        }));
+      });
+    },
+    moveNodes: (moves) => {
+      if (!moves.length) return;
+      const posMap = new Map(moves.map(({ id, x, y }) => [id, { x, y }]));
+      setTrackedProjectState((current) => commitProject({
+        ...current,
+        nodes: current.nodes.map((node) => {
+          const pos = posMap.get(node.id);
+          return pos ? { ...node, ...pos } : node;
+        }),
+      }));
+    },
+    deleteNodes: (ids) => {
+      if (!ids.length) return;
+      const idSet = new Set(ids);
+      setTrackedProjectState((current) => {
+        const nodes = current.nodes.filter((node) => !idSet.has(node.id));
+        if (nodes.length === current.nodes.length) return current;
+        if (nodes.length === 0) return current;
+        const deletedCount = current.nodes.length - nodes.length;
+        return commitProject(clearActiveSceneSource({
+          ...current,
+          nodes: nodes.map((node) => ({
+            ...node,
+            options: node.options?.filter((option) => !idSet.has(option.to)),
+            branches: node.branches?.filter((branch) => !idSet.has(branch.to)),
+          })),
+          edges: current.edges.filter((edge) => !idSet.has(edge.from) && !idSet.has(edge.to)),
+          scenes: current.scenes.map((scene) => (
+            scene.name === current.sceneTitle ? { ...scene, nodes: Math.max(0, scene.nodes - deletedCount) } : scene
           )),
         }));
       });

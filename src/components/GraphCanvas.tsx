@@ -8,12 +8,12 @@ interface GraphCanvasProps {
   labels: I18nLabels;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
-  onMoveNode: (id: string, x: number, y: number) => void;
+  onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
   onLayoutNodes: () => void;
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDuplicateNode: (id: string) => void;
-  onDeleteNode: (id: string) => void;
+  onDeleteNodes: (ids: string[]) => void;
   sourcePreserved?: boolean;
   onConvertSource?: () => void;
   pan: { x: number; y: number };
@@ -22,26 +22,86 @@ interface GraphCanvasProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const creatableNodeTypes: NodeType[] = ["passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "input_text", "input_number", "rand", "image", "page_break", "checkpoint", "restore_checkpoint", "comment", "finish", "ending"];
+const creatableNodeTypes: NodeType[] = [
+  "passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene",
+  "gosub", "gosub_scene", "return", "input_text", "input_number", "rand",
+  "image", "temp", "params", "page_break", "checkpoint", "restore_checkpoint",
+  "comment", "finish", "ending",
+];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
 
-export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, onMoveNode, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNode, sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom }: GraphCanvasProps) {
+export function GraphCanvas({
+  data, density, labels, selectedId, setSelectedId,
+  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNodes,
+  sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
+}: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const [drag, setDrag] = useState<{ nodeId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [drag, setDrag] = useState<{
+    nodeId: string;
+    startX: number;
+    startY: number;
+    origPositions: { id: string; x: number; y: number }[];
+  } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [connecting, setConnecting] = useState<{ from: string; x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 700 });
   const [space, setSpace] = useState(false);
   const [toolbarWidth, setToolbarWidth] = useState(loadToolbarWidth);
   const [toolbarResize, setToolbarResize] = useState<{ startX: number; startWidth: number } | null>(null);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(selectedId ? [selectedId] : []));
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+
+  const [selBoxing, setSelBoxing] = useState(false);
+  const selBoxRef = useRef<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [selBoxDisplay, setSelBoxDisplay] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+
+  const lastSetIdRef = useRef<string | null>(selectedId);
+
+  useEffect(() => {
+    if (selectedId !== lastSetIdRef.current) {
+      lastSetIdRef.current = selectedId;
+      setSelectedIds(selectedId ? new Set([selectedId]) : new Set());
+    }
+  }, [selectedId]);
+
+  const selectNode = (id: string, addToSet: boolean) => {
+    if (addToSet) {
+      const current = selectedIdsRef.current;
+      const isSelected = current.has(id);
+      const next = new Set(current);
+      if (isSelected) {
+        next.delete(id);
+        const newPrimary = ([...next][0] ?? null) as string | null;
+        lastSetIdRef.current = newPrimary;
+        setSelectedId(newPrimary);
+      } else {
+        next.add(id);
+        lastSetIdRef.current = id;
+        setSelectedId(id);
+      }
+      setSelectedIds(next);
+    } else {
+      lastSetIdRef.current = id;
+      setSelectedId(id);
+      setSelectedIds(new Set([id]));
+    }
+  };
+
+  const clearSelection = () => {
+    lastSetIdRef.current = null;
+    setSelectedId(null);
+    setSelectedIds(new Set());
+  };
+
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
 
   useEffect(() => {
     const element = canvasRef.current;
     if (!element) return;
-
     const updateViewport = () => setViewport({ width: element.clientWidth, height: element.clientHeight });
     updateViewport();
     const observer = new ResizeObserver(updateViewport);
@@ -53,18 +113,28 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
     const keyDown = (event: KeyboardEvent) => {
       if (event.code === "Space" && !event.repeat) setSpace(true);
       if (isTypingTarget(event.target)) return;
-      if (event.key === "Escape") setSelectedId(null);
+      if (event.key === "Escape") clearSelection();
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        const allIds = new Set(data.nodes.map((node) => node.id));
+        const first = data.nodes[0]?.id ?? null;
+        lastSetIdRef.current = first;
+        setSelectedId(first);
+        setSelectedIds(allIds);
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d" && selectedId) {
         event.preventDefault();
         if (sourcePreserved) return;
         onDuplicateNode(selectedId);
         return;
       }
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedIdsRef.current.size > 0) {
         event.preventDefault();
         if (sourcePreserved) return;
-        onDeleteNode(selectedId);
-        setSelectedId(null);
+        const ids = [...selectedIdsRef.current];
+        onDeleteNodes(ids);
+        clearSelection();
       }
     };
     const keyUp = (event: KeyboardEvent) => {
@@ -76,7 +146,8 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
     };
-  }, [onDeleteNode, onDuplicateNode, selectedId, setSelectedId, sourcePreserved]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.nodes, onDeleteNodes, onDuplicateNode, selectedId, sourcePreserved]);
 
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
@@ -89,7 +160,6 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       setToolbarWidth(clamp(toolbarResize.startWidth + event.clientX - toolbarResize.startX, TOOLBAR_MIN_WIDTH, maxWidth));
     };
     const up = () => setToolbarResize(null);
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     window.addEventListener("pointermove", move);
@@ -115,13 +185,20 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (drag) {
-        onMoveNode(drag.nodeId, drag.origX + (event.clientX - drag.startX) / zoom, drag.origY + (event.clientY - drag.startY) / zoom);
+        const dx = (event.clientX - drag.startX) / zoom;
+        const dy = (event.clientY - drag.startY) / zoom;
+        onMoveNodes(drag.origPositions.map(({ id, x, y }) => ({ id, x: x + dx, y: y + dy })));
       }
       if (panning) {
         onPan({ x: panning.origX + event.clientX - panning.startX, y: panning.origY + event.clientY - panning.startY });
       }
       if (connecting) {
-        setConnecting((current) => current ? { ...current, ...clientPointToWorld(event.clientX, event.clientY, canvasRef.current, pan, zoom) } : current);
+        setConnecting((current) => current ? { ...current, ...clientToWorld(event.clientX, event.clientY, canvasRef.current, pan, zoom) } : current);
+      }
+      if (selBoxRef.current) {
+        const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
+        selBoxRef.current = { ...selBoxRef.current, x2: world.x, y2: world.y };
+        setSelBoxDisplay({ ...selBoxRef.current });
       }
     };
     const up = (event: PointerEvent) => {
@@ -130,11 +207,30 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         const targetId = target instanceof HTMLElement ? target.closest<HTMLElement>(".anchor-in")?.dataset.nodeId : undefined;
         if (targetId) onConnectNodes(connecting.from, targetId);
       }
+      if (selBoxRef.current) {
+        const box = selBoxRef.current;
+        const minX = Math.min(box.x1, box.x2);
+        const maxX = Math.max(box.x1, box.x2);
+        const minY = Math.min(box.y1, box.y2);
+        const maxY = Math.max(box.y1, box.y2);
+        const hitIds = data.nodes
+          .filter((node) => node.x + node.w / 2 >= minX && node.x + node.w / 2 <= maxX && node.y + 18 >= minY && node.y + 18 <= maxY)
+          .map((node) => node.id);
+        if (hitIds.length > 0) {
+          const next = new Set([...selectedIdsRef.current, ...hitIds]);
+          setSelectedIds(next);
+          lastSetIdRef.current = hitIds[0];
+          setSelectedId(hitIds[0]);
+        }
+        selBoxRef.current = null;
+        setSelBoxDisplay(null);
+        setSelBoxing(false);
+      }
       setDrag(null);
       setPanning(null);
       setConnecting(null);
     };
-    if (drag || panning || connecting) {
+    if (drag || panning || connecting || selBoxing) {
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     }
@@ -142,7 +238,10 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
-  }, [connecting, drag, onConnectNodes, onMoveNode, onPan, pan, panning, zoom]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connecting, drag, onConnectNodes, onMoveNodes, onPan, pan, panning, selBoxing, zoom]);
+
+  const selCount = selectedIds.size;
 
   return (
     <div
@@ -166,12 +265,20 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
       }}
       onPointerDown={(event) => {
         if (!isCanvasPanTarget(event.target)) return;
-        setSelectedId(null);
-        if (event.button === 0 || event.button === 1 || space) {
+        if (event.button === 1 || space) {
+          clearSelection();
           setPanning({ startX: event.clientX, startY: event.clientY, origX: pan.x, origY: pan.y });
+          return;
+        }
+        if (event.button === 0) {
+          if (!event.shiftKey) clearSelection();
+          const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
+          selBoxRef.current = { x1: world.x, y1: world.y, x2: world.x, y2: world.y };
+          setSelBoxDisplay(selBoxRef.current);
+          setSelBoxing(true);
         }
       }}
-      style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : "grab" }}
+      style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : space ? "grab" : "default" }}
     >
       <div className="canvas-grid" />
       <div className={`canvas-toolbar ${toolbarResize ? "is-resizing" : ""}`} style={{ width: Math.min(toolbarWidth, Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64)) }}>
@@ -198,11 +305,15 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         </button>
         <button
           className="canvas-tool danger"
-          disabled={!selectedId || sourcePreserved}
-          onClick={() => selectedId && onDeleteNode(selectedId)}
+          disabled={selCount === 0 || sourcePreserved}
+          onClick={() => {
+            const ids = [...selectedIdsRef.current];
+            onDeleteNodes(ids);
+            clearSelection();
+          }}
           title={labels.deleteSelected}
         >
-          {labels.deleteSelected}
+          {selCount > 1 ? `${labels.deleteSelected} (${selCount})` : labels.deleteSelected}
         </button>
         <button className="canvas-tool" onClick={onLayoutNodes} title={labels.autoLayout}>
           {labels.autoLayout}
@@ -262,16 +373,30 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             node={node}
             density={density}
             labels={labels}
-            selected={selectedId === node.id}
+            selected={selectedIds.has(node.id)}
             hasError={errorNodeIds.has(node.id)}
-            onSelect={setSelectedId}
+            onSelect={(id, addToSet) => selectNode(id, addToSet)}
             onDragStart={(event, id) => {
-              const current = data.nodes.find((node) => node.id === id);
-              if (current) setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origX: current.x, origY: current.y });
+              const current = data.nodes.find((n) => n.id === id);
+              if (!current) return;
+              let idsToMove: string[];
+              if (selectedIdsRef.current.has(id)) {
+                idsToMove = [...selectedIdsRef.current];
+              } else {
+                lastSetIdRef.current = id;
+                setSelectedId(id);
+                setSelectedIds(new Set([id]));
+                idsToMove = [id];
+              }
+              const origPositions = idsToMove
+                .map((nid) => data.nodes.find((n) => n.id === nid))
+                .filter((n): n is typeof data.nodes[0] => Boolean(n))
+                .map((n) => ({ id: n.id, x: n.x, y: n.y }));
+              setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origPositions });
             }}
             onConnectStart={(event, id) => {
               if (sourcePreserved) return;
-              const current = data.nodes.find((node) => node.id === id);
+              const current = data.nodes.find((n) => n.id === id);
               if (!current || ["ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"].includes(current.type)) return;
               event.stopPropagation();
               const start = { x2: current.x + current.w, y2: current.y + estimateNodeHeight(data, current.id, density) / 2 };
@@ -285,6 +410,18 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
             }}
           />
         ))}
+
+        {selBoxDisplay && (
+          <div
+            className="sel-box"
+            style={{
+              left: Math.min(selBoxDisplay.x1, selBoxDisplay.x2),
+              top: Math.min(selBoxDisplay.y1, selBoxDisplay.y2),
+              width: Math.abs(selBoxDisplay.x2 - selBoxDisplay.x1),
+              height: Math.abs(selBoxDisplay.y2 - selBoxDisplay.y1),
+            }}
+          />
+        )}
       </div>
 
       <div className="zoom-controls">
@@ -293,6 +430,9 @@ export function GraphCanvas({ data, density, labels, selectedId, setSelectedId, 
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
         <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
       </div>
+      {selCount > 1 && (
+        <div className="sel-count-badge">{selCount} selected</div>
+      )}
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
     </div>
   );
@@ -317,11 +457,19 @@ function isCanvasPanTarget(target: EventTarget | null): boolean {
   return !target.closest(".node, .canvas-toolbar, .zoom-controls, .minimap, button, input, textarea, select");
 }
 
-function clientPointToWorld(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
+function clientToWorld(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
   const rect = canvas?.getBoundingClientRect();
   const canvasX = clientX - (rect?.left ?? 0);
   const canvasY = clientY - (rect?.top ?? 0);
   return { x2: (canvasX - pan.x) / zoom, y2: (canvasY - pan.y) / zoom };
+}
+
+function clientToWorldXY(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
+  const rect = canvas?.getBoundingClientRect();
+  return {
+    x: (clientX - (rect?.left ?? 0) - pan.x) / zoom,
+    y: (clientY - (rect?.top ?? 0) - pan.y) / zoom,
+  };
 }
 
 function fitGraphToViewport(
@@ -340,7 +488,6 @@ function fitGraphToViewport(
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
   const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
-
   setZoom(nextZoom);
   onPan({
     x: (viewport.width - width * nextZoom) / 2 - minX * nextZoom,

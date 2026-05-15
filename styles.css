@@ -1370,6 +1370,28 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-content, .ip-logic, .ip-raw { display: flex; flex-direction: column; gap: 10px; }
 .ip-label { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.05em; }
 .ip-hint { font-size: 11px; color: var(--ink-mute); line-height: 1.5; margin: 0; }
+.sel-box {
+  position: absolute;
+  border: 1.5px dashed var(--accent-1);
+  background: color-mix(in oklch, var(--accent-1) 8%, transparent);
+  pointer-events: none;
+  border-radius: 3px;
+}
+.sel-count-badge {
+  position: absolute;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper-1);
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  padding: 3px 10px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0.85;
+  white-space: nowrap;
+}
 .stat-node-note {
   display: inline-flex;
   align-items: center;
