@@ -12,11 +12,12 @@ interface RightPanelProps {
   onAddFlowEdge: (from: string, to: string) => void;
   onDeleteFlowEdge: (from: string, to: string) => void;
   onSelectNode: (id: string) => void;
+  onSelectScene?: (id: string) => void;
   sourcePreserved?: boolean;
   onConvertSource?: () => void;
 }
 
-export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge, onSelectNode, sourcePreserved = false, onConvertSource }: RightPanelProps) {
+export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge, onDeleteFlowEdge, onSelectNode, onSelectScene, sourcePreserved = false, onConvertSource }: RightPanelProps) {
   const [tab, setTab] = useState<"content" | "logic" | "raw">("content");
 
   if (!node) {
@@ -59,7 +60,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       </div>
 
       <div className={`ip-body ${sourcePreserved ? "is-source-locked" : ""}`}>
-        {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
+        {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} />}
         {tab === "logic" && (
           <LogicTab
             node={node}
@@ -83,17 +84,22 @@ function ContentTab({
   project,
   labels,
   onUpdateNode,
+  onSelectScene,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+  onSelectScene?: (id: string) => void;
 }) {
+  const variableNames = project.variables.map((v) => v.name);
+  const achievementIds = project.achievements.map((a) => a.id);
+
   if (node.type === "passage") {
     return (
       <div className="ip-content">
         <label className="ip-label">{labels.bodyLabel}</label>
-        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
+        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
         <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
         <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
       </div>
@@ -185,7 +191,7 @@ function ContentTab({
     return (
       <div className="ip-content">
         <label className="ip-label">comment</label>
-        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
+        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} />
       </div>
     );
   }
@@ -257,7 +263,7 @@ function ContentTab({
   }
 
   if (["label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
-    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
+    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} />;
   }
 
   return <div className="ip-content"><p className="dim">Simple node - no content fields.</p></div>;
@@ -301,10 +307,12 @@ function CommandNodeFields({
   node,
   project,
   onUpdateNode,
+  onSelectScene,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+  onSelectScene?: (id: string) => void;
 }) {
   const labels = project.nodes.filter((candidate) => candidate.type === "label");
   const currentLabel = stripCommandPrefix(node.title, node.type === "gosub" ? "*gosub" : node.type === "goto" ? "*goto" : "*label");
@@ -335,16 +343,22 @@ function CommandNodeFields({
 
   if (node.type === "goto_scene") {
     const currentScene = node.target ?? stripCommandPrefix(node.title, "*goto_scene");
+    const targetSceneObj = project.scenes.find((s) => s.name === currentScene);
     return (
       <div className="ip-content">
         <label className="ip-label">target scene</label>
-        <select
-          className="command-input"
-          value={currentScene}
-          onChange={(event) => onUpdateNode(node.id, { title: `*goto_scene ${event.target.value}`, target: event.target.value })}
-        >
-          {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
-        </select>
+        <div className="ip-scene-row">
+          <select
+            className="command-input"
+            value={currentScene}
+            onChange={(event) => onUpdateNode(node.id, { title: `*goto_scene ${event.target.value}`, target: event.target.value })}
+          >
+            {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
+          </select>
+          {onSelectScene && targetSceneObj && (
+            <button className="scene-jump-btn" title={`open ${currentScene}.txt`} onClick={() => onSelectScene(targetSceneObj.id)}>→</button>
+          )}
+        </div>
       </div>
     );
   }
@@ -352,16 +366,22 @@ function CommandNodeFields({
   if (node.type === "gosub_scene") {
     const currentScene = node.target ?? "";
     const currentLabel = node.body?.trim() ?? "";
+    const targetSceneObj = project.scenes.find((s) => s.name === currentScene);
     return (
       <div className="ip-content">
         <label className="ip-label">target scene</label>
-        <select
-          className="command-input"
-          value={currentScene}
-          onChange={(event) => onUpdateNode(node.id, { title: `*gosub_scene ${event.target.value}`, target: event.target.value })}
-        >
-          {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
-        </select>
+        <div className="ip-scene-row">
+          <select
+            className="command-input"
+            value={currentScene}
+            onChange={(event) => onUpdateNode(node.id, { title: `*gosub_scene ${event.target.value}`, target: event.target.value })}
+          >
+            {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
+          </select>
+          {onSelectScene && targetSceneObj && (
+            <button className="scene-jump-btn" title={`open ${currentScene}.txt`} onClick={() => onSelectScene(targetSceneObj.id)}>→</button>
+          )}
+        </div>
         <label className="ip-label">entry label (optional)</label>
         <input className="command-input" value={currentLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
       </div>
@@ -439,7 +459,7 @@ function InputNodeFields({
       {node.type !== "rand" && (
         <>
           <label className="ip-label">prompt text</label>
-          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} />
+          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={project.variables.map((v) => v.name)} />
         </>
       )}
       <label className="ip-label">target variable</label>

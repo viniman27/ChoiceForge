@@ -367,6 +367,16 @@ export default function App() {
         onAddFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.addFlowEdge}
         onDeleteFlowEdge={currentSceneSourcePreserved ? noopFlowEdge : actions.deleteFlowEdge}
         onSelectNode={focusNode}
+        onSelectScene={(id) => {
+          const scene = lintedProject.scenes.find((s) => s.id === id);
+          if (!scene) return;
+          setPlayOpen(false);
+          const hasPreserved = Boolean(!scene.isStart && !scene.special && lintedProject.sceneData?.[scene.name]?.sourceText);
+          setGeneratedDocumentId(hasPreserved ? "scene" : null);
+          setGeneratedDocumentLine(null);
+          actions.selectScene(id);
+          setSelectedId(hasPreserved ? null : "n1");
+        }}
       />
       <BottomBar
         data={lintedProject}
