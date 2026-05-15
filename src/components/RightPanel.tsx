@@ -347,8 +347,17 @@ function ContentTab({
   }
 
   if (node.type === "image") {
+    const imageAsset = (project.assets ?? []).find((a) => a.fileName === node.target);
     return (
       <div className="ip-content">
+        {imageAsset?.dataUrl ? (
+          <div className="ip-image-preview">
+            <img src={imageAsset.dataUrl} alt={node.prompt || node.target || ""} className="ip-image-thumb" />
+            <span className="ip-image-name">{imageAsset.fileName}</span>
+          </div>
+        ) : node.target ? (
+          <div className="ip-image-missing">image not found in assets: {node.target}</div>
+        ) : null}
         <label className="ip-label">filename</label>
         <input className="command-input" value={node.target ?? ""} placeholder="image.jpg" onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })} />
         <label className="ip-label">alignment</label>
