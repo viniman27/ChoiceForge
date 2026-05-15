@@ -122,6 +122,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
         <span className="node-icon"><NodeIcon type={node.type} /></span>
         <span className="node-type">{colors.label}</span>
         <span className="node-title">{node.title}</span>
+        {node.status && <span className={`node-status node-status-${node.status}`}>{node.status}</span>}
         {hasError && <span className="node-flag" title="error">!</span>}
       </div>
 

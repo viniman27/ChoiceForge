@@ -106,6 +106,8 @@ export interface ConditionalBranch {
   sets?: VariableSet[];
 }
 
+export type NodeStatus = "todo" | "done";
+
 export interface StoryNode {
   id: string;
   type: NodeType;
@@ -113,6 +115,7 @@ export interface StoryNode {
   y: number;
   w: number;
   title: string;
+  status?: NodeStatus;
   body?: string;
   prompt?: string;
   sets?: VariableSet[];

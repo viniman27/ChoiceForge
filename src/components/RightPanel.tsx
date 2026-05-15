@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { NodeIcon, typeColors } from "./NodeCard";
 import { NodeBodyEditor } from "./NodeBodyEditor";
 
@@ -42,6 +42,16 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       <div className="ip-head" style={{ "--accent": colors.dot, "--accent-tint": colors.tint } as React.CSSProperties}>
         <div className="ip-type"><span className="ip-dot" /><NodeIcon type={node.type} /><span>{labels.nodeTypes[node.type]}</span></div>
         <input className="ip-title" value={node.title} disabled={sourcePreserved} onChange={(event) => onUpdateNode(node.id, { title: event.target.value })} />
+        <div className="ip-status-row">
+          {(["todo", "done"] as NodeStatus[]).map((s) => (
+            <button
+              key={s}
+              className={`ip-status-btn ip-status-${s}${node.status === s ? " is-active" : ""}`}
+              disabled={sourcePreserved}
+              onClick={() => onUpdateNode(node.id, { status: node.status === s ? undefined : s })}
+            >{s}</button>
+          ))}
+        </div>
         <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
       </div>
       {sourcePreserved && (
