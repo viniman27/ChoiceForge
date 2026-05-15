@@ -368,6 +368,12 @@ export default function App() {
             actions.addNode(type, id, position);
             setSelectedId(id);
           }}
+          onAddAndConnectNode={(fromId, type, position) => {
+            const id = nextNodeId(lintedProject.nodes);
+            actions.addNode(type, id, position);
+            actions.connectNodes(fromId, id);
+            setSelectedId(id);
+          }}
           onDuplicateNode={(id) => {
             const newId = actions.duplicateNode(id);
             if (newId) setSelectedId(newId);
