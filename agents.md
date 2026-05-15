@@ -344,6 +344,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 33
+- **Added global todo list panel to Dashboard.**
+  - `src/components/Dashboard.tsx`: added `onNavigateToNode?: (sceneName: string, nodeId: string) => void` prop; imported `useMemo`; computed `todoItems` by scanning `data.nodes` (current scene) and all `data.sceneData` entries, filtering for `status === "todo"`; added `groupByScene()` helper that preserves scene encounter order; rendered a "todo nodes" card at the bottom of `dash-grid` showing items grouped by scene name, each row clickable to navigate.
+  - `src/App.tsx`: wired `onNavigateToNode` on the `<Dashboard>` render — looks up the scene by name, calls `navigateToScene`, `setSelectedId`, and `setView("editor")` to land the user directly on the target node.
+  - `directions.css`: added `.dash-todo-empty`, `.dash-todo-list`, `.dash-todo-scene`, `.dash-todo-scene-name`, `.dash-todo-item`, `.dash-todo-type`, `.dash-todo-title` rules.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 32
 - **Added snap-to-grid for node placement and dragging.**
   - `G` key (when not typing) toggles snap on/off. Preference persisted to localStorage (`choiceforge.snap.v1`).

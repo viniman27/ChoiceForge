@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
 import type { ChoiceForgeProject, I18nLabels, NodeType, StoryNode } from "../domain/types";
 
-export function Dashboard({ data, labels, onClose, onUpdateWordGoal }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void; onUpdateWordGoal: (goal: number | undefined) => void }) {
+export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onNavigateToNode }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void; onUpdateWordGoal: (goal: number | undefined) => void; onNavigateToNode?: (sceneName: string, nodeId: string) => void }) {
   const currentSceneWords = countSceneWords(data.nodes);
   const sceneRows = data.scenes.filter((scene) => !scene.special).map((scene) => ({
     ...scene,
@@ -24,6 +24,19 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal }: { data: C
   const maxAchUses = Math.max(1, ...[...achievementUses.values()]);
   const [goalInput, setGoalInput] = useState(data.wordGoal !== undefined ? String(data.wordGoal) : "");
   const goalPct = data.wordGoal && data.wordGoal > 0 ? Math.min(100, Math.round((totalWords / data.wordGoal) * 100)) : null;
+  const todoItems = useMemo(() => {
+    const items: Array<{ sceneName: string; nodeId: string; title: string; type: NodeType }> = [];
+    for (const node of data.nodes) {
+      if (node.status === "todo") items.push({ sceneName: data.sceneTitle, nodeId: node.id, title: node.title, type: node.type });
+    }
+    for (const [sceneName, graph] of Object.entries(data.sceneData ?? {})) {
+      if (sceneName === data.sceneTitle) continue;
+      for (const node of graph.nodes) {
+        if (node.status === "todo") items.push({ sceneName, nodeId: node.id, title: node.title, type: node.type });
+      }
+    }
+    return items;
+  }, [data]);
 
   return (
     <div className="dashboard-overlay">
@@ -147,9 +160,48 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal }: { data: C
             })}
           </div>
         )}
+
+        <div className="dash-card wide">
+          <div className="dash-card-head">
+            <span className="dash-card-title">todo nodes</span>
+            <span className="dash-card-meta">{todoItems.length} remaining</span>
+          </div>
+          {todoItems.length === 0 ? (
+            <div className="dash-todo-empty">all nodes marked done</div>
+          ) : (
+            <div className="dash-todo-list">
+              {groupByScene(todoItems).map(({ sceneName, items }) => (
+                <div className="dash-todo-scene" key={sceneName}>
+                  <div className="dash-todo-scene-name">{sceneName}.txt</div>
+                  {items.map((item) => (
+                    <button
+                      key={item.nodeId}
+                      className="dash-todo-item"
+                      onClick={() => onNavigateToNode?.(item.sceneName, item.nodeId)}
+                      disabled={!onNavigateToNode}
+                    >
+                      <span className="dash-todo-type">{labels.nodeTypes[item.type]}</span>
+                      <span className="dash-todo-title">{item.title || "(untitled)"}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function groupByScene(items: Array<{ sceneName: string; nodeId: string; title: string; type: NodeType }>) {
+  const order: string[] = [];
+  const map = new Map<string, typeof items>();
+  for (const item of items) {
+    if (!map.has(item.sceneName)) { map.set(item.sceneName, []); order.push(item.sceneName); }
+    map.get(item.sceneName)!.push(item);
+  }
+  return order.map((sceneName) => ({ sceneName, items: map.get(sceneName)! }));
 }
 
 function countSceneWords(nodes: StoryNode[]): number {

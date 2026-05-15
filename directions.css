@@ -656,3 +656,33 @@
 .ms-cmd { color: var(--c-goto); font-weight: 600; }
 .ms-branch-label { color: var(--c-if); }
 .ms-target { color: var(--ink-mute); }
+
+/* ─── Dashboard todo list ─────────────────────────────────────── */
+.dash-todo-empty {
+  font-size: 12px; color: var(--ink-mute); font-family: var(--ff-mono);
+  padding: 8px 0;
+}
+.dash-todo-list { display: flex; flex-direction: column; gap: 12px; }
+.dash-todo-scene { display: flex; flex-direction: column; gap: 2px; }
+.dash-todo-scene-name {
+  font-family: var(--ff-mono); font-size: 10px; font-weight: 600;
+  color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.06em;
+  padding: 4px 0 6px; border-bottom: 1px solid var(--paper-edge); margin-bottom: 4px;
+}
+.dash-todo-item {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  background: none; border: none; border-radius: var(--r-1);
+  padding: 5px 6px; cursor: pointer; text-align: left;
+  transition: background 0.1s;
+}
+.dash-todo-item:hover { background: var(--paper-2); }
+.dash-todo-item:disabled { cursor: default; }
+.dash-todo-item:disabled:hover { background: none; }
+.dash-todo-type {
+  font-family: var(--ff-mono); font-size: 10px; color: var(--c-goto);
+  min-width: 70px; flex-shrink: 0;
+}
+.dash-todo-title {
+  font-size: 12px; color: var(--ink-2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
