@@ -344,6 +344,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 26
+- **Fixed canvas panning broken by multi-select box feature.**
+  - Plain left drag on empty canvas now pans again (was being stolen by the selection box).
+  - Shift + left drag on empty canvas now starts the selection box.
+  - Plain click (no drag, < 4px movement) still clears selection (detected in the pointerup handler).
+  - Middle mouse / Space + drag still pan as before.
+  - `src/components/KeyboardShortcutOverlay.tsx`: updated Canvas section to show "drag → pan", "Space+drag → pan (alt)", "Shift+drag → box select".
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 25
 - **Added per-node color tags.**
   - `src/domain/types.ts`: added `NodeColorTag = "red" | "orange" | "yellow" | "green" | "blue" | "purple"` and `colorTag?: NodeColorTag` to `StoryNode`.

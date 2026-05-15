@@ -262,6 +262,9 @@ export function GraphCanvas({
         setSelBoxDisplay(null);
         setSelBoxing(false);
       }
+      if (panning && Math.abs(event.clientX - panning.startX) < 4 && Math.abs(event.clientY - panning.startY) < 4) {
+        clearSelection();
+      }
       setDrag(null);
       setPanning(null);
       setConnecting(null);
@@ -308,11 +311,14 @@ export function GraphCanvas({
         }
         if (event.button === 0) {
           setPendingConnect(null);
-          if (!event.shiftKey) clearSelection();
-          const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
-          selBoxRef.current = { x1: world.x, y1: world.y, x2: world.x, y2: world.y };
-          setSelBoxDisplay(selBoxRef.current);
-          setSelBoxing(true);
+          if (event.shiftKey) {
+            const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
+            selBoxRef.current = { x1: world.x, y1: world.y, x2: world.x, y2: world.y };
+            setSelBoxDisplay(selBoxRef.current);
+            setSelBoxing(true);
+          } else {
+            setPanning({ startX: event.clientX, startY: event.clientY, origX: pan.x, origY: pan.y });
+          }
         }
       }}
       style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : space ? "grab" : "default" }}
