@@ -195,6 +195,7 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
                 {hasError && <span className="scene-tag scene-err">{counts!.errors}e</span>}
                 {hasWarning && <span className="scene-tag scene-warn">{counts!.warnings}w</span>}
               </div>
+              {scene.notes && <div className="map-card-notes">{scene.notes}</div>}
               <div className="map-card-stats">
                 <span>{scene.words.toLocaleString()} {labels.words}</span>
                 <span className="map-dot">·</span>

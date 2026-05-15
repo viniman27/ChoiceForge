@@ -37,6 +37,7 @@ export interface SceneSummary {
   current?: boolean;
   warning?: boolean;
   special?: boolean;
+  notes?: string;
 }
 
 export interface VariableSummary {
