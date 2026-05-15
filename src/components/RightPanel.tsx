@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { generateNodeChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { COLOR_TAG_VALUES, NodeIcon, typeColors } from "./NodeCard";
@@ -750,7 +750,7 @@ function ChoiceConditionBuilder({
           <input value={value} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)} />
         )}
       </div>
-      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="advanced condition" />}
+      {parsed.raw && <ConditionInput className="cond-raw" value={option.cond?.expr ?? ""} onChange={(expr) => updateOption(node, optionIndex, { cond: { ...option.cond!, expr } }, onUpdateNode)} variables={project.variables.map((v) => v.name)} aria-label="advanced condition" />}
     </div>
   );
 }
@@ -793,7 +793,7 @@ function FakeChoiceConditionBuilder({
           <input value={value} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { value: event.target.value }, project.variables, onUpdateNode)} />
         )}
       </div>
-      {parsed.raw && <input className="cond-raw" value={option.cond?.expr ?? ""} onChange={(event) => updateFakeOption(node, optionIndex, { cond: { ...option.cond!, expr: event.target.value } }, onUpdateNode)} aria-label="advanced condition" />}
+      {parsed.raw && <ConditionInput className="cond-raw" value={option.cond?.expr ?? ""} onChange={(expr) => updateFakeOption(node, optionIndex, { cond: { ...option.cond!, expr } }, onUpdateNode)} variables={project.variables.map((v) => v.name)} aria-label="advanced condition" />}
     </div>
   );
 }
@@ -828,7 +828,7 @@ function LogicTab({
             <li key={`${branch.kind}-${index}`} className={`ip-branch branch-${branch.kind}`}>
               <div className="branch-main">
                 <span className="branch-key">*{branch.kind}</span>
-                {branch.kind !== "else" && <input className="cond-input wide" value={branch.expr ?? ""} onChange={(event) => updateBranch(node, index, { expr: event.target.value }, fallbackTarget, onUpdateNode)} />}
+                {branch.kind !== "else" && <ConditionInput className="cond-input wide" value={branch.expr ?? ""} onChange={(expr) => updateBranch(node, index, { expr }, fallbackTarget, onUpdateNode)} variables={project.variables.map((v) => v.name)} />}
                 <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, fallbackTarget, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
@@ -1231,6 +1231,72 @@ function normalizeIdentifier(value: string): string {
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/^[^a-z_]+/, "")
     .replace(/_+/g, "_");
+}
+
+function ConditionInput({
+  value,
+  onChange,
+  variables,
+  className,
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  variables: string[];
+  className?: string;
+  "aria-label"?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [wordStart, setWordStart] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const cursor = e.target.selectionStart ?? val.length;
+    const partial = val.slice(0, cursor).match(/[a-z_][\w]*$/i)?.[0] ?? "";
+    if (partial.length >= 1) {
+      const pl = partial.toLowerCase();
+      const matches = variables.filter((v) => v.toLowerCase().startsWith(pl) && v !== partial);
+      setSuggestions(matches.slice(0, 7));
+      setWordStart(cursor - partial.length);
+    } else {
+      setSuggestions([]);
+    }
+    onChange(val);
+  };
+
+  const pick = (varName: string) => {
+    const cursor = inputRef.current?.selectionStart ?? value.length;
+    const next = value.slice(0, wordStart) + varName + value.slice(cursor);
+    onChange(next);
+    setSuggestions([]);
+    requestAnimationFrame(() => {
+      if (!inputRef.current) return;
+      inputRef.current.focus();
+      const pos = wordStart + varName.length;
+      inputRef.current.setSelectionRange(pos, pos);
+    });
+  };
+
+  return (
+    <div className="cond-wrap">
+      <input
+        ref={inputRef}
+        className={className}
+        value={value}
+        aria-label={ariaLabel}
+        onChange={handleChange}
+        onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+      />
+      {suggestions.length > 0 && (
+        <ul className="cond-suggestions">
+          {suggestions.map((v) => (
+            <li key={v} className="cond-suggestion" onMouseDown={(e) => { e.preventDefault(); pick(v); }}>{v}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function nodeBodyWordCount(text: string): number {

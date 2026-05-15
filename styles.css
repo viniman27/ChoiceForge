@@ -1714,6 +1714,20 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .cond-input { flex: 1; min-width: 80px; }
 .cond-input.wide { width: 100%; }
+.cond-wrap { position: relative; flex: 1; min-width: 80px; }
+.cond-wrap input { width: 100%; box-sizing: border-box; }
+.cond-suggestions {
+  position: absolute; top: calc(100% + 2px); left: 0; z-index: 300;
+  background: var(--paper-2); border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1); padding: 2px 0; margin: 0; list-style: none;
+  min-width: 130px; max-height: 180px; overflow-y: auto;
+  box-shadow: var(--shadow-1);
+}
+.cond-suggestion {
+  padding: 4px 10px; font-family: var(--ff-mono); font-size: 11px;
+  color: var(--ink-2); cursor: pointer;
+}
+.cond-suggestion:hover { background: var(--paper-3); color: var(--ink); }
 
 .ip-branch { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 10px; background: var(--paper-1); border: 1px solid var(--paper-edge); border-left-width: 3px; border-radius: var(--r-2); margin-bottom: 6px; }
 .ip-branch.branch-if { border-left-color: var(--c-if); }
