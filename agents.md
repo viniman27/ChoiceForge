@@ -33,6 +33,8 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Copy/paste nodes (Ctrl+C / Ctrl+V): clipboard persists across scene switches; paste places nodes centered on the viewport, remaps internal edges, and selects all pasted nodes
 - `set` node type added to the canvas toolbar (was missing despite being a core ChoiceScript command)
 - Scene Map view ("map" tab in TopBar): pannable/zoomable grid of all scene cards with SVG arrows for goto_scene (solid) and gosub_scene (dashed) connections; click to navigate to any scene
+- Variable/achievement autocomplete in node body editors: type `${` or `@{` to get variable name suggestions; type `*achieve ` to get achievement ID suggestions
+- Jump-to-scene button (→) in goto_scene/gosub_scene inspector: one click opens the target scene in the editor
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -332,6 +334,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 16
+- **Added variable/achievement autocomplete in node body editors and jump-to-scene navigation from the inspector.**
+  - **Variable autocomplete (`@codemirror/autocomplete`):**
+    - Installed `@codemirror/autocomplete` as a dependency.
+    - `src/components/NodeBodyEditor.tsx`: accepts `variables?: string[]` and `achievements?: string[]` props. Uses `variablesRef` / `achievementsRef` mutable refs so completions stay current without recreating the EditorView. Added `autocompletion()` extension with a custom source:
+      - Triggers after `${` or `@{` — completes from the list of project variable names.
+      - Triggers after `*achieve ` — completes from the list of achievement IDs.
+    - `src/components/RightPanel.tsx`: all three `NodeBodyEditor` usages now receive `variables` and (for passage nodes) `achievements` from the project.
+  - **Jump-to-scene button:**
+    - `RightPanelProps`: added optional `onSelectScene?: (id: string) => void`.
+    - `ContentTab` and `CommandNodeFields`: `onSelectScene` is threaded through.
+    - `goto_scene` and `gosub_scene` inspector rows now include an `→` button (`.scene-jump-btn`) that opens the target scene in the editor view.
+    - `src/App.tsx`: wired `onSelectScene` for the RightPanel — reuses the same navigation logic as LeftPanel (handles `hasPreserved`, resets playtest/doc state).
+  - `styles.css`: added `.ip-scene-row` (flex row for select + jump button) and `.scene-jump-btn` (goto-color arrow button).
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 15
 - **Added Scene Map view (top-bar "map" button) — bird's-eye overview of all scenes and their cross-scene connections.**
