@@ -322,6 +322,12 @@ export function GraphCanvas({
         }
       }}
       style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : space ? "grab" : "default" }}
+      onDoubleClick={(event) => {
+        if (!isCanvasPanTarget(event.target)) return;
+        if (sourcePreserved) return;
+        const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
+        onAddNode("passage", { x: Math.round(world.x - 100), y: Math.round(world.y - 22) });
+      }}
     >
       <div className="canvas-grid" />
       <div className={`canvas-toolbar ${toolbarResize ? "is-resizing" : ""}`} style={{ width: Math.min(toolbarWidth, Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64)) }}>
