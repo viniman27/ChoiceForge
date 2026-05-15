@@ -9,6 +9,7 @@ interface PlaytestViewProps {
 
 type ReturnEntry = { scene: string; nodeId: string };
 type PageBlock = { id: string; body?: string; note?: string };
+type TrailEntry = { kind: "scene"; name: string } | { kind: "choice"; text: string; num: number };
 
 export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestViewProps) {
   const [sceneName, setSceneName] = useState(project.sceneTitle);
@@ -17,6 +18,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const [returnStack, setReturnStack] = useState<ReturnEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [pageBlocks, setPageBlocks] = useState<PageBlock[]>([]);
+  const [playTrail, setPlayTrail] = useState<TrailEntry[]>(() => [{ kind: "scene", name: project.sceneTitle }]);
   const graph = getSceneGraph(project, sceneName);
   const node = graph.nodes.find((candidate) => candidate.id === nodeId) ?? graph.nodes[0] ?? null;
 
@@ -27,6 +29,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setReturnStack([]);
     setInputValue("");
     setPageBlocks([]);
+    setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
   }, [project]);
 
   useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
@@ -49,12 +52,14 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       }
     }
     if (node.type === "goto_scene" && node.target) {
+      setPlayTrail((prev) => [...prev, { kind: "scene", name: node.target! }]);
       setSceneName(node.target);
       setNodeId("n1");
     }
     if (node.type === "finish") {
       const nextScene = nextPlayableScene(project, sceneName);
       if (nextScene) {
+        setPlayTrail((prev) => [...prev, { kind: "scene", name: nextScene }]);
         setSceneName(nextScene);
         setNodeId("n1");
       }
@@ -135,6 +140,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setReturnStack([]);
     setInputValue("");
     setPageBlocks([]);
+    setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
   };
 
   const advance = (nextId: string) => {
@@ -179,6 +185,16 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               <code>{String(stats[variable.name] ?? variable.initial)}</code>
             </div>
           ))}
+          <div className="pt-trail">
+            <div className="pt-trail-head">history</div>
+            <div className="pt-trail-list">
+              {playTrail.map((entry, i) =>
+                entry.kind === "scene"
+                  ? <div key={i} className="pt-trail-scene">→ {entry.name}</div>
+                  : <div key={i} className="pt-trail-choice" title={entry.text}>#{entry.num} {entry.text}</div>
+              )}
+            </div>
+          </div>
         </aside>
 
         <main className="playtest-card">
@@ -260,6 +276,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                         onClick={() => {
                           setStats((current) => applySets(current, option.sets ?? [], project.variables));
                           setPageBlocks([]);
+                          setPlayTrail((prev) => [...prev, { kind: "choice", text: option.text, num: index + 1 }]);
                           setNodeId(option.to);
                         }}
                       >
