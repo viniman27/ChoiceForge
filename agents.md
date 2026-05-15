@@ -37,6 +37,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Jump-to-scene button (→) in goto_scene/gosub_scene inspector: one click opens the target scene in the editor
 - Word count goal in Dashboard: number input sets a project-level target, progress bar fills as total word count grows
 - Keyboard shortcut overlay: press `?` (when not typing) to toggle a modal listing all shortcuts; dismiss with Escape or click-outside
+- Command palette (Ctrl+K): fuzzy-search all scenes, nodes, variables, achievements, and static commands; arrow-key navigation, Enter to activate
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -336,6 +337,24 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 18
+- **Added command palette (Ctrl+K) — fuzzy-search navigation and command runner.**
+  - `src/components/CommandPalette.tsx` (new): modal with a text input and a scored, filterable list of:
+    - **Scenes** — all project scenes (name, word count, node count)
+    - **Nodes** — all nodes from the current scene + every `sceneData` entry (by title, with scene context)
+    - **Variables** — all declared project variables (with type)
+    - **Achievements** — all achievement IDs with titles
+    - **Commands** — static list: auto-layout, fit view, dashboard, scene map, play, export, save, undo, redo, keyboard shortcuts
+    - Scoring: exact match → 100, prefix → 80, substring → 60 - position, fuzzy → 20, no match excluded
+    - Keyboard navigation: ↑↓ to move cursor, Enter to activate, Escape to close; click-outside also closes
+  - `src/App.tsx`:
+    - `paletteOpen` state; Ctrl/Cmd+K toggles palette.
+    - Extracted `navigateToScene(id)` helper (replaces duplicated navigation logic in SceneMapView, RightPanel, and CommandPalette callbacks).
+    - `onSelectScene` → `navigateToScene`; `onSelectNode` switches scene + focuses node; `onCommand` dispatches to existing action handlers.
+    - `KeyboardShortcutOverlay` updated to include Ctrl+K entry.
+  - `directions.css`: `.cp-backdrop`, `.cp-panel`, `.cp-input-row`, `.cp-icon`, `.cp-input`, `.cp-clear`, `.cp-list`, `.cp-row`, `.cp-badge` (per-kind colors), `.cp-row-main`, `.cp-row-meta`, `.cp-shortcut`, `.cp-empty`, `.cp-footer`.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 17
 - **Added word count goal to Dashboard + keyboard shortcut overlay (`?` key).**
