@@ -40,6 +40,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Command palette (Ctrl+K): fuzzy-search all scenes, nodes, variables, achievements, and static commands; arrow-key navigation, Enter to activate
 - Edge-drop quick node creation: drag a connection port to empty canvas → type-picker popup with 8 common types → new node created and connected in one gesture
 - Node writing-status markers: tag any node as `todo` or `done` from the inspector; badge shown on the card; per-scene progress bar in the scene list
+- Drag-to-reorder choice options: drag handle (`::`) on each option row in the inspector lets authors reorder options without delete/recreate; works for both `choice` and `fake_choice` nodes
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -339,6 +340,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 21
+- **Added drag-to-reorder choice options in the inspector.**
+  - `src/components/RightPanel.tsx` — `ContentTab`:
+    - Added `dragOptIdx` and `dragOverIdx` local state.
+    - Added `moveOption(from, to)` (for `choice`) and `moveFakeOption(from, to)` (for `fake_choice`) helpers that splice the options array and call `onUpdateNode`.
+    - Added `optDragHandlers(index)` and `fakeOptDragHandlers(index)` factory functions returning `draggable`, `onDragStart`, `onDragOver`, `onDragLeave`, `onDrop`, `onDragEnd` props.
+    - Each `<li>` in both choice and fake_choice option lists is now draggable, gets the drag handler set, and receives `.is-dragging` / `.is-drag-over` class modifiers.
+    - A `<span className="opt-drag-handle">::</span>` drag handle prepended to each `.ip-opt-head`.
+    - Changed option `key` from `${option.text}-${index}` to `opt-${index}` / `fopt-${index}` to avoid stale-key issues during reorder.
+  - `styles.css`: added `.ip-opt-row.is-dragging`, `.ip-opt-row.is-drag-over`, `.opt-drag-handle` rules.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 20
 - **Added node writing-status markers (todo / done) + per-scene progress bar.**
