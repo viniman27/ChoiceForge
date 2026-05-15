@@ -344,6 +344,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 35
+- **`*if` branch condition expressions on canvas edges.**
+  - For edges of kind `if`/`elseif`/`else`, the source node's `branches` array is searched for the matching branch; the condition expression (`branch.expr`) is shown as the edge label instead of the stored `*if`/`*elseif` label. `else` branches show `"else"`. Long expressions are truncated at 22 chars with "…".
+  - Same foreignObject approach as choice labels; label width widened to 130 for if/elseif/else edges.
+  - No schema changes — computed at render time.
+- **Live word count in passage node inspector.**
+  - A `N words` counter appears right-aligned next to the "body" label, updating as the author types. Skips `${var}` and `@{...}` interpolations for an accurate prose word count.
+  - `ip-label-row` flex row + `ip-word-count` CSS added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 34
 - **Added option text labels on choice edges in the canvas.**
   - For every edge of `kind === "choice"`, the source node's `options` array is searched for the option whose `to` matches the edge target; the option text is shown as a label on the edge midpoint (truncated to 22 chars with "…" if longer).

@@ -452,10 +452,18 @@ export function GraphCanvas({
               const srcNode = data.nodes.find((n) => n.id === edge.from);
               const optText = srcNode?.options?.find((o) => o.to === edge.to)?.text ?? "";
               if (optText) displayLabel = optText.length > 22 ? optText.slice(0, 20) + "…" : optText;
+            } else if (["if", "elseif", "else"].includes(edge.kind)) {
+              const srcNode = data.nodes.find((n) => n.id === edge.from);
+              const branch = srcNode?.branches?.find((b) => b.to === edge.to && b.kind === edge.kind);
+              if (branch) {
+                displayLabel = branch.kind === "else" ? "else"
+                  : (branch.expr ?? "").length > 22 ? (branch.expr ?? "").slice(0, 20) + "…"
+                  : (branch.expr ?? "");
+              }
             }
             const midX = (path.x1 + path.x2) / 2;
             const midY = (path.y1 + path.y2) / 2;
-            const labelW = edge.kind === "choice" ? 130 : 100;
+            const labelW = edge.kind === "choice" || ["if", "elseif", "else"].includes(edge.kind) ? 130 : 100;
             return (
               <g key={`${edge.from}-${edge.to}-${index}`} className={`edge edge-${edge.kind}`}>
                 <path d={path.d} stroke={color} strokeWidth="1.6" strokeDasharray={edge.kind === "goto" ? "5 4" : undefined} fill="none" markerEnd={marker} opacity="0.85" />
