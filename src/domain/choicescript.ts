@@ -544,6 +544,11 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       }
     }
 
+    if (node.type === "passage" && node.body) {
+      const wc = countBodyWords(node.body);
+      if (wc > 600) issues.push({ level: "warning", msg: `passage "${node.title}" is very long (${wc} words)`, scene: sceneName, node: node.id });
+    }
+
     if (node.type === "image" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
     }
@@ -1450,6 +1455,14 @@ function extractExpressionNames(expression: string): string[] {
   return [...stripQuotedStrings(expression).matchAll(/\b[a-zA-Z_][\w]*\b/g)]
     .map((match) => match[0])
     .filter((name) => !reserved.has(name));
+}
+
+function countBodyWords(text: string): number {
+  return text
+    .replace(/\$\{[^}]+\}/g, " ")
+    .replace(/@\{[^}]+\}/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
 function stripQuotedStrings(expression: string): string {

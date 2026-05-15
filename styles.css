@@ -1418,6 +1418,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .var-val { font-weight: 500; }
 
 .node-target { padding: 6px 12px 10px; font-family: var(--ff-mono); font-size: 11px; color: var(--ink-mute); border-top: 1px dashed var(--paper-edge); }
+.node-wc { padding: 3px 12px 8px; font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); text-align: right; }
+.node-wc.node-wc-long { color: oklch(55% 0.15 75); }
 
 .anchor {
   position: absolute;

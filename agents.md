@@ -343,6 +343,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 50
+- **Passage word-count badge on canvas node cards.**
+  - In `NodeCard.tsx`, passage nodes in `isRich` (dense) mode now show a `node-wc` div at the bottom of the card with the word count (e.g., `"42 words"`).
+  - Word count strips `${...}` and `@{...}` substitutions before splitting; computed via `countCardWords()` helper at the bottom of the file.
+  - When the count exceeds 600, the badge uses `node-wc-long` class (amber text, matching the linter warning colour) to give a visual cue at a glance.
+  - CSS: `.node-wc` (right-aligned, 10px mono) + `.node-wc.node-wc-long` (amber).
+- **Linter: warn on overlong passage nodes (>600 words).**
+  - In `lintSceneGraph`, passage nodes with `body` word count > 600 emit a `warning`: `passage "title" is very long (N words)`.
+  - `countBodyWords()` private helper added to `choicescript.ts` (same substitution-stripping logic as the card badge).
+  - Test added: "warns when a passage node exceeds 600 words" — verifies 601-word passage triggers the warning and 600-word passage does not.
+  - All 87 tests pass; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 49
 - **SelectionBar: bulk color-tag assignment.**
   - `COLOR_TAG_KEYS` extracted from inside `GraphCanvas` to module scope so both `GraphCanvas` and `SelectionBar` can reference it without duplication.
