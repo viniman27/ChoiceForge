@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChoiceForgeProject, SceneGraph, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 
 interface PlaytestViewProps {
@@ -19,7 +19,16 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const [inputValue, setInputValue] = useState("");
   const [pageBlocks, setPageBlocks] = useState<PageBlock[]>([]);
   const [playTrail, setPlayTrail] = useState<TrailEntry[]>(() => [{ kind: "scene", name: project.sceneTitle }]);
+  const [changedVars, setChangedVars] = useState<Set<string>>(new Set());
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const graph = getSceneGraph(project, sceneName);
+
+  const flashVars = (names: string[]) => {
+    if (!names.length) return;
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setChangedVars(new Set(names));
+    flashTimerRef.current = setTimeout(() => setChangedVars(new Set()), 1400);
+  };
   const node = graph.nodes.find((candidate) => candidate.id === nodeId) ?? graph.nodes[0] ?? null;
 
   useEffect(() => {
@@ -30,6 +39,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setInputValue("");
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
+    setChangedVars(new Set());
   }, [project]);
 
   useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
@@ -39,7 +49,10 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     if (node.type === "passage") {
       const passageFlowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (passageFlowTarget) {
-        if (node.sets?.length) setStats((current) => applySets(current, node.sets!, project.variables));
+        if (node.sets?.length) {
+          flashVars(node.sets.map((s) => s.var));
+          setStats((current) => applySets(current, node.sets!, project.variables));
+        }
         setPageBlocks((prev) => [...prev, { id: node.id, body: node.body, note: node.note }]);
         setNodeId(passageFlowTarget);
       }
@@ -47,6 +60,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     if (node.type === "if") {
       const branch = node.branches?.find((candidate) => candidate.kind === "else" || evaluateExpression(candidate.expr ?? "false", stats));
       if (branch) {
+        if (branch.sets?.length) flashVars(branch.sets.map((s) => s.var));
         setStats((current) => applySets(current, branch.sets ?? [], project.variables));
         setNodeId(branch.to);
       }
@@ -99,12 +113,18 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       const min = Math.ceil(Number(node.inputMin ?? "1"));
       const max = Math.floor(Number(node.inputMax ?? "100"));
       const value = Math.floor(Math.random() * (max - min + 1)) + min;
-      if (node.inputVar) setStats((current) => ({ ...current, [node.inputVar!]: value }));
+      if (node.inputVar) {
+        flashVars([node.inputVar]);
+        setStats((current) => ({ ...current, [node.inputVar!]: value }));
+      }
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
     if (node.type === "set") {
-      if (node.sets?.length) setStats((current) => applySets(current, node.sets!, project.variables));
+      if (node.sets?.length) {
+        flashVars(node.sets.map((s) => s.var));
+        setStats((current) => applySets(current, node.sets!, project.variables));
+      }
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
@@ -113,6 +133,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
         const raw = node.body?.trim() ?? "0";
         const numVal = Number(raw);
         const parsed = raw === "true" ? true : raw === "false" ? false : Number.isFinite(numVal) ? numVal : raw;
+        flashVars([node.inputVar]);
         setStats((current) => ({ ...current, [node.inputVar!]: parsed }));
       }
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
@@ -141,10 +162,14 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setInputValue("");
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
+    setChangedVars(new Set());
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
 
   const advance = (nextId: string) => {
-    setStats((current) => applySets(current, node?.sets ?? [], project.variables));
+    const sets = node?.sets ?? [];
+    if (sets.length) flashVars(sets.map((s) => s.var));
+    setStats((current) => applySets(current, sets, project.variables));
     setNodeId(nextId);
   };
 
@@ -152,6 +177,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     if (!node?.inputVar) return;
     const varDef = project.variables.find((candidate) => candidate.name === node.inputVar);
     const parsed: string | number = varDef?.type === "number" ? Number(value) || 0 : value;
+    flashVars([node.inputVar]);
     setStats((current) => ({ ...current, [node.inputVar!]: parsed }));
     if (flowTarget) setNodeId(flowTarget);
   };
@@ -180,7 +206,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       <div className="playtest-body">
         <aside className="playtest-stats">
           {project.variables.map((variable) => (
-            <div className="playtest-stat" key={variable.name}>
+            <div className={`playtest-stat${changedVars.has(variable.name) ? " is-changed" : ""}`} key={variable.name}>
               <span>{variable.name}</span>
               <code>{String(stats[variable.name] ?? variable.initial)}</code>
             </div>
@@ -274,7 +300,9 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                         key={`${option.text}-${index}`}
                         disabled={!condMet}
                         onClick={() => {
-                          setStats((current) => applySets(current, option.sets ?? [], project.variables));
+                          const optSets = option.sets ?? [];
+                          if (optSets.length) flashVars(optSets.map((s) => s.var));
+                          setStats((current) => applySets(current, optSets, project.variables));
                           setPageBlocks([]);
                           setPlayTrail((prev) => [...prev, { kind: "choice", text: option.text, num: index + 1 }]);
                           setNodeId(option.to);
