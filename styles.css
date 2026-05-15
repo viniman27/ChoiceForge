@@ -1111,6 +1111,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background-position: 12px 12px;
   opacity: 0.5;
   pointer-events: none;
+  transition: background-size 0.15s, opacity 0.15s;
+}
+.is-snapping .canvas-grid {
+  background-image: radial-gradient(circle, var(--ink-mute) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+  background-position: 0 0;
+  opacity: 0.35;
 }
 .canvas-inner {
   position: absolute; inset: 0;
@@ -1141,6 +1148,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .zoom-controls button:hover { background: var(--paper-3); }
 .zoom-controls span { padding: 0 6px; min-width: 44px; text-align: center; }
 .zoom-reset { font-size: 10px !important; }
+.zoom-snap { display: flex; align-items: center; justify-content: center; color: var(--ink-mute); }
+.zoom-snap.is-active { color: var(--accent); background: var(--paper-3); }
 
 .minimap {
   position: absolute; bottom: 16px; right: 16px;
