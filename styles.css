@@ -1693,6 +1693,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .sel-bar-btn:disabled { opacity: 0.3; cursor: default; }
 .sel-bar-btn:disabled:hover { background: none; color: var(--ink-mute); }
 .sel-bar-status { font-size: 13px; }
+.sel-bar-color-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--ct); border: 1.5px solid transparent;
+  padding: 0; cursor: pointer; flex-shrink: 0;
+  opacity: 0.6; transition: opacity 0.12s, border-color 0.12s;
+}
+.sel-bar-color-dot:hover { opacity: 1; border-color: var(--ink); }
 .canvas-filter-bar {
   position: absolute; top: 12px; right: 12px;
   display: flex; align-items: center; gap: 6px;

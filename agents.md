@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 49
+- **SelectionBar: bulk color-tag assignment.**
+  - `COLOR_TAG_KEYS` extracted from inside `GraphCanvas` to module scope so both `GraphCanvas` and `SelectionBar` can reference it without duplication.
+  - After the done/todo status buttons, the SelectionBar now shows: a separator, 6 color-dot buttons (one per tag color), and a `×` clear-tag button.
+  - Each dot calls `onBulkUpdateNodes(ids, { colorTag: tag })` via the existing `onBulkUpdateNodes` prop.
+  - The `×` button calls `onBulkUpdateNodes(ids, { colorTag: undefined })` to strip all tags from the selection.
+  - CSS: `.sel-bar-color-dot` — 14px circle, uses `--ct` CSS var for background (same pattern as `zoom-color-dot`), `opacity: 0.6` → `1` on hover with ink border.
+  - Clean build; no domain changes, tests not required.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 48
 - **Minimap drag-to-pan.**
   - `centerOnPointer` renamed to `panToPointer` in the `Minimap` component.
