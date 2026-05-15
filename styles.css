@@ -1110,6 +1110,34 @@ input, select, textarea { font-family: inherit; color: inherit; }
   outline: none;
   border-color: var(--accent);
 }
+.playtest-goto-btn {
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: transparent;
+  color: var(--ink-mute);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.playtest-goto-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.playtest-history {
+  margin-bottom: 4px;
+}
+.playtest-history-block + .playtest-history-block {
+  margin-top: 4px;
+}
+.playtest-history-sep {
+  height: 1px;
+  background: var(--paper-edge);
+  margin: 20px 0 22px;
+  border: none;
+}
 .canvas-grid {
   position: absolute; inset: 0;
   background-image:
