@@ -464,7 +464,7 @@ export default function App() {
           setActiveTab(tabForLintMessage(lint.msg));
         }}
       />
-      {view === "manuscript" && <ManuscriptView data={lintedProject} onClose={() => setView("editor")} />}
+      {view === "manuscript" && <ManuscriptView data={lintedProject} onClose={() => setView("editor")} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} onUpdateWordGoal={(goal) => actions.updateMetadata({ wordGoal: goal })} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
       {view === "map" && (
         <SceneMapView

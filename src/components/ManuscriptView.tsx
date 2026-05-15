@@ -5,6 +5,7 @@ import type { ChoiceForgeProject, StoryEdge, StoryNode } from "../domain/types";
 interface ManuscriptViewProps {
   data: ChoiceForgeProject;
   onClose: () => void;
+  onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }
 
 type Scope = "scene" | "project";
@@ -14,7 +15,7 @@ interface SceneSection {
   nodes: StoryNode[];
 }
 
-export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
+export function ManuscriptView({ data, onClose, onNavigateToNode }: ManuscriptViewProps) {
   const [scope, setScope] = useState<Scope>("scene");
   const [copied, setCopied] = useState(false);
 
@@ -97,7 +98,7 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
                 </div>
               )}
               {section.nodes.map((node) => (
-                <NodeBlock key={`${section.name}-${node.id}`} node={node} />
+                <NodeBlock key={`${section.name}-${node.id}`} node={node} sceneName={section.name} onNavigate={onNavigateToNode} />
               ))}
               {scope === "project" && si < sections.length - 1 && (
                 <div className="ms-scene-end" />
@@ -110,14 +111,23 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
   );
 }
 
-function NodeBlock({ node }: { node: StoryNode }) {
+function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName: string; onNavigate?: (sceneName: string, nodeId: string) => void }) {
+  const titleEl = (
+    <h2
+      className={`ms-node-title${onNavigate ? " ms-node-title-link" : ""}`}
+      onClick={onNavigate ? () => onNavigate(sceneName, node.id) : undefined}
+      title={onNavigate ? "Jump to this node in the editor" : undefined}
+    >
+      {node.colorTag && <span className="ms-color-dot" style={{ background: COLOR_TAG_VALUES[node.colorTag] }} />}
+      {node.title}
+      {node.status === "todo" && <span className="ms-todo-badge">todo</span>}
+    </h2>
+  );
+
   if (node.type === "passage") {
     return (
       <section className="ms-passage">
-        <h2 className="ms-node-title">
-          {node.colorTag && <span className="ms-color-dot" style={{ background: COLOR_TAG_VALUES[node.colorTag] }} />}
-          {node.title}
-        </h2>
+        {titleEl}
         {node.body && <div className="ms-prose">{renderBody(node.body)}</div>}
         {node.note && <aside className="ms-note">✎ {node.note}</aside>}
       </section>
@@ -127,6 +137,7 @@ function NodeBlock({ node }: { node: StoryNode }) {
   if (node.type === "choice" || node.type === "fake_choice") {
     return (
       <section className="ms-choice">
+        {titleEl}
         {node.prompt && <p className="ms-prompt">{node.prompt}</p>}
         <ul className="ms-options">
           {(node.options ?? node.fakeOptions ?? []).map((opt, i) => (

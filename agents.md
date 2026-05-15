@@ -344,6 +344,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 40
+- **Manuscript view: clickable node titles and todo status badges.**
+  - `ManuscriptViewProps` gained `onNavigateToNode?: (sceneName: string, nodeId: string) => void`. Passed from `App.tsx` using the same `navigateToScene` + `setSelectedId` + `setView("editor")` pattern as the Dashboard todo list.
+  - `NodeBlock` now accepts `sceneName` and `onNavigate` props. The title `<h2>` becomes clickable when `onNavigate` is set (`.ms-node-title-link`), hovering turns it accent-colored with a matching border underline.
+  - Nodes with `status === "todo"` show a small amber `.ms-todo-badge` pill ("todo") inline in the title row, visible in both scene and project scope.
+  - Choice/fake_choice blocks now also render the title element (consistent with passage blocks).
+  - CSS: `.ms-node-title-link`, `.ms-node-title-link:hover`, `.ms-todo-badge` added to `directions.css`; `gap: 6px` added to `.ms-node-title` flex row.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 39
 - **Variable name autocomplete in condition expression inputs.**
   - New `ConditionInput` component (bottom of `RightPanel.tsx`): wraps a plain `<input>` with a live dropdown. As the author types, the last identifier-shaped word before the cursor is matched against all declared variable names (`startsWith`, case-insensitive); up to 7 suggestions appear in a floating list. Clicking (or `mousedown` to avoid blur race) inserts the completion and restores cursor position via `requestAnimationFrame`. Dropdown closes on blur with a 150ms delay to allow click events to register.
