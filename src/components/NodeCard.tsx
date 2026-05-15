@@ -95,7 +95,7 @@ interface NodeCardProps {
   labels: I18nLabels;
   selected: boolean;
   hasError: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, addToSelection: boolean) => void;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectEnd: (id: string) => void;
@@ -113,7 +113,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;
         event.stopPropagation();
-        onSelect(node.id);
+        onSelect(node.id, event.shiftKey);
         onDragStart(event, node.id);
       }}
     >

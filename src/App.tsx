@@ -321,7 +321,7 @@ export default function App() {
           onPan={setPan}
           zoom={zoom}
           setZoom={setZoom}
-          onMoveNode={actions.moveNode}
+          onMoveNodes={actions.moveNodes}
           onLayoutNodes={actions.layoutNodes}
           onConnectNodes={actions.connectNodes}
           onAddNode={(type, position) => {
@@ -333,8 +333,8 @@ export default function App() {
             const newId = actions.duplicateNode(id);
             if (newId) setSelectedId(newId);
           }}
-          onDeleteNode={(id) => {
-            actions.deleteNode(id);
+          onDeleteNodes={(ids) => {
+            actions.deleteNodes(ids);
             setSelectedId(null);
           }}
           sourcePreserved={currentSceneSourcePreserved}

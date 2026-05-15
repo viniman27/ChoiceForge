@@ -329,6 +329,30 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 12
+- **Implemented multi-select on the canvas and fixed missing node types in the toolbar.**
+  - **Multi-select (shift-click, Ctrl+A, rubber-band, group move/delete):**
+    - `src/state/projectStore.ts`:
+      - `moveNodes(moves: {id, x, y}[])`: batch-moves all nodes in one history entry (replaces per-node `onMoveNode` call from canvas).
+      - `deleteNodes(ids: string[])`: batch-deletes all nodes in the set, cleaning up edges, option targets, branch targets, and scene counts in one commit.
+    - `src/components/GraphCanvas.tsx` (major rewrite):
+      - Props changed: `onMoveNode` → `onMoveNodes`, `onDeleteNode` → `onDeleteNodes`.
+      - New state: `selectedIds: Set<string>` for multi-select highlights. `selectedId` prop still drives the RightPanel inspector.
+      - External sync: `lastSetIdRef` tracks when the parent changes `selectedId` (e.g., via focusNode in LeftPanel) and resets `selectedIds` to a single-item set.
+      - `selectNode(id, addToSet)`: shift-click toggles id in/out of `selectedIds` and updates primary. Plain click replaces selection.
+      - `clearSelection()`: sets both `selectedId(null)` and `selectedIds` to empty set.
+      - Drag start: if dragged node is already in `selectedIds`, all selected nodes move together; otherwise, selection is reset to just that node. `origPositions` captures all positions at drag-start.
+      - Rubber-band selection: left-click-drag on the canvas background (when not holding space) draws a `sel-box` rect in world coordinates. On pointer-up, all nodes whose center-top point `(x + w/2, y + 18)` falls within the rect are added to `selectedIds`. Shift-held preserves existing selection.
+      - Ctrl+A: selects all nodes in the scene.
+      - Delete/Backspace: calls `onDeleteNodes([...selectedIds])` — deletes all selected nodes at once.
+      - Toolbar delete button label shows count when multiple nodes are selected ("delete selected (N)").
+      - "sel-count-badge" floats above the zoom controls showing "N selected" when N > 1.
+    - `src/components/NodeCard.tsx`: `onSelect` signature changed to `(id, addToSelection: boolean)` — passes `event.shiftKey` from the pointer event.
+    - `src/App.tsx`: wired `onMoveNodes` and `onDeleteNodes`.
+    - `styles.css`: added `.sel-box` (dashed amber rect with translucent fill) and `.sel-count-badge` (floating pill at bottom-center).
+  - **`temp` and `params` added to the canvas node toolbar** (`creatableNodeTypes` in GraphCanvas.tsx).
+  - 86 tests, all passing; zero TS errors.
+
 ### 2026-05-14 — Claude Code (claude-sonnet-4-6) — session 11
 - **Implemented node duplication (Ctrl+D) and the `*params` node type.**
   - **Node duplication:**
