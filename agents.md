@@ -53,7 +53,6 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 
 ### Not Yet Implemented
 - Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
-- Inline node-body editor with syntax highlighting/autocomplete. The full-file editor uses CodeMirror, but individual node body fields still use plain controls.
 - Play-test with the official ChoiceScript runtime
 - Git integration, version history, snapshots
 - Desktop packaging (Tauri/Electron)
@@ -343,6 +342,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 43
+- **Focused writing mode for passage nodes.**
+  - A small `⛶` expand button appears in the passage inspector header row (right of the word count). Clicking it opens a full-screen overlay (`WritingFocusOverlay`) rendered via `createPortal(…, document.body)` so it sits above everything.
+  - The overlay has a blurred/dimmed backdrop, a centred 860×85vh modal with the node title, live word count, and a large `NodeBodyEditor` that fills the available height (the usual 320px `max-height` on the scroller is removed in this context).
+  - Clicking the scrim outside the modal or pressing Escape closes the overlay. All edits propagate back to the node in real time through the same `onUpdateNode` callback.
+  - `useEffect(() => setWritingFocus(false), [node.id])` closes the overlay automatically when the selected node changes.
+  - `import { createPortal } from "react-dom"` and `useEffect` added to `RightPanel.tsx` imports.
+  - CSS: `.wf-expand-btn`, `.wf-overlay`, `.wf-modal`, `.wf-head`, `.wf-title`, `.wf-wc`, `.wf-close`, `.wf-body` + nested `.node-body-editor` overrides added to `styles.css`.
+  - `ip-label-row` gained `gap: 6px` so the new button fits cleanly.
+  - Zero TS errors; clean build.
+  - Updated "Not Yet Implemented": removed "Inline node-body editor with syntax highlighting" (NodeBodyEditor already uses CodeMirror with ChoiceScript syntax highlighting and variable/achievement autocomplete).
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 42
 - **PlaytestView: choice history trail in the stats sidebar.**

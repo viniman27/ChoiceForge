@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { generateNodeChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { COLOR_TAG_VALUES, NodeIcon, typeColors } from "./NodeCard";
@@ -131,6 +132,8 @@ function ContentTab({
   const achievementIds = project.achievements.map((a) => a.id);
   const [dragOptIdx, setDragOptIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [writingFocus, setWritingFocus] = useState(false);
+  useEffect(() => setWritingFocus(false), [node.id]);
 
   const moveOption = (from: number, to: number) => {
     const opts = [...(node.options ?? [])];
@@ -175,15 +178,30 @@ function ContentTab({
   if (node.type === "passage") {
     const wc = nodeBodyWordCount(node.body ?? "");
     return (
-      <div className="ip-content">
-        <div className="ip-label-row">
-          <label className="ip-label">{labels.bodyLabel}</label>
-          <span className="ip-word-count">{wc} {wc === 1 ? "word" : "words"}</span>
+      <>
+        <div className="ip-content">
+          <div className="ip-label-row">
+            <label className="ip-label">{labels.bodyLabel}</label>
+            <span className="ip-word-count">{wc} {wc === 1 ? "word" : "words"}</span>
+            <button className="wf-expand-btn" onClick={() => setWritingFocus(true)} title="Focus writing mode">⛶</button>
+          </div>
+          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
+          <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
+          <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
         </div>
-        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
-        <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
-        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
-      </div>
+        {writingFocus && createPortal(
+          <WritingFocusOverlay
+            title={node.title}
+            body={node.body ?? ""}
+            wordCount={wc}
+            variables={variableNames}
+            achievements={achievementIds}
+            onChange={(text) => onUpdateNode(node.id, { body: text })}
+            onClose={() => setWritingFocus(false)}
+          />,
+          document.body
+        )}
+      </>
     );
   }
 
@@ -1068,6 +1086,45 @@ function removeAchievementCommand(node: StoryNode, achievementId: string, onUpda
 
 function extractAchievementCommands(body: string): string[] {
   return [...body.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
+}
+
+function WritingFocusOverlay({
+  title,
+  body,
+  wordCount,
+  variables,
+  achievements,
+  onChange,
+  onClose,
+}: {
+  title: string;
+  body: string;
+  wordCount: number;
+  variables: string[];
+  achievements: string[];
+  onChange: (text: string) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div className="wf-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="wf-modal">
+        <div className="wf-head">
+          <span className="wf-title">{title}</span>
+          <span className="wf-wc">{wordCount} {wordCount === 1 ? "word" : "words"}</span>
+          <button className="wf-close" onClick={onClose}>✕ done</button>
+        </div>
+        <div className="wf-body">
+          <NodeBodyEditor value={body} onChange={onChange} variables={variables} achievements={achievements} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 type Branch = NonNullable<StoryNode["branches"]>[number];
