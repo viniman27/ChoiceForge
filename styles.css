@@ -1150,6 +1150,15 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .zoom-reset { font-size: 10px !important; }
 .zoom-snap { display: flex; align-items: center; justify-content: center; color: var(--ink-mute); }
 .zoom-snap.is-active { color: var(--accent); background: var(--paper-3); }
+.zoom-divider { width: 1px; height: 16px; background: var(--paper-edge); flex-shrink: 0; margin: 0 2px; }
+.zoom-color-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--ct); border: 1.5px solid transparent;
+  padding: 0; cursor: pointer; flex-shrink: 0;
+  opacity: 0.35; transition: opacity 0.12s, border-color 0.12s;
+}
+.zoom-color-dot:hover { opacity: 0.75; }
+.zoom-color-dot.is-active { opacity: 1; border-color: var(--ink); }
 
 .minimap {
   position: absolute; bottom: 16px; right: 16px;

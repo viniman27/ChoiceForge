@@ -344,6 +344,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 36
+- **Added color tag canvas filter.**
+  - 6 small colored dot buttons appended to the zoom-controls bar (after the snap toggle, separated by a thin vertical divider).
+  - Clicking a dot toggles that color tag in an `activeColorTags: Set<NodeColorTag>` state; multiple tags can be active simultaneously.
+  - When any tag is active, nodes without a color tag or with a non-matching color tag are dimmed (`.is-dimmed`) — composing with the existing text filter so both can be active at once.
+  - Inactive dots are rendered at low opacity (0.35), hovered at 0.75, active at full opacity with an ink-colored ring border.
+  - `NodeColorTag` and `COLOR_TAG_VALUES` imported into `GraphCanvas.tsx`; `COLOR_TAG_KEYS` constant list; `zoom-divider`, `zoom-color-dot`, `zoom-color-dot.is-active` CSS added.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 35
 - **`*if` branch condition expressions on canvas edges.**
   - For edges of kind `if`/`elseif`/`else`, the source node's `branches` array is searched for the matching branch; the condition expression (`branch.expr`) is shown as the edge label instead of the stored `*if`/`*elseif` label. `else` branches show `"else"`. Long expressions are truncated at 22 chars with "…".
