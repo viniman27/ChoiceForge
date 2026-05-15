@@ -198,6 +198,14 @@ export function GraphCanvas({
         setSnap((s) => !s);
         return;
       }
+      if ((event.key === "a" || event.key === "A") && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        if (sourcePreserved) return;
+        const x = Math.round((viewport.width / 2 - pan.x) / zoom - 150);
+        const y = Math.round((viewport.height / 2 - pan.y) / zoom - 30);
+        onAddNode("passage", { x, y });
+        return;
+      }
     };
     const keyUp = (event: KeyboardEvent) => {
       if (event.code === "Space") setSpace(false);
@@ -209,7 +217,7 @@ export function GraphCanvas({
       window.removeEventListener("keyup", keyUp);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.nodes, data.edges, onDeleteNodes, onDuplicateNode, onPasteNodes, pan, viewport, selectedId, sourcePreserved, zoom]);
+  }, [data.nodes, data.edges, onDeleteNodes, onDuplicateNode, onPasteNodes, onAddNode, pan, viewport, selectedId, sourcePreserved, zoom]);
 
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
@@ -945,7 +953,7 @@ function Minimap({
   const maxY = Math.max(...data.nodes.map((node) => node.y + 200), visibleRect.y + visibleRect.height) + 40;
   const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 
-  const centerOnPointer = (event: React.PointerEvent<SVGSVGElement>) => {
+  const panToPointer = (event: React.PointerEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.width;
     const y = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.height;
@@ -960,7 +968,8 @@ function Minimap({
         preserveAspectRatio="xMidYMid meet"
         width="180"
         height="120"
-        onPointerDown={centerOnPointer}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); panToPointer(e); }}
+        onPointerMove={(e) => { if (e.buttons > 0) panToPointer(e); }}
       >
         {data.edges.map((edge, index) => {
           const from = data.nodes.find((node) => node.id === edge.from);

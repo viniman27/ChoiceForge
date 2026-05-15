@@ -17,6 +17,7 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["Shift", "F"], label: "Fit selected nodes" },
       { keys: ["Ctrl", "F"], label: "Filter nodes" },
       { keys: ["G"], label: "Toggle snap-to-grid" },
+      { keys: ["A"], label: "Add passage at viewport center" },
       { keys: ["Ctrl", "scroll"], label: "Zoom in/out" },
       { keys: ["F"], label: "Fit view" },
       { keys: ["Escape"], label: "Deselect / close" },
