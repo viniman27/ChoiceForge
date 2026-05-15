@@ -344,6 +344,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 39
+- **Variable name autocomplete in condition expression inputs.**
+  - New `ConditionInput` component (bottom of `RightPanel.tsx`): wraps a plain `<input>` with a live dropdown. As the author types, the last identifier-shaped word before the cursor is matched against all declared variable names (`startsWith`, case-insensitive); up to 7 suggestions appear in a floating list. Clicking (or `mousedown` to avoid blur race) inserts the completion and restores cursor position via `requestAnimationFrame`. Dropdown closes on blur with a 150ms delay to allow click events to register.
+  - Replaces the three bare `<input>` condition fields: (1) `*if`/`*elseif` branch expressions in `LogicTab`, (2) "advanced condition" raw field in `ChoiceConditionBuilder`, (3) same in `FakeChoiceConditionBuilder`.
+  - `useRef` added to React import in `RightPanel.tsx`.
+  - CSS: `.cond-wrap`, `.cond-suggestions`, `.cond-suggestion`, `.cond-suggestion:hover` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 38
 - **Added scene-level notes (synopsis) field.**
   - `src/domain/types.ts`: `notes?: string` added to `SceneSummary`. Optional, no migration required. All 86 tests still pass.
