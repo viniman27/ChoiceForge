@@ -42,6 +42,7 @@ export interface ProjectActions {
   resetProject: (language: Language) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
+  bulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
   layoutNodes: () => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
@@ -215,6 +216,13 @@ export function useProjectStore() {
       setTrackedProjectState((current) => commitProject(clearActiveSceneSource({
         ...current,
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
+      })));
+    },
+    bulkUpdateNodes: (ids, patch) => {
+      const idSet = new Set(ids);
+      setTrackedProjectState((current) => commitProject(clearActiveSceneSource({
+        ...current,
+        nodes: current.nodes.map((node) => (idSet.has(node.id) ? { ...node, ...patch } : node)),
       })));
     },
     moveNode: (id, x, y) => {

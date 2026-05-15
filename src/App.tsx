@@ -389,6 +389,7 @@ export default function App() {
             if (newIds[0]) setSelectedId(newIds[0]);
             return newIds;
           }}
+          onBulkUpdateNodes={actions.bulkUpdateNodes}
           sourcePreserved={currentSceneSourcePreserved}
           onConvertSource={confirmVisualConversion}
         />

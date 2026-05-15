@@ -1522,6 +1522,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .sel-bar-btn:hover { background: var(--paper-3); color: var(--ink); }
 .sel-bar-btn:disabled { opacity: 0.3; cursor: default; }
 .sel-bar-btn:disabled:hover { background: none; color: var(--ink-mute); }
+.sel-bar-status { font-size: 13px; }
 .canvas-filter-bar {
   position: absolute; top: 12px; right: 12px;
   display: flex; align-items: center; gap: 6px;

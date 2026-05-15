@@ -344,6 +344,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 37
+- **Added bulk status toggle to the multi-select bar.**
+  - `projectStore.ts`: new `bulkUpdateNodes(ids, patch)` action — applies the same patch to all listed node IDs in a single `commitProject` call, creating one undo history entry for the whole batch.
+  - `GraphCanvas.tsx`: `onBulkUpdateNodes` prop added to `GraphCanvasProps` and destructured; threaded into `SelectionBar`. `NodeStatus` imported. Two new buttons at the end of the bar: `✓` (mark all done) and `○` (mark all todo), separated from alignment buttons by a `.sel-bar-div`. `.sel-bar-status` CSS class for slightly larger font on unicode symbols.
+  - `App.tsx`: `onBulkUpdateNodes={actions.bulkUpdateNodes}` wired on `<GraphCanvas>`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 36
 - **Added color tag canvas filter.**
   - 6 small colored dot buttons appended to the zoom-controls bar (after the snap toggle, separated by a thin vertical divider).

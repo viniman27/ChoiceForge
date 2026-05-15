@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChoiceForgeProject, Density, I18nLabels, NodeColorTag, NodeType, StoryEdge, StoryNode } from "../domain/types";
+import type { ChoiceForgeProject, Density, I18nLabels, NodeColorTag, NodeStatus, NodeType, StoryEdge, StoryNode } from "../domain/types";
 import { COLOR_TAG_VALUES, NodeCard, NodeIcon, typeColors } from "./NodeCard";
 
 interface GraphCanvasProps {
@@ -17,6 +17,7 @@ interface GraphCanvasProps {
   onDuplicateNode: (id: string) => void;
   onDeleteNodes: (ids: string[]) => void;
   onPasteNodes: (nodes: StoryNode[], internalEdges: StoryEdge[], center: { x: number; y: number }) => string[];
+  onBulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
   sourcePreserved?: boolean;
   onConvertSource?: () => void;
   pan: { x: number; y: number };
@@ -39,7 +40,7 @@ const TOOLBAR_DEFAULT_WIDTH = 760;
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
-  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes,
+  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes, onBulkUpdateNodes,
   sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -587,7 +588,7 @@ export function GraphCanvas({
         </div>
       )}
       {selCount > 1 && (
-        <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} />
+        <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} onBulkUpdateNodes={onBulkUpdateNodes} />
       )}
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
       {pendingConnect && (
@@ -649,12 +650,13 @@ function EdgeDropPicker({
   );
 }
 
-function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes }: {
+function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBulkUpdateNodes }: {
   selCount: number;
   selectedIds: Set<string>;
   data: ChoiceForgeProject;
   density: Density;
   onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
+  onBulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
 }) {
   const sel = data.nodes.filter((n) => selectedIds.has(n.id));
   const hs = () => Object.fromEntries(sel.map((n) => [n.id, estimateNodeHeight(data, n.id, density)]));
@@ -737,6 +739,9 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes }: {
     { icon: "dv", title: "Distribute vertically (need ≥3)", onClick: distributeV, disabled: sel.length < 3 },
   ];
 
+  const ids = [...selectedIds];
+  const setStatus = (status: NodeStatus) => onBulkUpdateNodes(ids, { status });
+
   return (
     <div className="sel-bar">
       <span className="sel-bar-count">{selCount} selected</span>
@@ -750,6 +755,9 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes }: {
             </button>
           )
       )}
+      <div className="sel-bar-div" />
+      <button className="sel-bar-btn sel-bar-status" title="Mark all selected as done" onClick={() => setStatus("done")}>✓</button>
+      <button className="sel-bar-btn sel-bar-status" title="Mark all selected as todo" onClick={() => setStatus("todo")}>○</button>
     </div>
   );
 }
