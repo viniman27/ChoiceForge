@@ -1829,6 +1829,37 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-radius: var(--r-2); outline: none;
 }
 .ip-prompt:focus { border-color: var(--accent-1); }
+.ip-image-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-2);
+  background: var(--paper-1);
+}
+.ip-image-thumb {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: var(--r-1);
+  object-fit: contain;
+  display: block;
+}
+.ip-image-name {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--ink-mute);
+  word-break: break-all;
+}
+.ip-image-missing {
+  padding: 8px 10px;
+  border: 1px dashed var(--paper-edge);
+  border-radius: var(--r-1);
+  color: var(--warn);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+}
 .command-input {
   width: 100%;
   padding: 7px 9px;

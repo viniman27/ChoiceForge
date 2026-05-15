@@ -343,6 +343,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 47
+- **Linter: duplicate choice option text warning.**
+  - In `lintChoiceNode`: a `seenOptionText` Set is built as options are validated; if a non-empty option text appears twice (case-insensitive), a `warning` lint issue is emitted: `duplicate option text "…" in "…"`.
+  - Same pattern in `lintFakeChoiceNode` with `seenFakeText`.
+  - All 86 tests still pass.
+- **Inspector: image node preview.**
+  - When an `image` node is selected, the ContentTab looks up the asset by `node.target` in `project.assets`.
+  - If found and has a `dataUrl`: shows a `.ip-image-preview` block with the actual image thumbnail (max 180px tall) and the filename below.
+  - If `node.target` is set but the asset is not found: shows a `.ip-image-missing` warning in amber mono text.
+  - Fields (filename, alignment, alt text) remain below the preview.
+  - CSS: `.ip-image-preview`, `.ip-image-thumb`, `.ip-image-name`, `.ip-image-missing` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 46
 - **Canvas filter: navigate between matches with ‹ / › buttons (or Enter / Shift+Enter).**
   - `filterResultIdx` state added; reset to 0 via `useEffect` whenever `canvasFilter` changes.

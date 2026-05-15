@@ -1158,12 +1158,16 @@ function lintChoiceNode(
   if (!node.options?.length) {
     issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
   }
+  const seenOptionText = new Set<string>();
   node.options?.forEach((option, index) => {
     if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
     if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
     if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    const key = option.text.trim().toLowerCase();
+    if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
+    seenOptionText.add(key);
   });
 }
 
@@ -1177,10 +1181,14 @@ function lintFakeChoiceNode(
   if (!node.fakeOptions?.length) {
     issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
   }
+  const seenFakeText = new Set<string>();
   node.fakeOptions?.forEach((option, index) => {
     if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    const key = option.text.trim().toLowerCase();
+    if (key && seenFakeText.has(key)) issues.push({ level: "warning", msg: `duplicate fake_choice option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
+    seenFakeText.add(key);
   });
 }
 
