@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChoiceForgeProject, Density, I18nLabels, NodeType, StoryEdge, StoryNode } from "../domain/types";
-import { NodeCard, NodeIcon, typeColors } from "./NodeCard";
+import type { ChoiceForgeProject, Density, I18nLabels, NodeColorTag, NodeType, StoryEdge, StoryNode } from "../domain/types";
+import { COLOR_TAG_VALUES, NodeCard, NodeIcon, typeColors } from "./NodeCard";
 
 interface GraphCanvasProps {
   data: ChoiceForgeProject;
@@ -70,6 +70,8 @@ export function GraphCanvas({
   const [canvasFilter, setCanvasFilter] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const filterInputRef = useRef<HTMLInputElement | null>(null);
+  const [activeColorTags, setActiveColorTags] = useState<Set<NodeColorTag>>(new Set());
+  const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blue", "purple"];
   const [snap, setSnap] = useState(() => localStorage.getItem(SNAP_KEY) === "1");
   const snapRef = useRef(snap);
   snapRef.current = snap;
@@ -486,7 +488,10 @@ export function GraphCanvas({
             labels={labels}
             selected={selectedIds.has(node.id)}
             hasError={errorNodeIds.has(node.id)}
-            isDimmed={activeFilter ? !nodeMatchesFilter(node, activeFilter) : false}
+            isDimmed={
+              (activeFilter ? !nodeMatchesFilter(node, activeFilter) : false) ||
+              (activeColorTags.size > 0 ? !node.colorTag || !activeColorTags.has(node.colorTag) : false)
+            }
             onSelect={(id, addToSet) => selectNode(id, addToSet)}
             onDragStart={(event, id) => {
               const current = data.nodes.find((n) => n.id === id);
@@ -549,6 +554,16 @@ export function GraphCanvas({
         >
           <SnapIcon />
         </button>
+        <span className="zoom-divider" />
+        {COLOR_TAG_KEYS.map((tag) => (
+          <button
+            key={tag}
+            className={`zoom-color-dot${activeColorTags.has(tag) ? " is-active" : ""}`}
+            style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
+            onClick={() => setActiveColorTags((cur) => { const next = new Set(cur); next.has(tag) ? next.delete(tag) : next.add(tag); return next; })}
+            title={`Filter by ${tag} tag${activeColorTags.has(tag) ? " (active)" : ""}`}
+          />
+        ))}
       </div>
       {filterOpen && (
         <div className="canvas-filter-bar">
