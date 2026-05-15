@@ -49,6 +49,7 @@ const GROUPS: ShortcutGroup[] = [
   {
     title: "Help",
     shortcuts: [
+      { keys: ["Ctrl", "K"], label: "Command palette" },
       { keys: ["?"], label: "Show this overlay" },
     ],
   },

@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } 
 import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
+import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
@@ -47,6 +48,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState("");
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const { lintedProject, actions } = useProjectStore();
 
   useEffect(() => {
@@ -92,6 +94,11 @@ export default function App() {
         event.preventDefault();
         actions.saveNow();
         setSaveStatus(formatSaveStatus(lang));
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((v) => !v);
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z") {
@@ -147,6 +154,28 @@ export default function App() {
       setPlayOpen(false);
     setPan(centerPanForNode(node, zoom, layout, consoleOpen));
   };
+  const navigateToScene = useCallback((id: string) => {
+    const scene = lintedProject.scenes.find((s) => s.id === id);
+    if (!scene) return;
+    setPlayOpen(false);
+    if (scene.isStart) {
+      setGeneratedDocumentId("startup");
+      setGeneratedDocumentLine(null);
+      setSelectedId(null);
+    } else if (scene.special) {
+      setGeneratedDocumentId("stats");
+      setGeneratedDocumentLine(null);
+      setSelectedId(null);
+    } else {
+      const hasPreserved = Boolean(lintedProject.sceneData?.[scene.name]?.sourceText);
+      setGeneratedDocumentId(hasPreserved ? "scene" : null);
+      setGeneratedDocumentLine(null);
+      actions.selectScene(id);
+      setSelectedId(hasPreserved ? null : "n1");
+    }
+    setView("editor");
+  }, [lintedProject, actions]);
+
   const confirmVisualConversion = () => {
     const confirmed = window.confirm(
       "Convert this imported scene to visual editing?\n\nExport will stop using the preserved .txt source and will use the current visual graph instead. The preserved source remains in undo history, but this conversion can lose ChoiceScript constructs the visual importer does not fully model.",
@@ -432,29 +461,43 @@ export default function App() {
           data={lintedProject}
           labels={i18n[lang]}
           activeSceneId={activeSceneId}
-          onSelectScene={(id) => {
-            const scene = lintedProject.scenes.find((s) => s.id === id);
-            setPlayOpen(false);
-            if (scene?.isStart) {
-              setGeneratedDocumentId("startup");
-              setGeneratedDocumentLine(null);
-              setSelectedId(null);
-            } else if (scene?.special) {
-              setGeneratedDocumentId("stats");
-              setGeneratedDocumentLine(null);
-              setSelectedId(null);
-            } else {
-              const hasPreserved = Boolean(scene && lintedProject.sceneData?.[scene.name]?.sourceText);
-              setGeneratedDocumentId(hasPreserved ? "scene" : null);
-              setGeneratedDocumentLine(null);
-              actions.selectScene(id);
-              setSelectedId(hasPreserved ? null : "n1");
-            }
-            setView("editor");
-          }}
+          onSelectScene={navigateToScene}
         />
       )}
       {shortcutsOpen && <KeyboardShortcutOverlay onClose={() => setShortcutsOpen(false)} />}
+      {paletteOpen && (
+        <CommandPalette
+          project={lintedProject}
+          onClose={() => setPaletteOpen(false)}
+          onSelectScene={(id) => { navigateToScene(id); }}
+          onSelectNode={(sceneId, nodeId) => {
+            const scene = lintedProject.scenes.find((s) => s.id === sceneId);
+            if (!scene) return;
+            setPlayOpen(false);
+            setGeneratedDocumentId(null);
+            setGeneratedDocumentLine(null);
+            setView("editor");
+            if (scene.name !== lintedProject.sceneTitle) {
+              actions.selectScene(sceneId);
+              setSelectedId(nodeId);
+            } else {
+              focusNode(nodeId);
+            }
+          }}
+          onCommand={(cmd) => {
+            if (cmd === "layout") { actions.layoutNodes(); }
+            else if (cmd === "fit") { resetViewport(setPan, setZoom); }
+            else if (cmd === "dashboard") { setView("dashboard"); }
+            else if (cmd === "map") { setView("map"); }
+            else if (cmd === "play") { setPlayOpen(true); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setSelectedId(null); }
+            else if (cmd === "export") { if (confirmExportWithLintErrors(lintedProject, lang)) downloadGeneratedProject(lintedProject); }
+            else if (cmd === "save") { actions.saveNow(); setSaveStatus(formatSaveStatus(lang)); }
+            else if (cmd === "undo") { actions.undo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
+            else if (cmd === "redo") { actions.redo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
+            else if (cmd === "shortcuts") { setShortcutsOpen(true); }
+          }}
+        />
+      )}
     </div>
   );
 }
