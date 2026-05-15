@@ -343,6 +343,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 48
+- **Minimap drag-to-pan.**
+  - `centerOnPointer` renamed to `panToPointer` in the `Minimap` component.
+  - `onPointerDown` now calls `e.currentTarget.setPointerCapture(e.pointerId)` before panning, so the pointer is captured to the SVG element for the duration of the drag.
+  - Added `onPointerMove={(e) => { if (e.buttons > 0) panToPointer(e); }}` so dragging across the minimap continuously pans the canvas.
+  - CSS: `.minimap svg { cursor: grab; }` + `.minimap svg:active { cursor: grabbing; }` (was `crosshair`).
+- **`A` hotkey: add passage at viewport center.**
+  - Pressing `A` (without Ctrl/Meta, outside a text input) creates a new `passage` node centered in the current viewport.
+  - Position formula: `x = round((viewportW/2 − pan.x)/zoom − 150)`, `y = round((viewportH/2 − pan.y)/zoom − 30)`.
+  - Bails early if `sourcePreserved` to avoid mutation on imported read-only projects.
+  - `onAddNode` added to the keyDown `useEffect` dependency array.
+  - `KeyboardShortcutOverlay.tsx`: `A` → "Add passage at viewport center" added to the Canvas group.
+  - Clean build; no domain changes, so tests not required.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 47
 - **Linter: duplicate choice option text warning.**
   - In `lintChoiceNode`: a `seenOptionText` Set is built as options are validated; if a non-empty option text appears twice (case-insensitive), a `warning` lint issue is emitted: `duplicate option text "…" in "…"`.
