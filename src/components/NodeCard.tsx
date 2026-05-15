@@ -163,6 +163,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
           >{node.title}</span>
         )}
         {node.status && <span className={`node-status node-status-${node.status}`}>{node.status}</span>}
+        {node.note && <span className="node-note-dot" title={node.note}>✎</span>}
         {hasError && <span className="node-flag" title="error">!</span>}
       </div>
 

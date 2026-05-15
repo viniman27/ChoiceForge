@@ -42,6 +42,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Node writing-status markers: tag any node as `todo` or `done` from the inspector; badge shown on the card; per-scene progress bar in the scene list
 - Drag-to-reorder choice options: drag handle (`::`) on each option row in the inspector lets authors reorder options without delete/recreate; works for both `choice` and `fake_choice` nodes
 - Inline node title editing: double-click any node title on the canvas to edit in place; Enter/blur commits, Escape cancels
+- Per-node private notes: resizable textarea in the inspector (always visible, never exported); nodes with notes show a ✎ indicator on the canvas card
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -341,6 +342,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 23
+- **Added per-node private author notes.**
+  - `src/domain/types.ts`: added `note?: string` to `StoryNode`. The field is intentionally ignored by the code generator — notes are never exported.
+  - `src/components/NodeCard.tsx`: shows a small `✎` icon in the node head when `node.note` is set; hovering the icon shows the note text as a tooltip.
+  - `src/components/RightPanel.tsx`: added a persistent `ip-notes` section between the tab body and the `ip-footer`, always visible regardless of active tab. Contains a resizable `<textarea>` (min 56px, max 180px). Clearing the textarea sets `note: undefined` (no empty-string clutter in the data). Disabled when source is preserved.
+  - `styles.css`: added `.node-note-dot`, `.ip-notes`, `.ip-notes-label`, `.ip-notes-area` (with placeholder, focus, disabled, resize styles).
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 22
 - **Added inline node title editing (double-click on canvas).**

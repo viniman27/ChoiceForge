@@ -84,6 +84,16 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
         {tab === "raw" && <RawTab node={node} project={project} />}
       </div>
 
+      <div className="ip-notes">
+        <label className="ip-notes-label">✎ private notes</label>
+        <textarea
+          className="ip-notes-area"
+          placeholder="Author notes (never exported)…"
+          disabled={sourcePreserved}
+          value={node.note ?? ""}
+          onChange={(e) => onUpdateNode(node.id, { note: e.target.value || undefined })}
+        />
+      </div>
       <div className="ip-footer"><span className={`lint-pill ${lintClass}`}>{lintText}</span><span className="dim">{labels.indentRule}</span></div>
     </aside>
   );
