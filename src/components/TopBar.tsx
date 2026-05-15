@@ -57,6 +57,7 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
         <div className="tab-toggle">
           <button className={view === "editor" ? "is-active" : ""} onClick={() => onViewChange("editor")}>editor</button>
           <button className={view === "map" ? "is-active" : ""} onClick={() => onViewChange("map")}>map</button>
+          <button className={view === "manuscript" ? "is-active" : ""} onClick={() => onViewChange("manuscript")}>prose</button>
           <button className={view === "dashboard" ? "is-active" : ""} onClick={() => onViewChange("dashboard")}>stats</button>
         </div>
         <code style={{ marginLeft: 12 }}>{data.sceneTitle}</code>

@@ -37,6 +37,7 @@ const STATIC_COMMANDS: CmdItem[] = [
   { kind: "command", id: "fit", label: "Fit view", shortcut: "F", group: "Canvas" },
   { kind: "command", id: "dashboard", label: "Open dashboard / stats", group: "Views" },
   { kind: "command", id: "map", label: "Open scene map", group: "Views" },
+  { kind: "command", id: "manuscript", label: "Open prose / manuscript view", group: "Views" },
   { kind: "command", id: "play", label: "Open playtest", group: "Views" },
   { kind: "command", id: "export", label: "Export project (.zip)", group: "File" },
   { kind: "command", id: "save", label: "Save now", shortcut: "Ctrl+S", group: "File" },
