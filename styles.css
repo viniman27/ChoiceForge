@@ -973,6 +973,10 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-radius: var(--r-2);
   background: var(--paper-2);
 }
+@keyframes pt-var-flash {
+  0%   { background: color-mix(in oklch, var(--accent-2) 40%, var(--paper-1)); }
+  100% { background: var(--paper-1); }
+}
 .playtest-stat {
   display: flex;
   justify-content: space-between;
@@ -982,6 +986,9 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: var(--paper-1);
   color: var(--ink-2);
   font-size: 12px;
+}
+.playtest-stat.is-changed {
+  animation: pt-var-flash 1.4s ease-out forwards;
 }
 .playtest-stat span {
   min-width: 0;

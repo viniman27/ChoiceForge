@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 44
+- **Playtest: variable flash highlight on change.**
+  - `changedVars: Set<string>` state + `flashTimerRef` track which variables are currently highlighted.
+  - `flashVars(names: string[])` helper sets the changed set and clears it after 1.4 s via a debounced timeout (rapid successive changes restart the timer).
+  - Called from every path that mutates stats: `set` node, `rand` node, `temp` node, `if`/`elseif` branch sets, `passage` node sets, choice option sets (in `onClick`), `advance` (node-level sets), `submitInput` (input nodes).
+  - Cleared on restart and project change.
+  - In the stats sidebar, changed rows receive `is-changed` class which triggers a CSS `@keyframes pt-var-flash` animation: a warm highlight fades back to the base background over 1.4 s.
+  - `useRef` added to React imports.
+  - CSS: `@keyframes pt-var-flash` and `.playtest-stat.is-changed` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 43
 - **Focused writing mode for passage nodes.**
   - A small `⛶` expand button appears in the passage inspector header row (right of the word count). Clicking it opens a full-screen overlay (`WritingFocusOverlay`) rendered via `createPortal(…, document.body)` so it sits above everything.
