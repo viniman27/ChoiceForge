@@ -104,6 +104,48 @@ function ContentTab({
 }) {
   const variableNames = project.variables.map((v) => v.name);
   const achievementIds = project.achievements.map((a) => a.id);
+  const [dragOptIdx, setDragOptIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const moveOption = (from: number, to: number) => {
+    const opts = [...(node.options ?? [])];
+    const [moved] = opts.splice(from, 1);
+    opts.splice(to, 0, moved);
+    onUpdateNode(node.id, { options: opts });
+  };
+
+  const moveFakeOption = (from: number, to: number) => {
+    const opts = [...(node.fakeOptions ?? [])];
+    const [moved] = opts.splice(from, 1);
+    opts.splice(to, 0, moved);
+    onUpdateNode(node.id, { fakeOptions: opts });
+  };
+
+  const optDragHandlers = (index: number) => ({
+    draggable: true as const,
+    onDragStart: () => setDragOptIdx(index),
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setDragOverIdx(index); },
+    onDragLeave: () => setDragOverIdx((cur) => cur === index ? null : cur),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (dragOptIdx !== null && dragOptIdx !== index) moveOption(dragOptIdx, index);
+      setDragOptIdx(null); setDragOverIdx(null);
+    },
+    onDragEnd: () => { setDragOptIdx(null); setDragOverIdx(null); },
+  });
+
+  const fakeOptDragHandlers = (index: number) => ({
+    draggable: true as const,
+    onDragStart: () => setDragOptIdx(index),
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setDragOverIdx(index); },
+    onDragLeave: () => setDragOverIdx((cur) => cur === index ? null : cur),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (dragOptIdx !== null && dragOptIdx !== index) moveFakeOption(dragOptIdx, index);
+      setDragOptIdx(null); setDragOverIdx(null);
+    },
+    onDragEnd: () => { setDragOptIdx(null); setDragOverIdx(null); },
+  });
 
   if (node.type === "passage") {
     return (
@@ -136,8 +178,9 @@ function ContentTab({
         <label className="ip-label">#options</label>
         <ul className="ip-opts">
           {node.options?.map((option, index) => (
-            <li key={`${option.text}-${index}`} className="ip-opt-row">
+            <li key={`opt-${index}`} className={`ip-opt-row${dragOptIdx === index ? " is-dragging" : ""}${dragOverIdx === index && dragOptIdx !== index ? " is-drag-over" : ""}`} {...optDragHandlers(index)}>
               <div className="ip-opt-head">
+                <span className="opt-drag-handle" title="drag to reorder">::</span>
                 <span className="opt-num">#{index + 1}</span>
                 <input className="ip-opt-text" value={option.text} onChange={(event) => updateOption(node, index, { text: event.target.value }, onUpdateNode)} />
                 <button className="x-btn" onClick={() => removeOption(node, index, onUpdateNode)}>x</button>
@@ -172,8 +215,9 @@ function ContentTab({
         <label className="ip-label">#options</label>
         <ul className="ip-opts">
           {node.fakeOptions?.map((option, index) => (
-            <li key={`${option.text}-${index}`} className="ip-opt-row">
+            <li key={`fopt-${index}`} className={`ip-opt-row${dragOptIdx === index ? " is-dragging" : ""}${dragOverIdx === index && dragOptIdx !== index ? " is-drag-over" : ""}`} {...fakeOptDragHandlers(index)}>
               <div className="ip-opt-head">
+                <span className="opt-drag-handle" title="drag to reorder">::</span>
                 <span className="opt-num">#{index + 1}</span>
                 <input className="ip-opt-text" value={option.text} onChange={(event) => updateFakeOption(node, index, { text: event.target.value }, onUpdateNode)} />
                 <button className="x-btn" onClick={() => removeFakeOption(node, index, onUpdateNode)}>x</button>

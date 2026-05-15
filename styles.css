@@ -1597,6 +1597,10 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .x-btn { background: transparent; border: none; color: var(--ink-faint); font-size: 14px; padding: 0 4px; }
 .x-btn:hover { color: var(--err); }
 
+.ip-opt-row.is-dragging { opacity: 0.4; }
+.ip-opt-row.is-drag-over { border-color: var(--accent-1); box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent-1) 20%, transparent); }
+.opt-drag-handle { font-family: var(--ff-mono); font-size: 11px; color: var(--ink-faint); cursor: grab; padding: 0 2px; user-select: none; }
+.opt-drag-handle:active { cursor: grabbing; }
 .ip-opt-head { display: flex; align-items: center; gap: 6px; }
 .ip-opt-text { flex: 1; padding: 4px 8px; border: 1px solid var(--paper-edge); border-radius: var(--r-1); background: var(--paper-2); font-family: var(--ff-narr); font-size: 13px; }
 .ip-opt-cond { display: flex; gap: 4px; flex-wrap: wrap; }
