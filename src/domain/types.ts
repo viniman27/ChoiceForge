@@ -150,6 +150,7 @@ export interface LintIssue {
 export interface ChoiceForgeProject {
   title: string;
   author: string;
+  wordGoal?: number;
   sceneTitle: string;
   sceneSubtitle: string;
   scenes: SceneSummary[];

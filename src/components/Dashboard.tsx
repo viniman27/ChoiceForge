@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
 import type { ChoiceForgeProject, I18nLabels, NodeType, StoryNode } from "../domain/types";
 
-export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void }) {
+export function Dashboard({ data, labels, onClose, onUpdateWordGoal }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void; onUpdateWordGoal: (goal: number | undefined) => void }) {
   const currentSceneWords = countSceneWords(data.nodes);
   const sceneRows = data.scenes.filter((scene) => !scene.special).map((scene) => ({
     ...scene,
@@ -21,6 +22,8 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
   const achievementUses = computeAchievementUses(data);
   const unusedAchievements = data.achievements.filter((a) => (achievementUses.get(a.id) ?? 0) === 0);
   const maxAchUses = Math.max(1, ...[...achievementUses.values()]);
+  const [goalInput, setGoalInput] = useState(data.wordGoal !== undefined ? String(data.wordGoal) : "");
+  const goalPct = data.wordGoal && data.wordGoal > 0 ? Math.min(100, Math.round((totalWords / data.wordGoal) * 100)) : null;
 
   return (
     <div className="dashboard-overlay">
@@ -38,6 +41,40 @@ export function Dashboard({ data, labels, onClose }: { data: ChoiceForgeProject;
         <div className="kpi-card" data-accent="4"><span className="kpi-label">endings in this scene</span><span className="kpi-value">{endingCount}</span></div>
         <div className="kpi-card" data-accent={unusedVariables.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused variables</span><span className="kpi-value">{unusedVariables.length}</span></div>
         <div className="kpi-card" data-accent={unusedAchievements.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused achievements</span><span className="kpi-value">{unusedAchievements.length}</span></div>
+
+        <div className="dash-card wide word-goal-card">
+          <div className="dash-card-head">
+            <span className="dash-card-title">word count goal</span>
+            {goalPct !== null && <span className="dash-card-meta">{goalPct}%</span>}
+          </div>
+          <div className="word-goal-row">
+            <label className="word-goal-label">target</label>
+            <input
+              className="word-goal-input"
+              type="number"
+              min="0"
+              placeholder="set a word goal…"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              onBlur={() => {
+                const n = parseInt(goalInput, 10);
+                onUpdateWordGoal(isNaN(n) || n <= 0 ? undefined : n);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+            />
+            <span className="word-goal-current">{totalWords.toLocaleString()} written</span>
+          </div>
+          {goalPct !== null && (
+            <div className="word-goal-track">
+              <div
+                className="word-goal-fill"
+                style={{ width: `${goalPct}%`, background: goalPct >= 100 ? "var(--accent-2)" : "var(--accent-1)" }}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="dash-card wide">
           <div className="dash-card-head"><span className="dash-card-title">words by scene</span></div>

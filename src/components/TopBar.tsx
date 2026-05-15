@@ -10,7 +10,7 @@ interface TopBarProps {
   onThemeChange: (theme: Theme) => void;
   onDensityChange: (density: Density) => void;
   onViewChange: (view: EditorView) => void;
-  onMetadataChange: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
+  onMetadataChange: (patch: Partial<Pick<ChoiceForgeProject, "title" | "author" | "wordGoal">>) => void;
   canUndo: boolean;
   canRedo: boolean;
   textModeActive: boolean;

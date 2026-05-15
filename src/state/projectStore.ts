@@ -34,7 +34,7 @@ export interface ProjectActions {
   redo: () => void;
   saveNow: () => void;
   setProject: (project: ChoiceForgeProject) => void;
-  updateMetadata: (patch: Pick<ChoiceForgeProject, "title" | "author">) => void;
+  updateMetadata: (patch: Partial<Pick<ChoiceForgeProject, "title" | "author" | "wordGoal">>) => void;
   replaceCurrentSceneText: (content: string) => void;
   convertCurrentSceneToVisual: () => void;
   replaceStartupText: (content: string) => void;

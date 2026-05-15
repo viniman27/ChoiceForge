@@ -35,6 +35,8 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Scene Map view ("map" tab in TopBar): pannable/zoomable grid of all scene cards with SVG arrows for goto_scene (solid) and gosub_scene (dashed) connections; click to navigate to any scene
 - Variable/achievement autocomplete in node body editors: type `${` or `@{` to get variable name suggestions; type `*achieve ` to get achievement ID suggestions
 - Jump-to-scene button (→) in goto_scene/gosub_scene inspector: one click opens the target scene in the editor
+- Word count goal in Dashboard: number input sets a project-level target, progress bar fills as total word count grows
+- Keyboard shortcut overlay: press `?` (when not typing) to toggle a modal listing all shortcuts; dismiss with Escape or click-outside
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -334,6 +336,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 17
+- **Added word count goal to Dashboard + keyboard shortcut overlay (`?` key).**
+  - **Word count goal:**
+    - `src/domain/types.ts`: added `wordGoal?: number` to `ChoiceForgeProject`.
+    - `src/state/projectStore.ts`: `updateMetadata` now accepts `Partial<Pick<ChoiceForgeProject, "title" | "author" | "wordGoal">>` — backward-compatible with TopBar's existing call.
+    - `src/components/Dashboard.tsx`: accepts new `onUpdateWordGoal: (goal: number | undefined) => void` prop. Adds a "word count goal" section with a number input (blur/Enter to commit), current word count display, and a progress bar that fills towards the goal (turns accent-2 when complete).
+    - `src/App.tsx`: passes `onUpdateWordGoal` to `<Dashboard>` calling `actions.updateMetadata({ wordGoal: goal })`.
+    - `directions.css`: added `.word-goal-card`, `.word-goal-row`, `.word-goal-label`, `.word-goal-input`, `.word-goal-current`, `.word-goal-track`, `.word-goal-fill`.
+  - **Keyboard shortcut overlay:**
+    - `src/components/KeyboardShortcutOverlay.tsx` (new): full-screen modal listing all shortcuts in three columns across six groups (Canvas, Selection, History, File, Search, Help). Dismisses via Escape or click-outside.
+    - `src/App.tsx`: imported `KeyboardShortcutOverlay`; added `shortcutsOpen` state; `?` keydown (when not typing) toggles the overlay; renders `<KeyboardShortcutOverlay>` when open.
+    - `directions.css`: added `.ks-backdrop`, `.ks-panel`, `.ks-head`, `.ks-title`, `.ks-close`, `.ks-grid`, `.ks-group`, `.ks-group-title`, `.ks-row`, `.ks-keys`, `.ks-plus`, `.ks-key`, `.ks-label`.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 16
 - **Added variable/achievement autocomplete in node body editors and jump-to-scene navigation from the inspector.**

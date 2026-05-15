@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
+import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
@@ -45,6 +46,7 @@ export default function App() {
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [consoleOpen, setConsoleOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { lintedProject, actions } = useProjectStore();
 
   useEffect(() => {
@@ -102,7 +104,13 @@ export default function App() {
         setPlayOpen(false);
         return;
       }
-      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") return;
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") {
+        if (event.key === "?" && !isTypingTarget(event.target)) {
+          event.preventDefault();
+          setShortcutsOpen((v) => !v);
+        }
+        return;
+      }
       if (isTypingTarget(event.target)) return;
       event.preventDefault();
       actions.undo();
@@ -418,7 +426,7 @@ export default function App() {
           setActiveTab(tabForLintMessage(lint.msg));
         }}
       />
-      {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} />}
+      {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} onUpdateWordGoal={(goal) => actions.updateMetadata({ wordGoal: goal })} />}
       {view === "map" && (
         <SceneMapView
           data={lintedProject}
@@ -446,6 +454,7 @@ export default function App() {
           }}
         />
       )}
+      {shortcutsOpen && <KeyboardShortcutOverlay onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }
