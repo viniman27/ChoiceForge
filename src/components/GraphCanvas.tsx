@@ -65,6 +65,9 @@ export function GraphCanvas({
   const lastSetIdRef = useRef<string | null>(selectedId);
   const clipboardRef = useRef<{ nodes: StoryNode[]; edges: StoryEdge[] } | null>(null);
   const [pendingConnect, setPendingConnect] = useState<{ from: string; screenX: number; screenY: number; worldX: number; worldY: number } | null>(null);
+  const [canvasFilter, setCanvasFilter] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (selectedId !== lastSetIdRef.current) {
@@ -166,6 +169,20 @@ export function GraphCanvas({
         const ids = [...selectedIdsRef.current];
         onDeleteNodes(ids);
         clearSelection();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setFilterOpen(true);
+        setTimeout(() => filterInputRef.current?.focus(), 0);
+        return;
+      }
+      if (event.key === "f" || event.key === "F") {
+        event.preventDefault();
+        const nodesToFit = event.shiftKey && selectedIdsRef.current.size > 0
+          ? data.nodes.filter((n) => selectedIdsRef.current.has(n.id))
+          : data.nodes;
+        fitNodesToViewport(nodesToFit, density, viewport, setZoom, onPan);
+        return;
       }
     };
     const keyUp = (event: KeyboardEvent) => {
@@ -281,6 +298,7 @@ export function GraphCanvas({
   }, [connecting, drag, onConnectNodes, onMoveNodes, onPan, pan, panning, selBoxing, zoom]);
 
   const selCount = selectedIds.size;
+  const activeFilter = canvasFilter.trim().toLowerCase();
 
   return (
     <div
@@ -424,6 +442,7 @@ export function GraphCanvas({
             labels={labels}
             selected={selectedIds.has(node.id)}
             hasError={errorNodeIds.has(node.id)}
+            isDimmed={activeFilter ? !nodeMatchesFilter(node, activeFilter) : false}
             onSelect={(id, addToSet) => selectNode(id, addToSet)}
             onDragStart={(event, id) => {
               const current = data.nodes.find((n) => n.id === id);
@@ -480,6 +499,27 @@ export function GraphCanvas({
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
         <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
       </div>
+      {filterOpen && (
+        <div className="canvas-filter-bar">
+          <input
+            ref={filterInputRef}
+            className="canvas-filter-input"
+            placeholder="filter nodes…"
+            value={canvasFilter}
+            onChange={(e) => setCanvasFilter(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { setFilterOpen(false); setCanvasFilter(""); }
+              e.stopPropagation();
+            }}
+          />
+          {activeFilter && (
+            <span className="canvas-filter-count">
+              {data.nodes.filter((n) => nodeMatchesFilter(n, activeFilter)).length}/{data.nodes.length}
+            </span>
+          )}
+          <button className="canvas-filter-close" onClick={() => { setFilterOpen(false); setCanvasFilter(""); }}>×</button>
+        </div>
+      )}
       {selCount > 1 && (
         <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} />
       )}
@@ -706,12 +746,22 @@ function fitGraphToViewport(
   setZoom: React.Dispatch<React.SetStateAction<number>>,
   onPan: (pan: { x: number; y: number }) => void,
 ) {
-  if (!project.nodes.length) return;
+  fitNodesToViewport(project.nodes, density, viewport, setZoom, onPan);
+}
+
+function fitNodesToViewport(
+  nodes: StoryNode[],
+  density: Density,
+  viewport: { width: number; height: number },
+  setZoom: React.Dispatch<React.SetStateAction<number>>,
+  onPan: (pan: { x: number; y: number }) => void,
+) {
+  if (!nodes.length) return;
   const padding = 90;
-  const minX = Math.min(...project.nodes.map((node) => node.x));
-  const minY = Math.min(...project.nodes.map((node) => node.y));
-  const maxX = Math.max(...project.nodes.map((node) => node.x + node.w));
-  const maxY = Math.max(...project.nodes.map((node) => node.y + estimateNodeHeight(project, node.id, density)));
+  const minX = Math.min(...nodes.map((n) => n.x));
+  const minY = Math.min(...nodes.map((n) => n.y));
+  const maxX = Math.max(...nodes.map((n) => n.x + n.w));
+  const maxY = Math.max(...nodes.map((n) => n.y + (density === "minimal" ? 44 : 120)));
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
   const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
@@ -720,6 +770,16 @@ function fitGraphToViewport(
     x: (viewport.width - width * nextZoom) / 2 - minX * nextZoom,
     y: (viewport.height - height * nextZoom) / 2 - minY * nextZoom,
   });
+}
+
+function nodeMatchesFilter(node: StoryNode, filter: string): boolean {
+  return (
+    node.title.toLowerCase().includes(filter) ||
+    (node.body ?? "").toLowerCase().includes(filter) ||
+    (node.prompt ?? "").toLowerCase().includes(filter) ||
+    (node.options ?? []).some((o) => o.text.toLowerCase().includes(filter)) ||
+    (node.fakeOptions ?? []).some((o) => o.text.toLowerCase().includes(filter))
+  );
 }
 
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {

@@ -105,6 +105,7 @@ interface NodeCardProps {
   labels: I18nLabels;
   selected: boolean;
   hasError: boolean;
+  isDimmed?: boolean;
   onSelect: (id: string, addToSelection: boolean) => void;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
@@ -112,7 +113,7 @@ interface NodeCardProps {
   onUpdateTitle?: (id: string, title: string) => void;
 }
 
-export function NodeCard({ node, density, labels, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -133,7 +134,7 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
 
   return (
     <div
-      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${node.warning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""}`}
+      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${node.warning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""}`}
       style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;

@@ -344,6 +344,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 30
+- **Added canvas quick-filter (Ctrl+F) and fit-to-selection (Shift+F).**
+  - **Canvas filter:**
+    - `Ctrl+F` opens a floating search bar at the top-right of the canvas. As you type, nodes that don't match (by title, body, prompt, or option text) get dimmed to opacity 0.18 and become non-interactive. The bar shows a live `M/N` match count. `Escape` or the × button closes and clears the filter.
+    - `src/components/GraphCanvas.tsx`: added `canvasFilter`, `filterOpen` state + `filterInputRef`; `nodeMatchesFilter(node, filter)` helper; `CanvasFilterBar` inlined in JSX.
+    - `src/components/NodeCard.tsx`: added `isDimmed?: boolean` prop; adds `is-dimmed` class when true.
+    - `styles.css`: `.node.is-dimmed { opacity: 0.18; pointer-events: none }`, `.canvas-filter-bar`, `.canvas-filter-input`, `.canvas-filter-count`, `.canvas-filter-close`.
+  - **Fit to selection (Shift+F):**
+    - `F` key (when not typing) fits all nodes (same as the toolbar button, now also has keyboard shortcut).
+    - `Shift+F` fits only the currently selected nodes into the viewport.
+    - Refactored `fitGraphToViewport` to delegate to new `fitNodesToViewport(nodes, ...)` for reuse.
+  - `src/components/KeyboardShortcutOverlay.tsx`: added `F`, `Shift+F`, `Ctrl+F` entries.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 29
 - **Added node alignment toolbar (appears when ≥2 nodes selected).**
   - Replaced the plain "N selected" badge with a full `SelectionBar` component that floats at the bottom-center of the canvas.
