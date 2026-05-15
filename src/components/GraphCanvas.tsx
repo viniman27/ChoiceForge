@@ -13,6 +13,7 @@ interface GraphCanvasProps {
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onAddAndConnectNode: (fromId: string, type: NodeType, position: { x: number; y: number }) => void;
+  onUpdateTitle: (id: string, title: string) => void;
   onDuplicateNode: (id: string) => void;
   onDeleteNodes: (ids: string[]) => void;
   onPasteNodes: (nodes: StoryNode[], internalEdges: StoryEdge[], center: { x: number; y: number }) => string[];
@@ -36,7 +37,7 @@ const TOOLBAR_DEFAULT_WIDTH = 760;
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
-  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onDuplicateNode, onDeleteNodes, onPasteNodes,
+  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes,
   sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -430,6 +431,7 @@ export function GraphCanvas({
                 .map((n) => ({ id: n.id, x: n.x, y: n.y }));
               setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origPositions });
             }}
+            onUpdateTitle={sourcePreserved ? undefined : onUpdateTitle}
             onConnectStart={(event, id) => {
               if (sourcePreserved) return;
               const current = data.nodes.find((n) => n.id === id);

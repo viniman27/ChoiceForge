@@ -41,6 +41,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Edge-drop quick node creation: drag a connection port to empty canvas → type-picker popup with 8 common types → new node created and connected in one gesture
 - Node writing-status markers: tag any node as `todo` or `done` from the inspector; badge shown on the card; per-scene progress bar in the scene list
 - Drag-to-reorder choice options: drag handle (`::`) on each option row in the inspector lets authors reorder options without delete/recreate; works for both `choice` and `fake_choice` nodes
+- Inline node title editing: double-click any node title on the canvas to edit in place; Enter/blur commits, Escape cancels
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -340,6 +341,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 22
+- **Added inline node title editing (double-click on canvas).**
+  - `src/components/NodeCard.tsx`:
+    - Added `useEffect`, `useRef`, `useState` imports.
+    - Added `onUpdateTitle?: (id: string, title: string) => void` prop.
+    - Added `editingTitle` / `editValue` state and `titleInputRef`.
+    - Double-clicking `.node-title` (when `onUpdateTitle` is set) switches the span to a focused `<input className="node-title-input no-drag">`. Enter or blur commits; Escape resets to the original title without saving. Empty commits fall back to the original title.
+    - All keyboard events stop propagation to prevent canvas shortcuts from firing during edit.
+  - `src/components/GraphCanvas.tsx`: added `onUpdateTitle: (id: string, title: string) => void` prop; passes it to `NodeCard` (undefined when `sourcePreserved`).
+  - `src/App.tsx`: wires `onUpdateTitle={(id, title) => actions.updateNode(id, { title })}`.
+  - `styles.css`: added `.node-title-input` (mono font, accent border, no outline, right-aligned to match the title span).
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 21
 - **Added drag-to-reorder choice options in the inspector.**

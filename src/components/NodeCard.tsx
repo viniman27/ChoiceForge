@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { Density, I18nLabels, NodeType, StoryNode, VariableSet } from "../domain/types";
 
 export const typeColors: Record<NodeType, { dot: string; tint: string; label: string }> = {
@@ -99,12 +100,27 @@ interface NodeCardProps {
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectEnd: (id: string) => void;
+  onUpdateTitle?: (id: string, title: string) => void;
 }
 
-export function NodeCard({ node, density, labels, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editValue, setEditValue] = useState(node.title);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editingTitle) { titleInputRef.current?.focus(); titleInputRef.current?.select(); }
+  }, [editingTitle]);
+
+  const commitTitle = () => {
+    const trimmed = editValue.trim() || node.title;
+    setEditValue(trimmed);
+    onUpdateTitle?.(node.id, trimmed);
+    setEditingTitle(false);
+  };
 
   return (
     <div
@@ -121,7 +137,31 @@ export function NodeCard({ node, density, labels, selected, hasError, onSelect, 
         <span className="node-dot" />
         <span className="node-icon"><NodeIcon type={node.type} /></span>
         <span className="node-type">{colors.label}</span>
-        <span className="node-title">{node.title}</span>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            className="node-title-input no-drag"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitTitle();
+              else if (e.key === "Escape") { setEditValue(node.title); setEditingTitle(false); }
+              e.stopPropagation();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="node-title"
+            onDoubleClick={(e) => {
+              if (!onUpdateTitle) return;
+              e.stopPropagation();
+              setEditValue(node.title);
+              setEditingTitle(true);
+            }}
+          >{node.title}</span>
+        )}
         {node.status && <span className={`node-status node-status-${node.status}`}>{node.status}</span>}
         {hasError && <span className="node-flag" title="error">!</span>}
       </div>
