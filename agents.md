@@ -38,6 +38,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Word count goal in Dashboard: number input sets a project-level target, progress bar fills as total word count grows
 - Keyboard shortcut overlay: press `?` (when not typing) to toggle a modal listing all shortcuts; dismiss with Escape or click-outside
 - Command palette (Ctrl+K): fuzzy-search all scenes, nodes, variables, achievements, and static commands; arrow-key navigation, Enter to activate
+- Edge-drop quick node creation: drag a connection port to empty canvas → type-picker popup with 8 common types → new node created and connected in one gesture
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -337,6 +338,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 19
+- **Added edge-drop quick node creation — drag a connection port to empty canvas to get a node type picker.**
+  - `src/components/GraphCanvas.tsx`:
+    - Added `onAddAndConnectNode: (fromId, type, position) => void` prop.
+    - Added `pendingConnect` state: `{ from, screenX, screenY, worldX, worldY } | null`.
+    - In the connection `up` handler: if no `.anchor-in` target is found under the pointer, sets `pendingConnect` (instead of simply canceling). Clicking the canvas background clears `pendingConnect`.
+    - New `EdgeDropPicker` component: a fixed-position popup rendered at the drop screen coordinates, showing 8 quick-create types (`passage`, `choice`, `fake_choice`, `if`, `set`, `goto`, `goto_scene`, `ending`) as icon+label buttons. Each button uses that type's `dot`/`tint` CSS variables. Dismisses on Escape or click-outside.
+    - New `QUICK_TYPES` constant listing the 8 types shown in the picker.
+  - `src/App.tsx`: added `onAddAndConnectNode` handler — generates next node ID, calls `addNode` then `connectNodes`, then selects the new node.
+  - `src/components/KeyboardShortcutOverlay.tsx`: added "drag → empty: Create + connect node" hint.
+  - `directions.css`: added `.edrop-picker`, `.edrop-hint`, `.edrop-grid`, `.edrop-btn`.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 18
 - **Added command palette (Ctrl+K) — fuzzy-search navigation and command runner.**

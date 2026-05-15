@@ -13,6 +13,7 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["Ctrl", "scroll"], label: "Zoom in/out" },
       { keys: ["F"], label: "Fit view" },
       { keys: ["Escape"], label: "Deselect / close" },
+      { keys: ["drag", "→ empty"], label: "Create + connect node" },
     ],
   },
   {

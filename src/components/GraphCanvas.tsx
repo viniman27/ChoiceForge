@@ -12,6 +12,7 @@ interface GraphCanvasProps {
   onLayoutNodes: () => void;
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
+  onAddAndConnectNode: (fromId: string, type: NodeType, position: { x: number; y: number }) => void;
   onDuplicateNode: (id: string) => void;
   onDeleteNodes: (ids: string[]) => void;
   onPasteNodes: (nodes: StoryNode[], internalEdges: StoryEdge[], center: { x: number; y: number }) => string[];
@@ -35,7 +36,7 @@ const TOOLBAR_DEFAULT_WIDTH = 760;
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
-  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNodes, onPasteNodes,
+  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onDuplicateNode, onDeleteNodes, onPasteNodes,
   sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -62,6 +63,7 @@ export function GraphCanvas({
 
   const lastSetIdRef = useRef<string | null>(selectedId);
   const clipboardRef = useRef<{ nodes: StoryNode[]; edges: StoryEdge[] } | null>(null);
+  const [pendingConnect, setPendingConnect] = useState<{ from: string; screenX: number; screenY: number; worldX: number; worldY: number } | null>(null);
 
   useEffect(() => {
     if (selectedId !== lastSetIdRef.current) {
@@ -233,7 +235,12 @@ export function GraphCanvas({
       if (connecting) {
         const target = document.elementFromPoint(event.clientX, event.clientY);
         const targetId = target instanceof HTMLElement ? target.closest<HTMLElement>(".anchor-in")?.dataset.nodeId : undefined;
-        if (targetId) onConnectNodes(connecting.from, targetId);
+        if (targetId) {
+          onConnectNodes(connecting.from, targetId);
+        } else if (!sourcePreserved) {
+          const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
+          setPendingConnect({ from: connecting.from, screenX: event.clientX, screenY: event.clientY, worldX: world.x, worldY: world.y });
+        }
       }
       if (selBoxRef.current) {
         const box = selBoxRef.current;
@@ -299,6 +306,7 @@ export function GraphCanvas({
           return;
         }
         if (event.button === 0) {
+          setPendingConnect(null);
           if (!event.shiftKey) clearSelection();
           const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
           selBoxRef.current = { x1: world.x, y1: world.y, x2: world.x, y2: world.y };
@@ -462,6 +470,61 @@ export function GraphCanvas({
         <div className="sel-count-badge">{selCount} selected</div>
       )}
       <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
+      {pendingConnect && (
+        <EdgeDropPicker
+          screenX={pendingConnect.screenX}
+          screenY={pendingConnect.screenY}
+          labels={labels}
+          onPick={(type) => {
+            onAddAndConnectNode(pendingConnect.from, type, { x: Math.round(pendingConnect.worldX), y: Math.round(pendingConnect.worldY - 30) });
+            setPendingConnect(null);
+          }}
+          onDismiss={() => setPendingConnect(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+const QUICK_TYPES: NodeType[] = ["passage", "choice", "fake_choice", "if", "set", "goto", "goto_scene", "ending"];
+
+function EdgeDropPicker({
+  screenX, screenY, labels, onPick, onDismiss,
+}: { screenX: number; screenY: number; labels: I18nLabels; onPick: (type: NodeType) => void; onDismiss: () => void }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onDismiss(); };
+    const onDown = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onDismiss(); };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("pointerdown", onDown); };
+  }, [onDismiss]);
+
+  const style: React.CSSProperties = {
+    position: "fixed",
+    left: screenX + 8,
+    top: screenY - 12,
+    zIndex: 120,
+  };
+
+  return (
+    <div ref={ref} className="edrop-picker" style={style}>
+      <div className="edrop-hint">connect to new node</div>
+      <div className="edrop-grid">
+        {QUICK_TYPES.map((type) => (
+          <button
+            key={type}
+            className="edrop-btn"
+            title={labels.nodeTypes[type]}
+            onPointerDown={(e) => { e.stopPropagation(); onPick(type); }}
+            style={{ "--dot": typeColors[type].dot, "--tint": typeColors[type].tint } as React.CSSProperties}
+          >
+            <NodeIcon type={type} />
+            <span>{typeColors[type].label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

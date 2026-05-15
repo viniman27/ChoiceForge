@@ -534,3 +534,33 @@
   font-family: var(--ff-mono); font-size: 10px; color: var(--ink-faint);
   flex-shrink: 0;
 }
+
+/* ─── Edge-drop node picker ──────────────────── */
+.edrop-picker {
+  background: var(--paper-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-3);
+  box-shadow: 0 8px 24px oklch(0% 0 0 / 0.2);
+  padding: 8px;
+  min-width: 192px;
+}
+.edrop-hint {
+  font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute);
+  text-align: center; margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+.edrop-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+}
+.edrop-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 4px;
+  background: var(--tint, var(--paper-3));
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  cursor: pointer;
+  font-family: var(--ff-mono); font-size: 9px; color: var(--dot, var(--ink));
+  transition: border-color 0.1s;
+}
+.edrop-btn:hover { border-color: var(--dot, var(--ink-mute)); }
+.edrop-btn svg { width: 14px; height: 14px; }
