@@ -37,6 +37,7 @@ const SNAP_KEY = "choiceforge.snap.v1";
 const GRID_SIZE = 20;
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
+const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blue", "purple"];
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
@@ -73,7 +74,6 @@ export function GraphCanvas({
   const [filterResultIdx, setFilterResultIdx] = useState(0);
   const filterInputRef = useRef<HTMLInputElement | null>(null);
   const [activeColorTags, setActiveColorTags] = useState<Set<NodeColorTag>>(new Set());
-  const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blue", "purple"];
   const [snap, setSnap] = useState(() => localStorage.getItem(SNAP_KEY) === "1");
   const snapRef = useRef(snap);
   snapRef.current = snap;
@@ -788,6 +788,17 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBul
       <div className="sel-bar-div" />
       <button className="sel-bar-btn sel-bar-status" title="Mark all selected as done" onClick={() => setStatus("done")}>✓</button>
       <button className="sel-bar-btn sel-bar-status" title="Mark all selected as todo" onClick={() => setStatus("todo")}>○</button>
+      <div className="sel-bar-sep" />
+      {COLOR_TAG_KEYS.map((tag) => (
+        <button
+          key={tag}
+          className="sel-bar-color-dot"
+          style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
+          title={`Tag all selected: ${tag}`}
+          onClick={() => onBulkUpdateNodes(ids, { colorTag: tag })}
+        />
+      ))}
+      <button className="sel-bar-btn sel-bar-status" title="Clear color tag from all selected" onClick={() => onBulkUpdateNodes(ids, { colorTag: undefined })}>×</button>
     </div>
   );
 }
