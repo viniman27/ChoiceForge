@@ -344,6 +344,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 32
+- **Added snap-to-grid for node placement and dragging.**
+  - `G` key (when not typing) toggles snap on/off. Preference persisted to localStorage (`choiceforge.snap.v1`).
+  - When snap is active, nodes snap to a 20px grid on drag release and on double-click creation.
+  - The grid background transitions from the default 24px dot pattern to a denser 20px pattern (slightly brighter dots) to visually confirm snap state. Implemented via `.is-snapping .canvas-grid`.
+  - A small grid icon button (four squares) appears in the zoom controls bar; turns accent color when active.
+  - `SnapIcon` component added (12×12 SVG, four squares).
+  - `GRID_SIZE = 20` and `SNAP_KEY` constants at top of `GraphCanvas.tsx`; snap state uses a `snapRef` so the `pointerup` closure always reads the current value without stale-closure issues (same pattern as `selectedIdsRef`).
+  - `src/components/KeyboardShortcutOverlay.tsx`: added `G → Toggle snap-to-grid` entry.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 31
 - **Added full-project manuscript scope — read and export the entire story in one view.**
   - `src/components/ManuscriptView.tsx`:

@@ -32,6 +32,8 @@ const creatableNodeTypes: NodeType[] = [
   "comment", "finish", "ending",
 ];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
+const SNAP_KEY = "choiceforge.snap.v1";
+const GRID_SIZE = 20;
 const TOOLBAR_MIN_WIDTH = 260;
 const TOOLBAR_DEFAULT_WIDTH = 760;
 
@@ -68,6 +70,9 @@ export function GraphCanvas({
   const [canvasFilter, setCanvasFilter] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const filterInputRef = useRef<HTMLInputElement | null>(null);
+  const [snap, setSnap] = useState(() => localStorage.getItem(SNAP_KEY) === "1");
+  const snapRef = useRef(snap);
+  snapRef.current = snap;
 
   useEffect(() => {
     if (selectedId !== lastSetIdRef.current) {
@@ -184,6 +189,11 @@ export function GraphCanvas({
         fitNodesToViewport(nodesToFit, density, viewport, setZoom, onPan);
         return;
       }
+      if (event.key === "g" || event.key === "G") {
+        event.preventDefault();
+        setSnap((s) => !s);
+        return;
+      }
     };
     const keyUp = (event: KeyboardEvent) => {
       if (event.code === "Space") setSpace(false);
@@ -200,6 +210,10 @@ export function GraphCanvas({
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));
   }, [toolbarWidth]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SNAP_KEY, snap ? "1" : "0");
+  }, [snap]);
 
   useEffect(() => {
     if (!toolbarResize) return;
@@ -282,6 +296,15 @@ export function GraphCanvas({
       if (panning && Math.abs(event.clientX - panning.startX) < 4 && Math.abs(event.clientY - panning.startY) < 4) {
         clearSelection();
       }
+      if (drag && snapRef.current) {
+        const dx = (event.clientX - drag.startX) / zoom;
+        const dy = (event.clientY - drag.startY) / zoom;
+        onMoveNodes(drag.origPositions.map(({ id, x, y }) => ({
+          id,
+          x: Math.round((x + dx) / GRID_SIZE) * GRID_SIZE,
+          y: Math.round((y + dy) / GRID_SIZE) * GRID_SIZE,
+        })));
+      }
       setDrag(null);
       setPanning(null);
       setConnecting(null);
@@ -303,7 +326,7 @@ export function GraphCanvas({
   return (
     <div
       ref={canvasRef}
-      className={`canvas-wrap ${connecting ? "is-connecting" : ""}`}
+      className={`canvas-wrap ${connecting ? "is-connecting" : ""} ${snap ? "is-snapping" : ""}`}
       onWheel={(event) => {
         event.preventDefault();
         if (event.ctrlKey || event.metaKey) {
@@ -344,7 +367,11 @@ export function GraphCanvas({
         if (!isCanvasPanTarget(event.target)) return;
         if (sourcePreserved) return;
         const world = clientToWorldXY(event.clientX, event.clientY, canvasRef.current, pan, zoom);
-        onAddNode("passage", { x: Math.round(world.x - 100), y: Math.round(world.y - 22) });
+        const rx = world.x - 100, ry = world.y - 22;
+        onAddNode("passage", {
+          x: snapRef.current ? Math.round(rx / GRID_SIZE) * GRID_SIZE : Math.round(rx),
+          y: snapRef.current ? Math.round(ry / GRID_SIZE) * GRID_SIZE : Math.round(ry),
+        });
       }}
     >
       <div className="canvas-grid" />
@@ -498,6 +525,13 @@ export function GraphCanvas({
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
         <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
+        <button
+          className={`zoom-snap${snap ? " is-active" : ""}`}
+          onClick={() => setSnap((s) => !s)}
+          title={`Snap to grid — ${snap ? "on" : "off"} (G)`}
+        >
+          <SnapIcon />
+        </button>
       </div>
       {filterOpen && (
         <div className="canvas-filter-bar">
@@ -703,6 +737,17 @@ function AlignIcon({ type }: { type: string }) {
   if (type === "dh") return <svg {...p}><rect x="1" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><rect x="5.75" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><rect x="10.5" y="4.5" width="2.5" height="5" rx="0.4" fill="currentColor" stroke="none" /><line x1="3.5" y1="7" x2="5.75" y2="7" /><line x1="8.25" y1="7" x2="10.5" y2="7" /></svg>;
   if (type === "dv") return <svg {...p}><rect x="3" y="1" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="3" y="5.75" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><rect x="3" y="10.5" width="8" height="2.5" rx="0.4" fill="currentColor" stroke="none" /><line x1="7" y1="3.5" x2="7" y2="5.75" /><line x1="7" y1="8.25" x2="7" y2="10.5" /></svg>;
   return null;
+}
+
+function SnapIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+      <rect x="1" y="1" width="4" height="4" rx="0.5" />
+      <rect x="7" y="1" width="4" height="4" rx="0.5" />
+      <rect x="1" y="7" width="4" height="4" rx="0.5" />
+      <rect x="7" y="7" width="4" height="4" rx="0.5" />
+    </svg>
+  );
 }
 
 function loadToolbarWidth(): number {
