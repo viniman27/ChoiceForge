@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 46
+- **Canvas filter: navigate between matches with ‹ / › buttons (or Enter / Shift+Enter).**
+  - `filterResultIdx` state added; reset to 0 via `useEffect` whenever `canvasFilter` changes.
+  - `filterMatches` derived array computed when filter is active.
+  - `goToFilterResult(delta)` function: cycles through matches, calls `onPan` to centre the target node in the viewport, and selects it via `setSelectedId`.
+  - Filter bar updated: when matches exist, shows `‹` / `›` nav buttons around a `currentIdx+1/total` counter. When filter is active with zero matches, shows `0/N` in error colour.
+  - `Enter` / `Tab` in the filter input advances to next; `Shift+Enter` / `Shift+Tab` goes to previous.
+  - CSS: `.canvas-filter-nav`, `.canvas-filter-empty` added to `styles.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 45
 - **Scene Map: todo badge and progress bar on each card.**
   - `doneCounts` map computed in `SceneMapView` (same pattern as LeftPanel): iterates each scene's nodes from `data.sceneData` (active scene uses `data.nodes`) to count `status === "done"` vs total.

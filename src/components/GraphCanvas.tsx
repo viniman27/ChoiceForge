@@ -70,6 +70,7 @@ export function GraphCanvas({
   const [pendingConnect, setPendingConnect] = useState<{ from: string; screenX: number; screenY: number; worldX: number; worldY: number } | null>(null);
   const [canvasFilter, setCanvasFilter] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [filterResultIdx, setFilterResultIdx] = useState(0);
   const filterInputRef = useRef<HTMLInputElement | null>(null);
   const [activeColorTags, setActiveColorTags] = useState<Set<NodeColorTag>>(new Set());
   const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blue", "purple"];
@@ -325,6 +326,21 @@ export function GraphCanvas({
 
   const selCount = selectedIds.size;
   const activeFilter = canvasFilter.trim().toLowerCase();
+  const filterMatches = activeFilter ? data.nodes.filter((n) => nodeMatchesFilter(n, activeFilter)) : [];
+
+  useEffect(() => { setFilterResultIdx(0); }, [canvasFilter]);
+
+  const goToFilterResult = (delta: number) => {
+    if (!filterMatches.length) return;
+    const next = ((filterResultIdx + delta) % filterMatches.length + filterMatches.length) % filterMatches.length;
+    setFilterResultIdx(next);
+    const node = filterMatches[next];
+    onPan({
+      x: Math.round(viewport.width / 2 - (node.x + node.w / 2) * zoom),
+      y: Math.round(viewport.height / 2 - node.y * zoom - 40),
+    });
+    setSelectedId(node.id);
+  };
 
   return (
     <div
@@ -576,13 +592,19 @@ export function GraphCanvas({
             onChange={(e) => setCanvasFilter(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") { setFilterOpen(false); setCanvasFilter(""); }
+              if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); goToFilterResult(e.shiftKey ? -1 : 1); }
               e.stopPropagation();
             }}
           />
-          {activeFilter && (
-            <span className="canvas-filter-count">
-              {data.nodes.filter((n) => nodeMatchesFilter(n, activeFilter)).length}/{data.nodes.length}
-            </span>
+          {activeFilter && filterMatches.length > 0 && (
+            <>
+              <button className="canvas-filter-nav" onClick={() => goToFilterResult(-1)} title="Previous match (Shift+Enter)">‹</button>
+              <span className="canvas-filter-count">{filterResultIdx + 1}/{filterMatches.length}</span>
+              <button className="canvas-filter-nav" onClick={() => goToFilterResult(1)} title="Next match (Enter)">›</button>
+            </>
+          )}
+          {activeFilter && filterMatches.length === 0 && (
+            <span className="canvas-filter-count canvas-filter-empty">0/{data.nodes.length}</span>
           )}
           <button className="canvas-filter-close" onClick={() => { setFilterOpen(false); setCanvasFilter(""); }}>×</button>
         </div>
