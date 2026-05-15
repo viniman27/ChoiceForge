@@ -4,6 +4,7 @@ import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
+import { ManuscriptView } from "./components/ManuscriptView";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
@@ -462,6 +463,7 @@ export default function App() {
           setActiveTab(tabForLintMessage(lint.msg));
         }}
       />
+      {view === "manuscript" && <ManuscriptView data={lintedProject} onClose={() => setView("editor")} />}
       {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} onUpdateWordGoal={(goal) => actions.updateMetadata({ wordGoal: goal })} />}
       {view === "map" && (
         <SceneMapView
@@ -496,6 +498,7 @@ export default function App() {
             else if (cmd === "fit") { resetViewport(setPan, setZoom); }
             else if (cmd === "dashboard") { setView("dashboard"); }
             else if (cmd === "map") { setView("map"); }
+            else if (cmd === "manuscript") { setView("manuscript"); }
             else if (cmd === "play") { setPlayOpen(true); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setSelectedId(null); }
             else if (cmd === "export") { if (confirmExportWithLintErrors(lintedProject, lang)) downloadGeneratedProject(lintedProject); }
             else if (cmd === "save") { actions.saveNow(); setSaveStatus(formatSaveStatus(lang)); }

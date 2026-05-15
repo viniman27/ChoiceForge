@@ -43,6 +43,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Drag-to-reorder choice options: drag handle (`::`) on each option row in the inspector lets authors reorder options without delete/recreate; works for both `choice` and `fake_choice` nodes
 - Inline node title editing: double-click any node title on the canvas to edit in place; Enter/blur commits, Escape cancels
 - Per-node private notes: resizable textarea in the inspector (always visible, never exported); nodes with notes show a ✎ indicator on the canvas card
+- Manuscript / prose view ("prose" tab): DFS-ordered reading mode showing passage text, choice boxes, page breaks, and structural commands; author notes shown as italicised asides
 - Preserved imported scenes open as source by default and expose conversion to visual editing from the full-file editor; dirty editor contents must be saved before conversion. The full-file editor shows dirty state, confirms close/Escape with unsaved changes, and registers `beforeunload` while dirty.
 - Expandable lint console with clickable issue navigation, plus clickable outgoing node links in the inspector logic tab; same-scene node navigation recenters the canvas
 - `if` node inspector supports branch target/effect editing plus adding/removing `*elseif` and single trailing `*else` branches
@@ -342,6 +343,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 24
+- **Added manuscript / prose view ("prose" tab in TopBar).**
+  - `src/domain/types.ts`: extended `EditorView` to include `"manuscript"`.
+  - `src/components/TopBar.tsx`: added "prose" button in the tab-toggle between "map" and "stats".
+  - `src/components/ManuscriptView.tsx` (new): fixed panel (same geometry as Scene Map / Dashboard). Shows all scene nodes in DFS narrative order from the first node, then any disconnected nodes. Renders:
+    - **passage** → node id as small mono heading, body text as paragraphs (double-newline = paragraph break), private note as italicised aside
+    - **choice / fake_choice** → boxed section with italic prompt and numbered option list
+    - **page_break** → dashed `<hr>`
+    - **if** → subtle mono line showing branch kinds/expressions
+    - **goto_scene / gosub_scene / goto / label / finish / ending / etc.** → dim mono command + target
+    - Unknown structural nodes → null (not rendered)
+  - `src/App.tsx`: renders `<ManuscriptView>` when `view === "manuscript"`; "prose" added to command palette command list.
+  - `src/components/CommandPalette.tsx`: added `{ id: "manuscript", label: "Open prose / manuscript view" }` to static commands.
+  - `directions.css`: added `.ms-wrap`, `.ms-toolbar`, `.ms-meta`, `.ms-scene`, `.ms-stats`, `.ms-close`, `.ms-body`, `.ms-content`, `.ms-passage`, `.ms-node-title`, `.ms-prose`, `.ms-para`, `.ms-choice`, `.ms-prompt`, `.ms-options`, `.ms-option`, `.ms-note`, `.ms-break`, `.ms-structural`, `.ms-cmd`, `.ms-branch-label`, `.ms-target`.
+  - 86 tests, all passing; zero TS errors; clean build.
 
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 23
 - **Added per-node private author notes.**
