@@ -344,6 +344,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 25
+- **Added per-node color tags.**
+  - `src/domain/types.ts`: added `NodeColorTag = "red" | "orange" | "yellow" | "green" | "blue" | "purple"` and `colorTag?: NodeColorTag` to `StoryNode`.
+  - `src/components/NodeCard.tsx`: exported `COLOR_TAG_VALUES: Record<NodeColorTag, string>` (oklch color strings for all 6 tags). Node div gets `has-color-tag` class and `--ct` CSS variable when a color tag is set.
+  - `src/components/RightPanel.tsx`: added `.ip-color-row` below `.ip-status-row` in `ip-head`. Six colored dot buttons + clear button. Clicking active tag clears it. Disabled when source is preserved.
+  - `src/components/ManuscriptView.tsx`: passage node titles show an 8px colored dot (`ms-color-dot`) when a color tag is set.
+  - `styles.css`: added `.node.has-color-tag { border-left: 3.5px solid var(--ct) }`, `.ip-color-row`, `.ip-color-dot`, `.ip-color-dot.is-active`, `.ip-color-clear`.
+  - `directions.css`: added `.ms-color-dot` and added `display: flex; align-items: center` to `.ms-node-title` to align the dot.
+  - 86 tests, all passing; zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 24
 - **Added manuscript / prose view ("prose" tab in TopBar).**
   - `src/domain/types.ts`: extended `EditorView` to include `"manuscript"`.

@@ -603,6 +603,11 @@
   color: var(--ink-mute); text-transform: lowercase; letter-spacing: 0.06em;
   margin: 0; padding-bottom: 6px;
   border-bottom: 1px solid var(--paper-edge);
+  display: flex; align-items: center;
+}
+.ms-color-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-right: 6px; flex-shrink: 0;
 }
 .ms-prose { display: flex; flex-direction: column; gap: 10px; }
 .ms-para {
