@@ -7,39 +7,76 @@ interface ManuscriptViewProps {
   onClose: () => void;
 }
 
+type Scope = "scene" | "project";
+
+interface SceneSection {
+  name: string;
+  nodes: StoryNode[];
+}
+
 export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
-  const ordered = narrativeOrder(data.nodes, data.edges);
-  const wordCount = countWords(ordered);
-  const passageCount = ordered.filter((n) => hasNarrativeContent(n)).length;
-  const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
+  const [scope, setScope] = useState<Scope>("scene");
   const [copied, setCopied] = useState(false);
 
+  const sceneSection: SceneSection = {
+    name: data.sceneTitle,
+    nodes: narrativeOrder(data.nodes, data.edges),
+  };
+
+  const projectSections: SceneSection[] = buildProjectSections(data);
+
+  const sections = scope === "project" ? projectSections : [sceneSection];
+  const allNodes = sections.flatMap((s) => s.nodes);
+  const wordCount = countWords(allNodes);
+  const passageCount = allNodes.filter(hasNarrativeContent).length;
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
+
   const handleDownload = () => {
-    const text = generateManuscriptText(ordered, data);
+    const text = scope === "project"
+      ? generateProjectText(projectSections, data)
+      : generateSceneText(sceneSection.nodes, data);
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${data.sceneTitle}_manuscript.txt`;
+    a.download = scope === "project" ? `${data.title}_full_manuscript.txt` : `${data.sceneTitle}_manuscript.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleCopy = async () => {
-    const text = generateManuscriptText(ordered, data);
+    const text = scope === "project"
+      ? generateProjectText(projectSections, data)
+      : generateSceneText(sceneSection.nodes, data);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const scopeLabel = scope === "project"
+    ? `${data.title} (${projectSections.length} scenes)`
+    : `${data.sceneTitle}.txt`;
+
   return (
     <div className="ms-wrap">
       <div className="ms-toolbar">
         <div className="ms-meta">
-          <span className="ms-scene">{data.sceneTitle}.txt</span>
+          <span className="ms-scene">{scopeLabel}</span>
           <span className="ms-stats">{wordCount.toLocaleString()} words · {passageCount} passages · ~{readingMinutes} min</span>
         </div>
         <div className="ms-actions">
+          <div className="ms-scope-toggle">
+            <button
+              className={`ms-scope-btn${scope === "scene" ? " is-active" : ""}`}
+              onClick={() => setScope("scene")}
+              title="Current scene only"
+            >scene</button>
+            <button
+              className={`ms-scope-btn${scope === "project" ? " is-active" : ""}`}
+              onClick={() => setScope("project")}
+              title="All scenes in order"
+            >project</button>
+          </div>
           <button className="ms-action-btn" onClick={handleCopy} title="Copy to clipboard">
             {copied ? "✓ copied" : "copy"}
           </button>
@@ -52,7 +89,21 @@ export function ManuscriptView({ data, onClose }: ManuscriptViewProps) {
 
       <div className="ms-body">
         <div className="ms-content">
-          {ordered.map((node) => <NodeBlock key={node.id} node={node} />)}
+          {sections.map((section, si) => (
+            <div key={section.name}>
+              {scope === "project" && (
+                <div className="ms-scene-divider">
+                  <span className="ms-scene-divider-name">{section.name}.txt</span>
+                </div>
+              )}
+              {section.nodes.map((node) => (
+                <NodeBlock key={`${section.name}-${node.id}`} node={node} />
+              ))}
+              {scope === "project" && si < sections.length - 1 && (
+                <div className="ms-scene-end" />
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -147,44 +198,66 @@ function countWords(nodes: StoryNode[]): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-function generateManuscriptText(ordered: StoryNode[], data: ChoiceForgeProject): string {
+function buildProjectSections(data: ChoiceForgeProject): SceneSection[] {
+  return data.scenes
+    .filter((s) => !s.special)
+    .map((s) => {
+      const isActive = s.name === data.sceneTitle;
+      const graph = isActive ? { nodes: data.nodes, edges: data.edges } : (data.sceneData?.[s.name] ?? { nodes: [], edges: [] });
+      return { name: s.name, nodes: narrativeOrder(graph.nodes, graph.edges) };
+    })
+    .filter((s) => s.nodes.length > 0);
+}
+
+function generateSceneText(ordered: StoryNode[], data: ChoiceForgeProject): string {
   const ruler = "=".repeat(72);
-  const lines: string[] = [
-    `${data.title}`,
+  return [
+    data.title,
     `by ${data.author}`,
     `Scene: ${data.sceneTitle}`,
     ruler,
     "",
-  ];
+    ...nodeListToLines(ordered),
+  ].join("\n").trimEnd() + "\n";
+}
 
-  for (const node of ordered) {
+function generateProjectText(sections: SceneSection[], data: ChoiceForgeProject): string {
+  const ruler = "=".repeat(72);
+  const lines: string[] = [
+    data.title,
+    `by ${data.author}`,
+    ruler,
+    "",
+  ];
+  for (const section of sections) {
+    lines.push(`~~~ ${section.name} ~~~`, "");
+    lines.push(...nodeListToLines(section.nodes));
+    lines.push("");
+  }
+  return lines.join("\n").trimEnd() + "\n";
+}
+
+function nodeListToLines(nodes: StoryNode[]): string[] {
+  const lines: string[] = [];
+  for (const node of nodes) {
     if (node.type === "passage") {
       lines.push(`--- ${node.title} ---`, "");
       if (node.body) {
         lines.push(...node.body.split("\n\n").map((p) => p.replace(/\n/g, " ")));
         lines.push("");
       }
-      if (node.note) {
-        lines.push(`[Note: ${node.note}]`, "");
-      }
+      if (node.note) lines.push(`[Note: ${node.note}]`, "");
     } else if (node.type === "choice" || node.type === "fake_choice") {
-      if (node.prompt) {
-        lines.push(`> ${node.prompt}`, "");
-      }
+      if (node.prompt) lines.push(`> ${node.prompt}`, "");
       const opts = node.options ?? node.fakeOptions ?? [];
-      opts.forEach((opt, i) => {
-        lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`);
-      });
+      opts.forEach((opt, i) => lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`));
       if (opts.length) lines.push("");
-      if (node.note) {
-        lines.push(`[Note: ${node.note}]`, "");
-      }
+      if (node.note) lines.push(`[Note: ${node.note}]`, "");
     } else if (node.type === "page_break") {
       lines.push("* * *", "");
     }
   }
-
-  return lines.join("\n").trimEnd() + "\n";
+  return lines;
 }
 
 function narrativeOrder(nodes: StoryNode[], edges: StoryEdge[]): StoryNode[] {
