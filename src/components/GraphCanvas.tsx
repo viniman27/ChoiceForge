@@ -447,12 +447,21 @@ export function GraphCanvas({
             if (!path) return null;
             const color = edge.kind === "choice" ? "var(--c-choice)" : edge.kind === "goto" ? "var(--c-goto)" : ["if", "elseif", "else"].includes(edge.kind) ? "var(--c-if)" : "var(--ink-mute)";
             const marker = edge.kind === "choice" ? "url(#arrow-choice)" : edge.kind === "goto" ? "url(#arrow-goto)" : ["if", "elseif", "else"].includes(edge.kind) ? "url(#arrow-if)" : "url(#arrow-flow)";
+            let displayLabel = edge.label;
+            if (edge.kind === "choice" && !displayLabel) {
+              const srcNode = data.nodes.find((n) => n.id === edge.from);
+              const optText = srcNode?.options?.find((o) => o.to === edge.to)?.text ?? "";
+              if (optText) displayLabel = optText.length > 22 ? optText.slice(0, 20) + "…" : optText;
+            }
+            const midX = (path.x1 + path.x2) / 2;
+            const midY = (path.y1 + path.y2) / 2;
+            const labelW = edge.kind === "choice" ? 130 : 100;
             return (
               <g key={`${edge.from}-${edge.to}-${index}`} className={`edge edge-${edge.kind}`}>
                 <path d={path.d} stroke={color} strokeWidth="1.6" strokeDasharray={edge.kind === "goto" ? "5 4" : undefined} fill="none" markerEnd={marker} opacity="0.85" />
-                {edge.label && (
-                  <foreignObject x={(path.x1 + path.x2) / 2 - 50} y={(path.y1 + path.y2) / 2 - 12} width="100" height="22">
-                    <div className="edge-label" style={{ borderColor: color, color }}>{edge.label}</div>
+                {displayLabel && (
+                  <foreignObject x={midX - labelW / 2} y={midY - 12} width={labelW} height="22">
+                    <div className="edge-label" style={{ borderColor: color, color }}>{displayLabel}</div>
                   </foreignObject>
                 )}
               </g>

@@ -344,6 +344,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 34
+- **Added option text labels on choice edges in the canvas.**
+  - For every edge of `kind === "choice"`, the source node's `options` array is searched for the option whose `to` matches the edge target; the option text is shown as a label on the edge midpoint (truncated to 22 chars with "…" if longer).
+  - Uses the existing `.edge-label` style (monospaced, paper background, colored border). The foreignObject is 130px wide for choice labels vs. 100px for other labels.
+  - No schema or store changes needed — label is computed at render time from the live node data.
+  - `if`/`elseif`/`else`/`*goto`/`*gosub` edges already had stored `edge.label` values; unchanged.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 33
 - **Added global todo list panel to Dashboard.**
   - `src/components/Dashboard.tsx`: added `onNavigateToNode?: (sceneName: string, nodeId: string) => void` prop; imported `useMemo`; computed `todoItems` by scanning `data.nodes` (current scene) and all `data.sceneData` entries, filtering for `status === "todo"`; added `groupByScene()` helper that preserves scene encounter order; rendered a "todo nodes" card at the bottom of `dash-grid` showing items grouped by scene name, each row clickable to navigate.
