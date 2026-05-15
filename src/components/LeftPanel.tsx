@@ -453,6 +453,13 @@ function ScenesList({
                   <div className="scene-progress-fill" style={{ width: `${Math.round((dc.done / dc.total) * 100)}%` }} />
                 </div>
               ) : null; })()}
+              <input
+                className="scene-notes"
+                value={scene.notes ?? ""}
+                placeholder="synopsis…"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onUpdateScene(scene.id, { notes: e.target.value || undefined })}
+              />
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">

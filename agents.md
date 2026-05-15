@@ -344,6 +344,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 38
+- **Added scene-level notes (synopsis) field.**
+  - `src/domain/types.ts`: `notes?: string` added to `SceneSummary`. Optional, no migration required. All 86 tests still pass.
+  - `src/components/LeftPanel.tsx`: a one-line `<input class="scene-notes">` appears below the progress bar in each scene row. Placeholder `"synopsis…"` fades in on hover; typing saves directly via `onUpdateScene`. Click is stopped from propagating so the notes field doesn't switch scenes.
+  - `src/components/SceneMapView.tsx`: when a scene has notes, a `map-card-notes` div appears above the stats row, showing up to 2 lines with `-webkit-line-clamp`.
+  - CSS: `.scene-notes`, `.scene-notes::placeholder`, `.scene-notes:focus` in `styles.css`; `.map-card-notes` in `directions.css`.
+  - Zero TS errors; clean build.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 37
 - **Added bulk status toggle to the multi-select bar.**
   - `projectStore.ts`: new `bulkUpdateNodes(ids, patch)` action — applies the same patch to all listed node IDs in a single `commitProject` call, creating one undo history entry for the whole batch.

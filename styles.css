@@ -520,6 +520,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .scene-tag.source-source { background: color-mix(in oklch, var(--warn) 22%, var(--paper-2)); color: oklch(48% 0.14 75); }
 .scene-tag.source-graph { background: var(--c-choice-tint); color: var(--c-choice); }
 .scene-tag.source-generated { background: var(--paper-3); color: var(--ink-mute); }
+.scene-notes {
+  width: 100%; border: none; background: transparent; outline: none;
+  font-size: 10px; color: var(--ink-2); font-family: var(--ff-body);
+  padding: 1px 0; margin-top: 2px;
+}
+.scene-notes::placeholder { color: var(--ink-faint); }
+.scene-notes:focus { color: var(--ink); }
 .scene-stats { font-size: 10px; color: var(--ink-mute); font-family: var(--ff-mono); margin-top: 2px; }
 .scene-progress-track {
   height: 3px; background: var(--paper-edge); border-radius: 999px;
