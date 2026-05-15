@@ -374,6 +374,7 @@ export default function App() {
             actions.connectNodes(fromId, id);
             setSelectedId(id);
           }}
+          onUpdateTitle={(id, title) => actions.updateNode(id, { title })}
           onDuplicateNode={(id) => {
             const newId = actions.duplicateNode(id);
             if (newId) setSelectedId(newId);
