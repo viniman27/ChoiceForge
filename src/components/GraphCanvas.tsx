@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChoiceForgeProject, Density, I18nLabels, NodeType } from "../domain/types";
+import type { ChoiceForgeProject, Density, I18nLabels, NodeType, StoryEdge, StoryNode } from "../domain/types";
 import { NodeCard, NodeIcon, typeColors } from "./NodeCard";
 
 interface GraphCanvasProps {
@@ -14,6 +14,7 @@ interface GraphCanvasProps {
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onDuplicateNode: (id: string) => void;
   onDeleteNodes: (ids: string[]) => void;
+  onPasteNodes: (nodes: StoryNode[], internalEdges: StoryEdge[], center: { x: number; y: number }) => string[];
   sourcePreserved?: boolean;
   onConvertSource?: () => void;
   pan: { x: number; y: number };
@@ -23,7 +24,7 @@ interface GraphCanvasProps {
 }
 
 const creatableNodeTypes: NodeType[] = [
-  "passage", "choice", "fake_choice", "if", "label", "goto", "goto_scene",
+  "passage", "choice", "fake_choice", "if", "set", "label", "goto", "goto_scene",
   "gosub", "gosub_scene", "return", "input_text", "input_number", "rand",
   "image", "temp", "params", "page_break", "checkpoint", "restore_checkpoint",
   "comment", "finish", "ending",
@@ -34,7 +35,7 @@ const TOOLBAR_DEFAULT_WIDTH = 760;
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
-  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNodes,
+  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onDuplicateNode, onDeleteNodes, onPasteNodes,
   sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +61,7 @@ export function GraphCanvas({
   const [selBoxDisplay, setSelBoxDisplay] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const lastSetIdRef = useRef<string | null>(selectedId);
+  const clipboardRef = useRef<{ nodes: StoryNode[]; edges: StoryEdge[] } | null>(null);
 
   useEffect(() => {
     if (selectedId !== lastSetIdRef.current) {
@@ -129,6 +131,32 @@ export function GraphCanvas({
         onDuplicateNode(selectedId);
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c" && selectedIdsRef.current.size > 0) {
+        if (isTypingTarget(event.target)) return;
+        event.preventDefault();
+        const ids = selectedIdsRef.current;
+        const copiedNodes = data.nodes.filter((node) => ids.has(node.id));
+        const copiedEdges = data.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
+        clipboardRef.current = { nodes: structuredClone(copiedNodes), edges: structuredClone(copiedEdges) };
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") {
+        if (isTypingTarget(event.target)) return;
+        if (sourcePreserved || !clipboardRef.current?.nodes.length) return;
+        event.preventDefault();
+        const center = {
+          x: Math.round((viewport.width / 2 - pan.x) / zoom),
+          y: Math.round((viewport.height / 2 - pan.y) / zoom),
+        };
+        const newIds = onPasteNodes(clipboardRef.current.nodes, clipboardRef.current.edges, center);
+        if (newIds.length > 0) {
+          const first = newIds[0];
+          lastSetIdRef.current = first;
+          setSelectedId(first);
+          setSelectedIds(new Set(newIds));
+        }
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedIdsRef.current.size > 0) {
         event.preventDefault();
         if (sourcePreserved) return;
@@ -147,7 +175,7 @@ export function GraphCanvas({
       window.removeEventListener("keyup", keyUp);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.nodes, onDeleteNodes, onDuplicateNode, selectedId, sourcePreserved]);
+  }, [data.nodes, data.edges, onDeleteNodes, onDuplicateNode, onPasteNodes, pan, viewport, selectedId, sourcePreserved, zoom]);
 
   useEffect(() => {
     window.localStorage.setItem(TOOLBAR_WIDTH_KEY, String(toolbarWidth));

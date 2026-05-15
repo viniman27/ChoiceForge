@@ -50,6 +50,7 @@ export interface ProjectActions {
   moveNodes: (moves: { id: string; x: number; y: number }[]) => void;
   deleteNodes: (ids: string[]) => void;
   replaceInNodes: (find: string, replace: string, scope: "scene" | "all") => number;
+  pasteNodes: (nodes: StoryNode[], internalEdges: StoryEdge[], center: { x: number; y: number }) => string[];
   connectNodes: (from: string, to: string) => void;
   addFlowEdge: (from: string, to: string) => void;
   deleteFlowEdge: (from: string, to: string) => void;
@@ -351,6 +352,54 @@ export function useProjectStore() {
         return commitProject({ ...current, nodes: currentNodes, sceneData: newSceneData });
       });
       return count;
+    },
+    pasteNodes: (nodes, internalEdges, center) => {
+      if (!nodes.length) return [];
+      const newIds: string[] = [];
+      setTrackedProjectState((current) => {
+        newIds.length = 0;
+        const allNodes = current.sceneData
+          ? Object.values(current.sceneData).flatMap((g) => g.nodes)
+          : current.nodes;
+        const baseMax = allNodes.reduce((max, n) => {
+          const match = /^n(\d+)$/.exec(n.id);
+          return match ? Math.max(max, Number(match[1])) : max;
+        }, 0);
+        const idMap = new Map<string, string>();
+        nodes.forEach((node, index) => {
+          const newId = `n${baseMax + index + 1}`;
+          idMap.set(node.id, newId);
+          newIds.push(newId);
+        });
+        const minX = Math.min(...nodes.map((n) => n.x));
+        const minY = Math.min(...nodes.map((n) => n.y));
+        const maxX = Math.max(...nodes.map((n) => n.x + n.w));
+        const maxY = Math.max(...nodes.map((n) => n.y + 120));
+        const bboxCX = (minX + maxX) / 2;
+        const bboxCY = (minY + maxY) / 2;
+        const dx = Math.round(center.x - bboxCX);
+        const dy = Math.round(center.y - bboxCY);
+        const pasted = nodes.map((node) => ({
+          ...structuredClone(node),
+          id: idMap.get(node.id)!,
+          x: Math.round(node.x + dx),
+          y: Math.round(node.y + dy),
+          options: node.options?.map((opt) => ({ ...opt, to: idMap.get(opt.to) ?? "" })).filter((opt) => opt.to),
+          branches: node.branches?.map((branch) => ({ ...branch, to: idMap.get(branch.to) ?? "" })),
+        }));
+        const pastedEdges = internalEdges
+          .filter((edge) => idMap.has(edge.from) && idMap.has(edge.to))
+          .map((edge) => ({ ...edge, from: idMap.get(edge.from)!, to: idMap.get(edge.to)! }));
+        return commitProject(clearActiveSceneSource({
+          ...current,
+          nodes: [...current.nodes, ...pasted],
+          edges: [...current.edges, ...pastedEdges],
+          scenes: current.scenes.map((scene) => (
+            scene.name === current.sceneTitle ? { ...scene, nodes: scene.nodes + pasted.length } : scene
+          )),
+        }));
+      });
+      return newIds;
     },
     connectNodes: (from, to) => {
       setTrackedProjectState((current) => {

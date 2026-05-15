@@ -338,6 +338,11 @@ export default function App() {
             actions.deleteNodes(ids);
             setSelectedId(null);
           }}
+          onPasteNodes={(nodes, edges, center) => {
+            const newIds = actions.pasteNodes(nodes, edges, center);
+            if (newIds[0]) setSelectedId(newIds[0]);
+            return newIds;
+          }}
           sourcePreserved={currentSceneSourcePreserved}
           onConvertSource={confirmVisualConversion}
         />
