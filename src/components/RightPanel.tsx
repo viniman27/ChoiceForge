@@ -173,9 +173,13 @@ function ContentTab({
   });
 
   if (node.type === "passage") {
+    const wc = nodeBodyWordCount(node.body ?? "");
     return (
       <div className="ip-content">
-        <label className="ip-label">{labels.bodyLabel}</label>
+        <div className="ip-label-row">
+          <label className="ip-label">{labels.bodyLabel}</label>
+          <span className="ip-word-count">{wc} {wc === 1 ? "word" : "words"}</span>
+        </div>
         <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
         <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
         <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
@@ -1227,4 +1231,12 @@ function normalizeIdentifier(value: string): string {
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/^[^a-z_]+/, "")
     .replace(/_+/g, "_");
+}
+
+function nodeBodyWordCount(text: string): number {
+  return text
+    .replace(/\$\{[^}]+\}/g, " ")
+    .replace(/@\{[^}]+\}/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
