@@ -1180,6 +1180,8 @@ function lintChoiceNode(
 ) {
   if (!node.options?.length) {
     issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+  } else if (node.options.length === 1) {
+    issues.push({ level: "warning", msg: `*choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
   }
   const seenOptionText = new Set<string>();
   node.options?.forEach((option, index) => {
@@ -1203,6 +1205,8 @@ function lintFakeChoiceNode(
 ) {
   if (!node.fakeOptions?.length) {
     issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+  } else if (node.fakeOptions.length === 1) {
+    issues.push({ level: "warning", msg: `*fake_choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
   }
   const seenFakeText = new Set<string>();
   node.fakeOptions?.forEach((option, index) => {
