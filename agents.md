@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 55
+- **Manuscript view: TOC sidebar, scene synopses, multi-line prompt fixes.**
+  - `ManuscriptView.tsx`: Added `sectionWordCounts` (Map from scene name to word count) to drive per-scene word counts in the TOC. Restructured `ms-body` to a flex row: a fixed-width `<nav className="ms-toc">` sidebar (project scope only) and a `<div className="ms-content">` scrollable column. Each TOC entry is a `<button>` that scrolls to the scene divider via `getElementById` + `scrollIntoView`. Scene synopsis (from `scene.notes`) appears below the scene name in both the TOC and at the scene divider in the content column.
+  - `ManuscriptView.tsx`: Fixed multi-line choice prompts in the reading view — split `node.prompt` on `\n`, filter blanks, emit one `<p className="ms-prompt">` per line (mirrors PlaytestView fix from session 53).
+  - `ManuscriptView.tsx`: Fixed multi-line prompts in the plain-text export (`nodeListToLines`) — each line gets its own `> line` prefix instead of one block.
+  - `directions.css`: Updated `.ms-body` to `display: flex; overflow: hidden`. Added `.ms-toc`, `.ms-toc-head`, `.ms-toc-btn`, `.ms-toc-name`, `.ms-toc-synopsis`, `.ms-toc-wc`, `.ms-scene-synopsis`. Updated `.ms-content` to `flex: 1; overflow-y: auto`. Added `.ms-content > div` rule for per-section max-width centering and vertical gap.
+  - No domain model changes, no test changes.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 54
 - **Inspector navigation: jump-to-target buttons + incoming connections.**
   - `RightPanel.tsx / ContentTab`: Added `onSelectNode?: (id: string) => void` prop to `ContentTab` and threaded it from `RightPanel`. In the choice node content tab, each option row now has a `→` button next to the target `<select>` that calls `onSelectNode(option.to)` to select and re-center that node on the canvas.
