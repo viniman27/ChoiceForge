@@ -106,6 +106,8 @@ function buildSrcdoc(project: ChoiceForgeProject): string {
     <div id="identity">
       <span id="title"></span>
       <span id="author"></span>
+      <a id="email" href="#" style="display:none"></a>
+      <a id="logout" href="#" style="display:none"></a>
     </div>
     <div id="headerLinks">
       <button id="statsButton" accesskey="q" onclick="showStats()">Show Stats</button>

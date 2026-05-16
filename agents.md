@@ -344,6 +344,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 81
+- **Fix two more OfficialPlayView runtime errors.**
+  - `null.style` crash: `loginDiv()` in `window.onload` accesses `document.getElementById("email").style` and `getElementById("logout").style` without null checks. These are the CoG account email/logout links inside `#identity`. Added `<a id="email" href="#" style="display:none"></a>` and `<a id="logout" href="#" style="display:none"></a>` to `#identity` in `buildSrcdoc`.
+  - `non-existent command 'achievements'`: `generateStatsChoiceScript` was emitting `*achievements` but the CS engine (open-source version) command is `*check_achievements` (mapped to `Scene.prototype.check_achievements`). Fixed in `src/domain/choicescript.ts`. This also corrects exported stats files.
+  - 109 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 80
 - **Fix OfficialPlayView crash + missing menu buttons.**
   - **Root cause of crash**: `ui.js` top-level code (line ~3912) unconditionally does `document.getElementById("dynamic").innerHTML += "..."` while parsing. In a `srcdoc` iframe, the `<body>` isn't parsed yet when `<script src="ui.js">` runs, so `#dynamic` is null → TypeError. Fix: added `<style id="dynamic"></style>` to `<head>` BEFORE the `ui.js` script tag, so it exists when ui.js runs.

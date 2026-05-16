@@ -177,7 +177,7 @@ export function generateStatsChoiceScript(project: ChoiceForgeProject): string {
 
   if (project.achievements.length) {
     if (lines.length) lines.push("");
-    lines.push("*achievements");
+    lines.push("*check_achievements");
   }
 
   return `${lines.join("\n")}\n`;
