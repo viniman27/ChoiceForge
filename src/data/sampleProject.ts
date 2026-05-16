@@ -88,6 +88,7 @@ const intro: SceneGraph = {
   edges: [
     { from: "n1", to: "n9", kind: "flow" },
     { from: "n9", to: "n2", kind: "flow" },
+    { from: "n9", to: "n10", kind: "goto", label: "*gosub" },
     { from: "n10", to: "n11", kind: "flow" },
     { from: "n11", to: "n12", kind: "flow" },
     { from: "n3", to: "n7", kind: "flow" },
