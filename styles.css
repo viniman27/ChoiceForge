@@ -1350,6 +1350,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-size: 13px;
   color: var(--ink-2);
   font-weight: 500;
+  white-space: pre-wrap;
 }
 
 .opts { list-style: none; padding: 0 8px 8px; margin: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -1839,6 +1840,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border-radius: var(--r-2); outline: none;
 }
 .ip-prompt:focus { border-color: var(--accent-1); }
+.ip-prompt-editor .node-body-editor .cm-editor { min-height: 64px; }
+.ip-prompt-editor .node-body-editor .cm-content { min-height: 64px; }
 .ip-image-preview {
   display: flex;
   flex-direction: column;

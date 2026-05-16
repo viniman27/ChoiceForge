@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 53
+- **Multi-line choice and fake_choice prompts.**
+  - `RightPanel.tsx`: Replaced `<input className="ip-prompt">` with `<NodeBodyEditor>` (wrapped in `.ip-prompt-editor`) for both `choice` and `fake_choice` content tabs. The prompt editor has variable/achievement autocomplete and spellcheck, matching the passage body editor. A word-count badge appears when the prompt is non-empty.
+  - `styles.css`: Added `.ip-prompt-editor` overrides to constrain the CodeMirror min-height to 64px (vs. 120px for passage body editors). Added `white-space: pre-wrap` to `.node-prompt` so multi-line prompts render correctly on canvas cards.
+  - `PlaytestView.tsx`: Fixed prompt rendering to split on `\n` and emit one `<p className="playtest-prompt">` per line (filter out blank lines), so multi-paragraph choice prompts display correctly in playtest. Previously, all lines appeared collapsed into one paragraph.
+  - Generator (`choicescript.ts`) already handled multi-line prompts correctly — it emits `node.prompt` before `*choice` / `*fake_choice`, and newlines in the prompt produce valid ChoiceScript output. No generator changes needed.
+  - No domain model changes, no test changes needed.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 52
 - **`@{variable opt1 opt2}` support: linter + playtest interpolation + auto-advance cleanup.**
   - `extractVariableReferences` in `choicescript.ts` (already landed mid-session) now also extracts the first identifier from `@{var ...}` patterns via `/@\{([a-zA-Z_][\w]*)\b/g`, so undeclared variables inside `@{}` substitutions trigger the usual "undeclared variable" lint warning.

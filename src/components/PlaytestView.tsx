@@ -279,9 +279,9 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               {node.type === "ending" && <p className="playtest-note">The End.</p>}
               {node.type === "finish" && <p className="playtest-note">Scene finished.</p>}
 
-              {node.prompt && (
-                <p className="playtest-prompt">{interpolate(node.prompt, stats)}</p>
-              )}
+              {node.prompt && interpolate(node.prompt, stats).split("\n").filter(Boolean).map((line, i) => (
+                <p key={i} className="playtest-prompt">{line}</p>
+              ))}
 
               {node.type === "fake_choice" && (
                 <div className="playtest-options">

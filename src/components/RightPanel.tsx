@@ -218,10 +218,16 @@ function ContentTab({
   }
 
   if (node.type === "choice") {
+    const promptWc = nodeBodyWordCount(node.prompt ?? "");
     return (
       <div className="ip-content">
-        <label className="ip-label">{labels.choiceLabel}</label>
-        <input className="ip-prompt" value={node.prompt ?? ""} onChange={(event) => onUpdateNode(node.id, { prompt: event.target.value })} />
+        <div className="ip-label-row">
+          <label className="ip-label">{labels.choiceLabel}</label>
+          {promptWc > 0 && <span className="ip-word-count">{promptWc} {promptWc === 1 ? "word" : "words"}</span>}
+        </div>
+        <div className="ip-prompt-editor">
+          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
+        </div>
         <label className="ip-label">#options</label>
         <ul className="ip-opts">
           {node.options?.map((option, index) => (
@@ -255,10 +261,16 @@ function ContentTab({
   }
 
   if (node.type === "fake_choice") {
+    const fakePromptWc = nodeBodyWordCount(node.prompt ?? "");
     return (
       <div className="ip-content">
-        <label className="ip-label">fake choice prompt</label>
-        <input className="ip-prompt" value={node.prompt ?? ""} onChange={(event) => onUpdateNode(node.id, { prompt: event.target.value })} />
+        <div className="ip-label-row">
+          <label className="ip-label">fake choice prompt</label>
+          {fakePromptWc > 0 && <span className="ip-word-count">{fakePromptWc} {fakePromptWc === 1 ? "word" : "words"}</span>}
+        </div>
+        <div className="ip-prompt-editor">
+          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
+        </div>
         <label className="ip-label">#options</label>
         <ul className="ip-opts">
           {node.fakeOptions?.map((option, index) => (
