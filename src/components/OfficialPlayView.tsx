@@ -92,6 +92,7 @@ function buildSrcdoc(project: ChoiceForgeProject): string {
 <script src="${play}/alertify.min.js"></script>
 <script src="${play}/util.js"></script>
 <link rel="stylesheet" href="${play}/style.css">
+<style id="dynamic"></style>
 <script src="${play}/ui.js"></script>
 <script src="${play}/scene.js"></script>
 <script src="${play}/navigator.js"></script>
@@ -102,12 +103,15 @@ function buildSrcdoc(project: ChoiceForgeProject): string {
 <body>
 <div id="container1" class="container">
   <div id="header">
-    <div id="title"></div>
-    <div class="header-right">
-      <button id="statsButton" style="display:none" onclick="showStats()">Show Stats</button>
+    <div id="identity">
+      <span id="title"></span>
+      <span id="author"></span>
+    </div>
+    <div id="headerLinks">
+      <button id="statsButton" accesskey="q" onclick="showStats()">Show Stats</button>
       <button id="achievementsButton" style="display:none" onclick="showAchievements()">Achievements</button>
-      <button id="restartButton" style="display:none" onclick="restartGame()">Restart</button>
-      <button id="menuButton" style="display:none" onclick="menuButtonClicked()">Menu</button>
+      <button id="restartButton" onclick="restartGame()">Restart</button>
+      <button id="menuButton" accesskey="w" onclick="textOptionsMenu()">Menu</button>
       <button id="bugButton" style="display:none" onclick="reportBug()">Report Bug</button>
     </div>
   </div>

@@ -344,6 +344,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 80
+- **Fix OfficialPlayView crash + missing menu buttons.**
+  - **Root cause of crash**: `ui.js` top-level code (line ~3912) unconditionally does `document.getElementById("dynamic").innerHTML += "..."` while parsing. In a `srcdoc` iframe, the `<body>` isn't parsed yet when `<script src="ui.js">` runs, so `#dynamic` is null → TypeError. Fix: added `<style id="dynamic"></style>` to `<head>` BEFORE the `ui.js` script tag, so it exists when ui.js runs.
+  - **Root cause of missing buttons**: All nav buttons were set `style="display:none"`. The CS engine only shows/hides `achievementsButton` and `bugButton` dynamically; the other buttons (`statsButton`, `menuButton`, `restartButton`) are expected to be visible by default in the HTML. Fix: removed `style="display:none"` from those three buttons.
+  - Restructured the header into `#identity` (spans for title/author) + `#headerLinks` (button group), matching the real CS template structure. Fixed `onclick="menuButtonClicked()"` (non-existent) to `onclick="textOptionsMenu()"` (the real function).
+  - 109 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 79
 - **Official ChoiceScript runtime embedded in the editor as a side panel (replaces artisanal graph playtest as the main Play button).**
   - Downloaded all CS engine files to `public/play/`: `scene.js`, `navigator.js`, `ui.js`, `util.js`, `persist.js`, `alertify.min.js`, `style.css`, `alertify.css`.
