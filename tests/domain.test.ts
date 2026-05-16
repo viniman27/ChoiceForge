@@ -1260,6 +1260,48 @@ test("lints empty choice conditions", () => {
   assert.ok(lintProject(project).some((issue) => issue.level === "error" && issue.msg.includes("*selectable_if condition is empty")));
 });
 
+test("warns when a *choice node has only one option", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "choice",
+        x: 0, y: 0, w: 340,
+        title: "single_option_choice",
+        prompt: "Choose.",
+        options: [{ text: "Only option", to: "n2", cond: null }],
+      },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "choice" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((i) => i.level === "warning").map((i) => i.msg);
+
+  assert.ok(warnings.some((msg) => msg.includes("only one option") && msg.includes("single_option_choice")));
+});
+
+test("importChoiceScriptArchive maps *comment before *create to variable desc", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("mygame/startup.txt", [
+      "*title Test",
+      "*author Author",
+      "*scene_list",
+      "  startup",
+      "*comment Player courage (0-100)",
+      "*create courage 50",
+      "*create name \"Alex\"",
+      "*finish",
+    ].join("\n")),
+  ]);
+
+  const courage = project.variables.find((v) => v.name === "courage");
+  const name = project.variables.find((v) => v.name === "name");
+
+  assert.equal(courage?.desc, "Player courage (0-100)", "comment becomes variable desc");
+  assert.equal(name?.desc, "name", "variable without preceding comment uses its name as desc");
+});
+
 test("warns about choice and if branches that loop to themselves", () => {
   const graph: SceneGraph = {
     nodes: [

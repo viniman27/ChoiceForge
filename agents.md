@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 70
+- **Single-option choice lint + comment-to-description import + canvas filter hardening.**
+  - `choicescript.ts / lintChoiceNode`: Added `warning` when a `*choice` or `*fake_choice` node has exactly 1 option (ChoiceScript runtime requires ≥ 2; 0 options remains an error). Both node types get the same rule.
+  - `choicescriptImport.ts / parseStartup`: When parsing `*create` declarations, the function now looks at the immediately preceding line; if it is a `*comment`, its text becomes the variable's `desc` field (instead of defaulting to the variable name). Enables the common CS convention of documenting variables with a comment above them.
+  - `domain.test.ts`: Added `warns when a *choice node has only one option` and `importChoiceScriptArchive maps *comment before *create to variable desc`. 97 tests, all passing.
+  - `GraphCanvas.tsx`: Extracted `errorIds`/`warnIds` sets and passed them into `nodeMatchesFilter` calls; added `has:error`/`has:warning` filter predicates; plain text search now also checks `node.id`. Filter input placeholder and tooltip describe the full filter syntax.
+  - Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 69
 - **Canvas node filter: structured filter syntax.**
   - `GraphCanvas.tsx / nodeMatchesFilter`: Extended text search to support prefix filters. New accepted patterns:

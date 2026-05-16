@@ -171,6 +171,8 @@ function parseStartup(text: string) {
     }
 
     if (command === "create") {
+      const prevLine = index > 0 ? lines[index - 1] : "";
+      const inlineComment = commandName(prevLine) === "comment" ? commandValue(prevLine, "*comment").trim() : "";
       const [, name = "variable", ...rest] = line.trim().split(/\s+/);
       const normalizedName = normalizeIdentifier(name || "variable");
       const initial = rest.join(" ") || "0";
@@ -178,7 +180,7 @@ function parseStartup(text: string) {
         name: normalizedName,
         type: inferVariableType(initial),
         initial,
-        desc: normalizedName,
+        desc: inlineComment || normalizedName,
         uses: 0,
         fairmath: inferVariableType(initial) === "number",
       });
