@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { computeVariableUses, computeAchievementUses, computeVariableLocations } from "../domain/choicescript";
-import type { VarLocation } from "../domain/choicescript";
+import { computeVariableUses, computeAchievementUses, computeVariableLocations, computeAchievementLocations } from "../domain/choicescript";
+import type { VarLocation, AchievementLocation } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
@@ -205,6 +205,7 @@ export function LeftPanel({
             onAddAchievement={onAddAchievement}
             onUpdateAchievement={onUpdateAchievement}
             onDeleteAchievement={onDeleteAchievement}
+            onNavigateToNode={onNavigateToNode}
           />
         )}
         {!search.trim() && activeTab === "assets" && <AssetsList data={data} labels={labels} onAddAsset={onAddAsset} onUpdateAsset={onUpdateAsset} onDeleteAsset={onDeleteAsset} />}
@@ -611,6 +612,35 @@ function groupVarLocsByScene(locs: VarLocation[]) {
   return order.map((sceneName) => ({ sceneName, items: map.get(sceneName)! }));
 }
 
+function AchievementLocationList({ locs, onNavigate }: { locs: AchievementLocation[]; onNavigate?: (sceneName: string, nodeId: string) => void }) {
+  const order: string[] = [];
+  const map = new Map<string, AchievementLocation[]>();
+  for (const loc of locs) {
+    if (!map.has(loc.sceneName)) { map.set(loc.sceneName, []); order.push(loc.sceneName); }
+    map.get(loc.sceneName)!.push(loc);
+  }
+  return (
+    <div className="var-locs">
+      {order.map((sceneName) => (
+        <div key={sceneName} className="var-locs-scene">
+          <span className="var-locs-scene-name">{sceneName}.txt</span>
+          {map.get(sceneName)!.map((loc, i) => (
+            <button
+              key={i}
+              className="var-loc-row"
+              disabled={!onNavigate}
+              onClick={() => onNavigate?.(loc.sceneName, loc.nodeId)}
+            >
+              <span className="var-loc-kind var-loc-kind-write">*achieve</span>
+              <span className="var-loc-title">{loc.nodeTitle || loc.nodeId}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function normalizeIdentifier(value: string): string {
   return value
     .trim()
@@ -626,20 +656,27 @@ function AchievementsList({
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
+  onNavigateToNode,
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
+  onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }) {
   const achievementUses = useMemo(() => computeAchievementUses(data), [data]);
+  const achievementLocations = useMemo(() => computeAchievementLocations(data), [data]);
+  const [expandedAch, setExpandedAch] = useState<string | null>(null);
+
   return (
     <div className="ach-list">
       <div className="section-title"><span>*achievement</span><button className="ghost-btn" onClick={onAddAchievement}>+ {labels.addAch}</button></div>
       <ul>
         {data.achievements.map((achievement) => {
           const uses = achievementUses.get(achievement.id) ?? 0;
+          const locs = achievementLocations.get(achievement.id) ?? [];
+          const isExpanded = expandedAch === achievement.id;
           return (
           <li key={achievement.id} className={`ach-item ${achievement.hidden ? "is-hidden" : ""}`}>
             <input
@@ -693,8 +730,15 @@ function AchievementsList({
               />
               <div className="ach-footer-row">
                 <code className="ach-id">*achieve {achievement.id}</code>
-                <span className={`var-uses ${uses === 0 ? "is-zero" : ""}`}>{uses} use{uses !== 1 ? "s" : ""}</span>
+                <button
+                  className={`var-uses-btn ${uses === 0 ? "is-zero" : ""} ${isExpanded ? "is-active" : ""}`}
+                  title={uses > 0 ? "Show where this achievement is granted" : undefined}
+                  onClick={() => uses > 0 && setExpandedAch(isExpanded ? null : achievement.id)}
+                >{uses} use{uses !== 1 ? "s" : ""}</button>
               </div>
+              {isExpanded && locs.length > 0 && (
+                <AchievementLocationList locs={locs} onNavigate={onNavigateToNode} />
+              )}
             </div>
           </li>
           );
