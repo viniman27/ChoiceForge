@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 75
+- **Linter: `*set` value variable refs + `*gosub_scene` entry label validation. Inspector: variable autocomplete in set value field.**
+  - `choicescript.ts / lintSet`: Added `extractExpressionNames(set.val)` scan after the existing type/op checks. Any identifier in the value expression that isn't a declared variable (global, temp, or params) produces a `warning` — catches patterns like `*set score ghost_var + 10` where the referenced variable is undeclared.
+  - `choicescript.ts / lintSceneGraph (gosub_scene handler)`: After confirming the target scene exists, the linter now reads `project.sceneData[target]` and checks whether the specified entry label (`node.body`) is present among the target scene's `*label` nodes. Emits a `warning` when the scene has labels but the requested one is absent (skips the check when the target scene has no labels yet, to avoid false positives during drafting).
+  - `RightPanel.tsx / SetFields`: Replaced the plain `<input>` for number/string set values with `<ConditionInput>` — the same autocomplete-capable component used for `*if` condition fields. Typing a partial variable name shows a dropdown of matching declared variables. The wrapper `.cond-wrap` now has `flex: 1` inside `.ip-set-row`.
+  - `styles.css`: Added `.ip-set-row .cond-wrap { flex: 1; min-width: 60px; }` so the autocomplete wrapper fills the row exactly as the previous plain input did.
+  - `domain.test.ts`: Added 3 new tests — warns when set value references undeclared variable; does not warn when set value references a declared variable; warns when gosub_scene entry label is absent from target scene. 106 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 74
 - **Dashboard project-wide KPIs + `*temp` variable visibility in playtest.**
   - `Dashboard.tsx`: Replaced single-scene `choiceCount`/`optionCount`/`endingCount` computations with `allProjectNodes` — a flat list built from `data.nodes` (active scene) plus all nodes from non-special `sceneData` entries. `choiceCount` now includes both `*choice` and `*fake_choice`; `optionCount` sums `options` and `fakeOptions`. KPI label changed from "endings in this scene" to "endings" to reflect the new project-wide scope.

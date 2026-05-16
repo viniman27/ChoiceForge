@@ -2167,6 +2167,73 @@ test("generateStatsChoiceScript omits stat_chart block when all variables are hi
   assert.ok(!stats.includes("*stat_chart"), "stat_chart block should be absent when all variables are hidden");
 });
 
+test("lints *set value that references an undeclared variable", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "Score", fairmath: false }],
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 280, title: "*set score", sets: [{ var: "score", op: "=", val: "ghost_var + 10" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  project.sceneData = { intro: { nodes: project.nodes, edges: project.edges } };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((i) => i.scene === "intro" && i.level === "warning" && i.msg.includes("undeclared variable: ghost_var")));
+});
+
+test("does not warn when *set value references a declared variable", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [
+      { name: "score", type: "number", initial: "0", desc: "Score", fairmath: false },
+      { name: "bonus", type: "number", initial: "0", desc: "Bonus", fairmath: false },
+    ],
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 280, title: "*set score", sets: [{ var: "score", op: "=", val: "bonus + 10" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  project.sceneData = { intro: { nodes: project.nodes, edges: project.edges } };
+  const issues = lintProject(project);
+
+  assert.ok(!issues.some((i) => i.level === "warning" && i.msg.includes("undeclared variable: bonus")));
+});
+
+test("lints *gosub_scene entry label that does not exist in target scene", () => {
+  const targetGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "label", x: 0, y: 0, w: 240, title: "*label real_sub" },
+      { id: "n2", type: "return", x: 0, y: 160, w: 240, title: "*return" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "sub", name: "sub", words: 0, nodes: 2 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene sub missing_sub", target: "sub", body: "missing_sub" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {
+      intro: { nodes: [], edges: [] },
+      sub: targetGraph,
+    },
+  };
+  project.sceneData!.intro = { nodes: project.nodes, edges: project.edges };
+  const issues = lintProject(project);
+
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes('entry label "missing_sub" not found in scene sub')));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

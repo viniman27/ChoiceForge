@@ -2011,6 +2011,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .ip-set-row select, .ip-set-row input { padding: 3px 6px; border: 1px solid var(--paper-edge); border-radius: var(--r-1); background: var(--paper-2); font-size: 11px; }
 .ip-set-row select { min-width: 64px; }
 .ip-set-row input { flex: 1; }
+.ip-set-row .cond-wrap { flex: 1; min-width: 60px; }
 .x-btn { background: transparent; border: none; color: var(--ink-faint); font-size: 14px; padding: 0 4px; }
 .x-btn:hover { color: var(--err); }
 
