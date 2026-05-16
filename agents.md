@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 59
+- **Variable reordering in the Variables tab.**
+  - `projectStore.ts`: Added `moveVariable(name, direction: "up" | "down")` to `ProjectActions` interface and implementation. Finds the variable by name, swaps it with the neighbour in the `variables` array, then commits via `commitProject` + `clearStartupSource` (because variable order affects the generated `*create` block in `startup.txt`).
+  - `LeftPanel.tsx`: Added `onMoveVariable` prop to `LeftPanelProps`, destructured it, and passed it down to `VariablesList`. Updated `VariablesList` to accept `onMoveVariable`. Added a new leading column in `vars-table` containing `↑` / `↓` buttons (`.var-move-btn` inside `.var-move-cell`). First row's `↑` and last row's `↓` are `disabled`. `colSpan` on the cross-reference expansion row updated from 7 to 8.
+  - `App.tsx`: Wired `onMoveVariable={actions.moveVariable}` on `<LeftPanel>`.
+  - `styles.css`: Added `.var-move-cell`, `.var-move-btn`, `.var-move-btn:hover`, `.var-move-btn:disabled`.
+  - 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 58
 - **Achievement cross-reference navigation in the Achievements tab.**
   - `choicescript.ts`: New exported type `AchievementLocation { sceneName, nodeId, nodeTitle }` and function `computeAchievementLocations(project)` → `Map<string, AchievementLocation[]>`. Scans all `sceneData` graphs for `*achieve <id>` commands in `node.body` using `extractAchievementCommandTargets`. Duplicate (scene+node) entries suppressed.

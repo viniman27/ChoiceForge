@@ -19,6 +19,7 @@ interface LeftPanelProps {
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
   onDeleteVariable: (name: string) => void;
+  onMoveVariable: (name: string, direction: "up" | "down") => void;
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
@@ -46,6 +47,7 @@ export function LeftPanel({
   onAddVariable,
   onUpdateVariable,
   onDeleteVariable,
+  onMoveVariable,
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
@@ -197,7 +199,7 @@ export function LeftPanel({
             onDeleteScene={onDeleteScene}
           />
         )}
-        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} onDeleteVariable={onDeleteVariable} onNavigateToNode={onNavigateToNode} />}
+        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} onDeleteVariable={onDeleteVariable} onMoveVariable={onMoveVariable} onNavigateToNode={onNavigateToNode} />}
         {!search.trim() && activeTab === "achievements" && (
           <AchievementsList
             data={data}
@@ -504,6 +506,7 @@ function VariablesList({
   onAddVariable,
   onUpdateVariable,
   onDeleteVariable,
+  onMoveVariable,
   onNavigateToNode,
 }: {
   data: ChoiceForgeProject;
@@ -511,6 +514,7 @@ function VariablesList({
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
   onDeleteVariable: (name: string) => void;
+  onMoveVariable: (name: string, direction: "up" | "down") => void;
   onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }) {
   const variableUses = useMemo(() => computeVariableUses(data), [data]);
@@ -521,15 +525,21 @@ function VariablesList({
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th>uses</th><th></th></tr></thead>
+        <thead><tr><th></th><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th>uses</th><th></th></tr></thead>
         <tbody>
-          {data.variables.map((variable) => {
+          {data.variables.map((variable, index) => {
             const uses = variableUses.get(variable.name) ?? 0;
             const locs = variableLocations.get(variable.name) ?? [];
             const isExpanded = expandedVar === variable.name;
+            const isFirst = index === 0;
+            const isLast = index === data.variables.length - 1;
             return (
               <>
                 <tr key={variable.name}>
+                  <td className="var-move-cell">
+                    <button className="var-move-btn" disabled={isFirst} onClick={() => onMoveVariable(variable.name, "up")} title="Move up">↑</button>
+                    <button className="var-move-btn" disabled={isLast} onClick={() => onMoveVariable(variable.name, "down")} title="Move down">↓</button>
+                  </td>
                   <td>
                     <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
                       <option value="number">num</option>
@@ -564,7 +574,7 @@ function VariablesList({
                 </tr>
                 {isExpanded && locs.length > 0 && (
                   <tr key={`${variable.name}-locs`} className="var-locs-row">
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <VarLocationList locs={locs} onNavigate={onNavigateToNode} />
                     </td>
                   </tr>

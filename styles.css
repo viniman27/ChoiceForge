@@ -577,6 +577,10 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .var-edit.small { min-width: 42px; }
 .var-edit.desc { font-family: var(--ff-ui); min-width: 90px; }
+.var-move-cell { padding: 0 2px !important; white-space: nowrap; }
+.var-move-btn { background: none; border: none; cursor: pointer; color: var(--ink-mute); padding: 1px 3px; font-size: 10px; line-height: 1; border-radius: 2px; }
+.var-move-btn:hover:not(:disabled) { background: var(--paper-3); color: var(--ink); }
+.var-move-btn:disabled { opacity: 0.25; cursor: default; }
 .var-uses-btn {
   display: inline-block;
   min-width: 22px;
