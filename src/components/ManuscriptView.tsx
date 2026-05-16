@@ -28,6 +28,7 @@ export function ManuscriptView({ data, onClose, onNavigateToNode }: ManuscriptVi
 
   const sections = scope === "project" ? projectSections : [sceneSection];
   const allNodes = sections.flatMap((s) => s.nodes);
+  const sectionWordCounts = new Map(sections.map((s) => [s.name, countWords(s.nodes)]));
   const wordCount = countWords(allNodes);
   const passageCount = allNodes.filter(hasNarrativeContent).length;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
@@ -89,22 +90,46 @@ export function ManuscriptView({ data, onClose, onNavigateToNode }: ManuscriptVi
       </div>
 
       <div className="ms-body">
+        {scope === "project" && (
+          <nav className="ms-toc">
+            <div className="ms-toc-head">scenes</div>
+            {sections.map((section) => {
+              const synopsis = data.scenes.find((s) => s.name === section.name)?.notes;
+              const wc = sectionWordCounts.get(section.name) ?? 0;
+              return (
+                <button
+                  key={section.name}
+                  className="ms-toc-btn"
+                  onClick={() => document.getElementById(`ms-scene-${section.name}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                >
+                  <span className="ms-toc-name">{section.name}</span>
+                  {synopsis && <span className="ms-toc-synopsis">{synopsis}</span>}
+                  <span className="ms-toc-wc">{wc.toLocaleString()} w</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
         <div className="ms-content">
-          {sections.map((section, si) => (
-            <div key={section.name}>
-              {scope === "project" && (
-                <div className="ms-scene-divider">
-                  <span className="ms-scene-divider-name">{section.name}.txt</span>
-                </div>
-              )}
-              {section.nodes.map((node) => (
-                <NodeBlock key={`${section.name}-${node.id}`} node={node} sceneName={section.name} onNavigate={onNavigateToNode} />
-              ))}
-              {scope === "project" && si < sections.length - 1 && (
-                <div className="ms-scene-end" />
-              )}
-            </div>
-          ))}
+          {sections.map((section, si) => {
+            const synopsis = scope === "project" ? data.scenes.find((s) => s.name === section.name)?.notes : undefined;
+            return (
+              <div key={section.name}>
+                {scope === "project" && (
+                  <div className="ms-scene-divider" id={`ms-scene-${section.name}`}>
+                    <span className="ms-scene-divider-name">{section.name}.txt</span>
+                    {synopsis && <p className="ms-scene-synopsis">{synopsis}</p>}
+                  </div>
+                )}
+                {section.nodes.map((node) => (
+                  <NodeBlock key={`${section.name}-${node.id}`} node={node} sceneName={section.name} onNavigate={onNavigateToNode} />
+                ))}
+                {scope === "project" && si < sections.length - 1 && (
+                  <div className="ms-scene-end" />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -138,7 +163,9 @@ function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName
     return (
       <section className="ms-choice">
         {titleEl}
-        {node.prompt && <p className="ms-prompt">{node.prompt}</p>}
+        {node.prompt && node.prompt.split("\n").filter(Boolean).map((line, i) => (
+          <p key={i} className="ms-prompt">{line}</p>
+        ))}
         <ul className="ms-options">
           {(node.options ?? node.fakeOptions ?? []).map((opt, i) => (
             <li key={i} className="ms-option">
@@ -259,7 +286,7 @@ function nodeListToLines(nodes: StoryNode[]): string[] {
       }
       if (node.note) lines.push(`[Note: ${node.note}]`, "");
     } else if (node.type === "choice" || node.type === "fake_choice") {
-      if (node.prompt) lines.push(`> ${node.prompt}`, "");
+      if (node.prompt) { node.prompt.split("\n").filter(Boolean).forEach((line) => lines.push(`> ${line}`)); lines.push(""); }
       const opts = node.options ?? node.fakeOptions ?? [];
       opts.forEach((opt, i) => lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`));
       if (opts.length) lines.push("");
