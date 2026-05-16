@@ -335,7 +335,7 @@ export function GraphCanvas({
 
   const selCount = selectedIds.size;
   const activeFilter = canvasFilter.trim().toLowerCase();
-  const filterMatches = activeFilter ? data.nodes.filter((n) => nodeMatchesFilter(n, activeFilter)) : [];
+  const filterMatches = activeFilter ? data.nodes.filter((n) => nodeMatchesFilter(n, activeFilter, errorNodeIds, warnNodeIds)) : [];
 
   useEffect(() => { setFilterResultIdx(0); }, [canvasFilter]);
 
@@ -516,7 +516,7 @@ export function GraphCanvas({
             hasError={errorNodeIds.has(node.id)}
             hasWarning={!errorNodeIds.has(node.id) && warnNodeIds.has(node.id)}
             isDimmed={
-              (activeFilter ? !nodeMatchesFilter(node, activeFilter) : false) ||
+              (activeFilter ? !nodeMatchesFilter(node, activeFilter, errorNodeIds, warnNodeIds) : false) ||
               (activeColorTags.size > 0 ? !node.colorTag || !activeColorTags.has(node.colorTag) : false)
             }
             onSelect={(id, addToSet) => selectNode(id, addToSet)}
@@ -597,7 +597,8 @@ export function GraphCanvas({
           <input
             ref={filterInputRef}
             className="canvas-filter-input"
-            placeholder="filter nodes…"
+            placeholder="filter nodes… (type:, tag:, status:todo, has:error)"
+            title="Text search, or: type:passage · type:choice · tag:red · color:blue · status:todo · status:done · has:note · has:error · has:warning"
             value={canvasFilter}
             onChange={(e) => setCanvasFilter(e.target.value)}
             onKeyDown={(e) => {
@@ -900,13 +901,23 @@ function fitNodesToViewport(
   });
 }
 
-function nodeMatchesFilter(node: StoryNode, filter: string): boolean {
+function nodeMatchesFilter(node: StoryNode, filter: string, errorIds: Set<string | null | undefined>, warnIds: Set<string | null | undefined>): boolean {
+  if (filter.startsWith("type:")) return node.type.includes(filter.slice(5).trim());
+  if (filter.startsWith("tag:")) return Boolean(node.colorTag?.includes(filter.slice(4).trim()));
+  if (filter.startsWith("color:")) return Boolean(node.colorTag?.includes(filter.slice(6).trim()));
+  if (filter === "status:todo" || filter === ":todo") return node.status === "todo";
+  if (filter === "status:done" || filter === ":done") return node.status === "done";
+  if (filter.startsWith("note:")) return Boolean(node.note?.toLowerCase().includes(filter.slice(5).trim()));
+  if (filter === "has:note") return Boolean(node.note?.trim());
+  if (filter === "has:error") return errorIds.has(node.id);
+  if (filter === "has:warning" || filter === "has:warn") return warnIds.has(node.id);
   return (
     node.title.toLowerCase().includes(filter) ||
     (node.body ?? "").toLowerCase().includes(filter) ||
     (node.prompt ?? "").toLowerCase().includes(filter) ||
     (node.options ?? []).some((o) => o.text.toLowerCase().includes(filter)) ||
-    (node.fakeOptions ?? []).some((o) => o.text.toLowerCase().includes(filter))
+    (node.fakeOptions ?? []).some((o) => o.text.toLowerCase().includes(filter)) ||
+    node.id.toLowerCase().includes(filter)
   );
 }
 
