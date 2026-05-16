@@ -63,6 +63,9 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     const alt = node.prompt?.trim();
     lines.push(alt ? `*image ${node.target} ${alignment} ${alt}` : `*image ${node.target} ${alignment}`);
   }
+  if (node.type === "sound" && node.target?.trim()) {
+    lines.push(`*sound ${node.target}`);
+  }
   if (node.type === "goto_scene" && node.target) lines.push(`*goto_scene ${node.target}`);
   if (node.type === "goto") lines.push(`*goto ${stripCommandPrefix(node.title, "*goto")}`);
   if (node.type === "gosub") lines.push(stripCommandPrefix(node.title, "*gosub").startsWith("*") ? node.title : `*gosub ${stripCommandPrefix(node.title, "*gosub")}`);
@@ -559,6 +562,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "image" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
     }
+    if (node.type === "sound" && !node.target?.trim()) {
+      issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, node: node.id });
+    }
 
     if (node.type === "goto") {
       const label = stripCommandPrefix(node.title, "*goto");
@@ -694,6 +700,10 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "image") {
       const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
+    }
+    if (command === "sound") {
+      const filename = sourceCommandValue(trimmed, "*sound").split(/\s+/)[0] ?? "";
+      if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, line: lineNumber });
     }
     if (command === "save_checkpoint") {
       const slot = sourceCommandValue(trimmed, "*save_checkpoint");

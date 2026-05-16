@@ -276,6 +276,7 @@ function summarizeNodeTypes(nodes: StoryNode[]) {
     rand: "var(--c-set)",
     gosub_scene: "var(--c-gosub)",
     image: "var(--c-passage)",
+    sound: "var(--c-passage)",
     temp: "var(--c-set)",
     params: "var(--c-set)",
   };

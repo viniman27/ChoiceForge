@@ -1337,6 +1337,7 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   }
   if (type === "gosub_scene") return { ...base, title: `*gosub_scene ${firstScene(project)}`, target: firstScene(project) };
   if (type === "image") return { ...base, title: "*image", target: "", inputMin: "none", prompt: "" };
+  if (type === "sound") return { ...base, title: "*sound", target: "" };
   if (type === "temp") return { ...base, title: "*temp temp_var", inputVar: "temp_var", body: "0" };
   if (type === "params") return { ...base, title: "*params", body: "" };
   return { ...base, title: "*ending" };
@@ -1365,6 +1366,7 @@ function defaultNodeTitle(type: NodeType): string {
     rand: "*rand",
     gosub_scene: "*gosub_scene",
     image: "*image",
+    sound: "*sound",
     temp: "*temp",
     params: "*params",
   };
@@ -1374,7 +1376,7 @@ function defaultNodeTitle(type: NodeType): string {
 function defaultNodeWidth(type: NodeType): number {
   if (type === "choice" || type === "fake_choice") return 340;
   if (type === "passage") return 300;
-  if (["checkpoint", "restore_checkpoint", "goto_scene", "gosub_scene", "page_break", "comment", "input_text", "input_number", "rand", "image", "temp", "params"].includes(type)) return 280;
+  if (["checkpoint", "restore_checkpoint", "goto_scene", "gosub_scene", "page_break", "comment", "input_text", "input_number", "rand", "image", "sound", "temp", "params"].includes(type)) return 280;
   return 240;
 }
 

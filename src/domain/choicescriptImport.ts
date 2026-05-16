@@ -561,6 +561,10 @@ function updateChoiceForgeCommandNode(node: StoryNode, section: string[]): Story
     const [filename = "", alignment = "none", ...altParts] = value.split(/\s+/);
     return { ...node, title: `*image ${filename}`.trim(), target: filename, inputMin: alignment, prompt: altParts.join(" ").trim() || undefined };
   }
+  if (node.type === "sound" && name === "sound") {
+    const filename = commandValue(command, "*sound").trim().split(/\s+/)[0] ?? "";
+    return { ...node, title: `*sound ${filename}`.trim(), target: filename };
+  }
   if (node.type === "temp" && name === "temp") {
     const value = commandValue(command, "*temp");
     const [rawVar = "", ...restParts] = value.trim().split(/\s+/);
@@ -596,7 +600,7 @@ function parseChoiceForgeBody(section: string[]): string {
 function isChoiceForgeBodyStop(trimmed: string): boolean {
   if (!trimmed.startsWith("*")) return false;
   if (isChoiceForgeFlowGoto(trimmed)) return true;
-  return ["*set ", "*temp ", "*params", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image "].some((prefix) => trimmed.startsWith(prefix));
+  return ["*set ", "*temp ", "*params", "*choice", "*fake_choice", "*if", "*elseif", "*else", "*goto_scene", "*goto ", "*gosub", "*return", "*ending", "*finish", "*save_checkpoint", "*restore_checkpoint", "*page_break", "*comment", "*input_text", "*input_number", "*rand", "*image ", "*sound "].some((prefix) => trimmed.startsWith(prefix));
 }
 
 function extractChoiceForgeCommandBlock(section: string[], command: "choice" | "fake_choice"): string[] | null {
@@ -717,6 +721,10 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
     const [filename = "", alignment = "none", ...altParts] = value.trim().split(/\s+/);
     const alt = altParts.join(" ").trim();
     return { type: "image", title: `*image ${filename}`.trim(), target: filename, inputMin: alignment, prompt: alt || undefined };
+  }
+  if (command === "sound") {
+    const filename = value.trim().split(/\s+/)[0] ?? "";
+    return { type: "sound", title: `*sound ${filename}`.trim(), target: filename };
   }
   if (command === "set") {
     const parsed = parseSet(value);
@@ -1267,7 +1275,7 @@ function normalizeExpressionIdentifiers(expression: string): string {
 
 function defaultImportedWidth(type: NodeType): number {
   if (type === "passage") return 340;
-  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image", "temp", "params"].includes(type)) return 280;
+  if (["goto_scene", "checkpoint", "restore_checkpoint", "page_break", "comment", "input_text", "input_number", "rand", "gosub_scene", "image", "sound", "temp", "params"].includes(type)) return 280;
   return 240;
 }
 

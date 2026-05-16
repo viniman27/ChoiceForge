@@ -29,7 +29,7 @@ interface GraphCanvasProps {
 const creatableNodeTypes: NodeType[] = [
   "passage", "choice", "fake_choice", "if", "set", "label", "goto", "goto_scene",
   "gosub", "gosub_scene", "return", "input_text", "input_number", "rand",
-  "image", "temp", "params", "page_break", "checkpoint", "restore_checkpoint",
+  "image", "sound", "temp", "params", "page_break", "checkpoint", "restore_checkpoint",
   "comment", "finish", "ending",
 ];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";

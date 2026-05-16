@@ -343,6 +343,28 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 71
+- **`*sound` node type (parallel to `*image`).**
+  - `types.ts / NodeType`: Added `"sound"` as a new node type.
+  - `sampleProject.ts / I18nLabels.nodeTypes`: Added `sound` label in all three languages (PT: "som", EN: "sound", ES: "sonido").
+  - `choicescript.ts / generateNodeChoiceScript`: Emits `*sound ${filename}` when `node.type === "sound"` and `node.target` is non-empty; silently skips when empty (same pattern as `*image`).
+  - `choicescript.ts / lintSceneGraph`: Warns `"*sound needs a filename"` when a `sound` node has an empty `target`.
+  - `choicescript.ts / lintPreservedScriptSource`: Added `sound` command block — warns when the filename is missing in preserved source.
+  - `choicescriptImport.ts / isChoiceForgeBodyStop`: Added `"*sound "` prefix so sound commands end a passage body during import.
+  - `choicescriptImport.ts / parseImportedNode`: Parses `*sound filename` raw CS lines into `{ type: "sound", title: "*sound filename", target: filename }` nodes.
+  - `choicescriptImport.ts / patchNodeFromImportedCommand`: Handles re-import of ChoiceForge-exported `sound` nodes (round-trip).
+  - `choicescriptImport.ts / defaultImportedWidth`: `sound` gets width 280 (same bucket as `image`).
+  - `NodeCard.tsx / typeColors`: `sound` shares `--c-passage` / `--c-passage-tint` colours with `image`.
+  - `NodeCard.tsx / NodeIcon`: Added speaker SVG icon for `sound` nodes.
+  - `NodeCard.tsx`: Canvas card shows `node.target` filename (same as `image`); `goto_scene`-style `.txt` suffix excluded.
+  - `GraphCanvas.tsx / creatableNodeTypes`: Added `"sound"` so it appears in the canvas toolbar.
+  - `RightPanel.tsx / ContentTab`: Added inspector branch for `sound` — shows an audio-asset picker (`<select>`) when audio assets (mp3/ogg/wav/aac/flac/m4a) are present, falls back to a plain `<input>`. Changing the value updates `target` and `title`.
+  - `Dashboard.tsx / nodeTypeColors`: Added `sound` → `--c-passage`.
+  - `projectStore.ts / defaultNodeTitle`: Added `sound: "*sound"`.
+  - `projectStore.ts / createDefaultNode`: Added `sound` branch returning `{ title: "*sound", target: "" }`.
+  - `projectStore.ts / defaultNodeWidth`: Added `"sound"` to the 280px bucket.
+  - `domain.test.ts`: Added 4 tests: generates `*sound` command; skips when filename empty; warns on missing filename; imports `*sound` lines as sound nodes. 101 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 70
 - **Single-option choice lint + comment-to-description import + canvas filter hardening.**
   - `choicescript.ts / lintChoiceNode`: Added `warning` when a `*choice` or `*fake_choice` node has exactly 1 option (ChoiceScript runtime requires ≥ 2; 0 options remains an error). Both node types get the same rule.
