@@ -343,6 +343,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 52
+- **`@{variable opt1 opt2}` support: linter + playtest interpolation + auto-advance cleanup.**
+  - `extractVariableReferences` in `choicescript.ts` (already landed mid-session) now also extracts the first identifier from `@{var ...}` patterns via `/@\{([a-zA-Z_][\w]*)\b/g`, so undeclared variables inside `@{}` substitutions trigger the usual "undeclared variable" lint warning.
+  - `interpolate()` in `PlaytestView.tsx` updated to expand `@{var opt1 opt2}` at playtest time:
+    - 1 option: always returns the single option (unconditional).
+    - 2 options: truthy → opt0, falsy → opt1.
+    - 5+ options with a number variable: maps value 0–100 in 20-unit bands to the matching option (index clamped at 4).
+    - Otherwise: truthy → opt0, falsy → last option.
+    - `${var}` substitution still runs after `@{}` expansion.
+  - `comment` and `label` nodes added to the useEffect auto-advance logic in `PlaytestView.tsx`: they now silently follow their flow edge instead of rendering a "Continue" button.
+  - Two new tests in `domain.test.ts`: one asserts a warning when `@{strength strong weak}` is in a passage body and `strength` is undeclared; one asserts no warning when `strength` is declared.
+  - 89 tests, all passing.
+
 ### 2026-05-15 — Claude Code (claude-sonnet-4-6) — session 51
 - **Project snapshots — named, persistent restore points.**
   - `SnapshotMeta` interface exported from `projectStore.ts`: `{ id, name, createdAt, wordCount, sceneCount }`.
