@@ -19,6 +19,7 @@ type PlaySnapshot = {
   pageBlocks: PageBlock[];
   playTrail: TrailEntry[];
   earnedAchievements: string[];
+  usedOptions: string[];
 };
 
 export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestViewProps) {
@@ -32,6 +33,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const [changedVars, setChangedVars] = useState<Set<string>>(new Set());
   const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
   const [historyStack, setHistoryStack] = useState<PlaySnapshot[]>([]);
+  const [usedOptions, setUsedOptions] = useState<Set<string>>(new Set());
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const graph = getSceneGraph(project, sceneName);
 
@@ -54,6 +56,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setChangedVars(new Set());
     setEarnedAchievements([]);
     setHistoryStack([]);
+    setUsedOptions(new Set());
   }, [project]);
 
   useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
@@ -190,10 +193,11 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setChangedVars(new Set());
     setEarnedAchievements([]);
     setHistoryStack([]);
+    setUsedOptions(new Set());
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
 
-  const pushSnapshot = () => setHistoryStack((h) => [...h, { sceneName, nodeId, stats, returnStack, pageBlocks, playTrail, earnedAchievements }]);
+  const pushSnapshot = () => setHistoryStack((h) => [...h, { sceneName, nodeId, stats, returnStack, pageBlocks, playTrail, earnedAchievements, usedOptions: [...usedOptions] }]);
 
   const goBack = () => {
     const prev = historyStack.at(-1);
@@ -206,6 +210,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setPageBlocks(prev.pageBlocks);
     setPlayTrail(prev.playTrail);
     setEarnedAchievements(prev.earnedAchievements);
+    setUsedOptions(new Set(prev.usedOptions));
     setChangedVars(new Set());
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
@@ -362,14 +367,19 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               {node.type === "fake_choice" && flowTarget && (
                 <div className="playtest-options">
                   {node.fakeOptions?.map((option, index) => {
+                    const optKey = `${node.id}:${index}`;
+                    const hasBeenUsed = usedOptions.has(optKey);
+                    if (option.reuse === "hide" && hasBeenUsed) return null;
                     const condMet = option.cond ? evaluateExpression(option.cond.expr, stats) : true;
                     if (option.cond?.type === "if" && !condMet) return null;
+                    const isDisabled = !condMet || (option.reuse === "disable" && hasBeenUsed);
                     return (
                       <button
                         key={`${option.text}-${index}`}
-                        disabled={!condMet}
+                        disabled={isDisabled}
                         onClick={() => {
                           pushSnapshot();
+                          setUsedOptions((prev) => new Set([...prev, optKey]));
                           const optSets = option.sets ?? [];
                           if (optSets.length) flashVars(optSets.map((s) => s.var));
                           setStats((current) => applySets(current, optSets, project.variables));
@@ -389,14 +399,19 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               {options.length > 0 && (
                 <div className="playtest-options">
                   {options.map((option, index) => {
+                    const optKey = `${node.id}:${index}`;
+                    const hasBeenUsed = usedOptions.has(optKey);
+                    if (option.reuse === "hide" && hasBeenUsed) return null;
                     const condMet = option.cond ? evaluateExpression(option.cond.expr, stats) : true;
                     if (option.cond?.type === "if" && !condMet) return null;
+                    const isDisabled = !condMet || (option.reuse === "disable" && hasBeenUsed);
                     return (
                       <button
                         key={`${option.text}-${index}`}
-                        disabled={!condMet}
+                        disabled={isDisabled}
                         onClick={() => {
                           pushSnapshot();
+                          setUsedOptions((prev) => new Set([...prev, optKey]));
                           const optSets = option.sets ?? [];
                           if (optSets.length) flashVars(optSets.map((s) => s.var));
                           setStats((current) => applySets(current, optSets, project.variables));

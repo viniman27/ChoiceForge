@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 77
+- **Playtest: option reuse tracking (`*hide_reuse` / `*disable_reuse` / `*allow_reuse`).**
+  - `PlaytestView.tsx / PlaySnapshot`: Added `usedOptions: string[]` field so undo (`goBack`) can restore which options had been used before the undone action.
+  - `PlaytestView.tsx`: Added `usedOptions` state (`Set<string>`) keyed by `${nodeId}:${optionIndex}`. Reset in `restart()` and the `[project]` effect. Serialised as `[...usedOptions]` in `pushSnapshot`, restored as `new Set(prev.usedOptions)` in `goBack`.
+  - `PlaytestView.tsx / choice option rendering`: Before rendering each option, check `usedOptions.has(optKey)`. If `option.reuse === "hide"` and already used → return null (option disappears). If `option.reuse === "disable"` and already used → button is disabled (grayed out). Default (`undefined` / `"allow"`) → always clickable. When an option is clicked, `optKey` is added to `usedOptions`.
+  - Same logic applied to `fake_choice` option rendering.
+  - 106 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 76
 - **Variable rename propagation fixes + goto/gosub jump-to-label button.**
   - `projectStore.ts / renameVariableReferences`: Extended to also rename `@{varname` patterns (ChoiceScript conditional substitution), not just `${varname}` interpolation. Previously renaming `score` would leave `@{score high mid low}` unchanged.
