@@ -344,6 +344,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 82
+- **Stable play panel + scene selector for OfficialPlayView.**
+  - `OfficialPlayView.tsx`: Full rewrite to stabilise the iframe across project edits and add direct scene access.
+    - `useState(() => buildSrcdoc(project, ""))` — srcdoc computed once at mount; project edits no longer cause the iframe to reload mid-game.
+    - `iframeKey` — increments only on explicit **Reload** button click (↺), which rebuilds srcdoc from the latest project state.
+    - `projectRef` — always holds the latest project so Reload always picks up current edits.
+    - Scene selector dropdown — shown only when there is more than one playable scene; selecting a scene immediately rebuilds and re-mounts the iframe starting at that scene.
+    - `buildInitJs` now takes a `forcedScene: string` param. When set: initialises `SceneNavigator` with the full scene list and overrides `window.nav.getStartupScene()` to return the chosen scene directly, bypassing startup. When empty: uses `new SceneNavigator(["startup"])` so the normal startup → scene_list flow runs.
+  - `styles.css`: Added `.official-play-actions` (flex row, gap 6px) and `.official-play-scene-select` styles.
+  - 109 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 81
 - **Fix two more OfficialPlayView runtime errors.**
   - `null.style` crash: `loginDiv()` in `window.onload` accesses `document.getElementById("email").style` and `getElementById("logout").style` without null checks. These are the CoG account email/logout links inside `#identity`. Added `<a id="email" href="#" style="display:none"></a>` and `<a id="logout" href="#" style="display:none"></a>` to `#identity` in `buildSrcdoc`.

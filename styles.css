@@ -2305,6 +2305,21 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-weight: 600;
   letter-spacing: 0;
 }
+.official-play-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.official-play-scene-select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-1);
+  color: var(--ink);
+  cursor: pointer;
+}
 .official-play-iframe {
   border: none;
   width: 100%;
