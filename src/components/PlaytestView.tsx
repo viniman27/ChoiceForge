@@ -10,6 +10,14 @@ interface PlaytestViewProps {
 type ReturnEntry = { scene: string; nodeId: string };
 type PageBlock = { id: string; body?: string; note?: string };
 type TrailEntry = { kind: "scene"; name: string } | { kind: "choice"; text: string; num: number };
+type PlaySnapshot = {
+  sceneName: string;
+  nodeId: string;
+  stats: Record<string, string | number | boolean>;
+  returnStack: ReturnEntry[];
+  pageBlocks: PageBlock[];
+  playTrail: TrailEntry[];
+};
 
 export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestViewProps) {
   const [sceneName, setSceneName] = useState(project.sceneTitle);
@@ -20,6 +28,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const [pageBlocks, setPageBlocks] = useState<PageBlock[]>([]);
   const [playTrail, setPlayTrail] = useState<TrailEntry[]>(() => [{ kind: "scene", name: project.sceneTitle }]);
   const [changedVars, setChangedVars] = useState<Set<string>>(new Set());
+  const [historyStack, setHistoryStack] = useState<PlaySnapshot[]>([]);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const graph = getSceneGraph(project, sceneName);
 
@@ -40,6 +49,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
     setChangedVars(new Set());
+    setHistoryStack([]);
   }, [project]);
 
   useEffect(() => { setInputValue(""); }, [nodeId, sceneName]);
@@ -167,10 +177,28 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
     setChangedVars(new Set());
+    setHistoryStack([]);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+  };
+
+  const pushSnapshot = () => setHistoryStack((h) => [...h, { sceneName, nodeId, stats, returnStack, pageBlocks, playTrail }]);
+
+  const goBack = () => {
+    const prev = historyStack.at(-1);
+    if (!prev) return;
+    setHistoryStack((h) => h.slice(0, -1));
+    setSceneName(prev.sceneName);
+    setNodeId(prev.nodeId);
+    setStats(prev.stats);
+    setReturnStack(prev.returnStack);
+    setPageBlocks(prev.pageBlocks);
+    setPlayTrail(prev.playTrail);
+    setChangedVars(new Set());
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
 
   const advance = (nextId: string) => {
+    pushSnapshot();
     const sets = node?.sets ?? [];
     if (sets.length) flashVars(sets.map((s) => s.var));
     setStats((current) => applySets(current, sets, project.variables));
@@ -179,6 +207,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
 
   const submitInput = (value: string) => {
     if (!node?.inputVar) return;
+    pushSnapshot();
     const varDef = project.variables.find((candidate) => candidate.name === node.inputVar);
     const parsed: string | number = varDef?.type === "number" ? Number(value) || 0 : value;
     flashVars([node.inputVar]);
@@ -202,6 +231,9 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
           <h1>{sceneName}.txt</h1>
         </div>
         <div className="playtest-actions">
+          {historyStack.length > 0 && (
+            <button className="ghost-btn playtest-back-btn" onClick={goBack} title={`Undo last action (${historyStack.length} steps back available)`}>← back</button>
+          )}
           <button className="ghost-btn" onClick={restart}>Restart</button>
           <button className="ghost-btn" onClick={onClose}>Close</button>
         </div>
@@ -304,6 +336,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                         key={`${option.text}-${index}`}
                         disabled={!condMet}
                         onClick={() => {
+                          pushSnapshot();
                           const optSets = option.sets ?? [];
                           if (optSets.length) flashVars(optSets.map((s) => s.var));
                           setStats((current) => applySets(current, optSets, project.variables));
