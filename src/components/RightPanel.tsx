@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { generateNodeChoiceScript } from "../domain/choicescript";
-import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
+import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, NodeType, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 import { COLOR_TAG_VALUES, NodeIcon, typeColors } from "./NodeCard";
 import { NodeBodyEditor } from "./NodeBodyEditor";
 
@@ -68,6 +68,24 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
             <button className="ip-color-clear" disabled={sourcePreserved} onClick={() => onUpdateNode(node.id, { colorTag: undefined })} title="clear color">×</button>
           )}
         </div>
+        {!sourcePreserved && getConvertibleTypes(node.type).length > 0 && (
+          <div className="ip-convert-row">
+            <span className="ip-convert-label">convert →</span>
+            <select
+              className="ip-convert-select"
+              value=""
+              onChange={(event) => {
+                const patch = buildTypeConversionPatch(node, event.target.value as NodeType, project.nodes[0]?.id ?? "n1");
+                if (patch) onUpdateNode(node.id, patch);
+              }}
+            >
+              <option value="" disabled>type…</option>
+              {getConvertibleTypes(node.type).map((t) => (
+                <option key={t} value={t}>{labels.nodeTypes[t]}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
       </div>
       {sourcePreserved && (
@@ -1460,4 +1478,53 @@ function nodeBodyWordCount(text: string): number {
     .replace(/@\{[^}]+\}/g, " ")
     .split(/\s+/)
     .filter(Boolean).length;
+}
+
+const CONVERTIBLE: Partial<Record<NodeType, NodeType[]>> = {
+  passage:     ["choice", "fake_choice", "page_break", "comment"],
+  choice:      ["passage", "fake_choice"],
+  fake_choice: ["passage", "choice"],
+  comment:     ["passage"],
+  page_break:  ["passage"],
+};
+
+function getConvertibleTypes(from: NodeType): NodeType[] {
+  return CONVERTIBLE[from] ?? [];
+}
+
+function buildTypeConversionPatch(node: StoryNode, to: NodeType, fallbackNodeId: string): Partial<StoryNode> | null {
+  const from = node.type;
+  if (from === to) return null;
+
+  if (from === "passage" && to === "choice") {
+    return { type: "choice", title: "*choice", prompt: node.body ?? "", body: undefined, options: [] };
+  }
+  if (from === "passage" && to === "fake_choice") {
+    return { type: "fake_choice", title: "*fake_choice", prompt: node.body ?? "", body: undefined, fakeOptions: [] };
+  }
+  if (from === "passage" && to === "page_break") {
+    return { type: "page_break", title: "*page_break", body: undefined };
+  }
+  if (from === "passage" && to === "comment") {
+    return { type: "comment", title: `*comment ${node.body ?? ""}`.trimEnd() };
+  }
+  if (from === "choice" && to === "passage") {
+    return { type: "passage", title: node.prompt ? node.prompt.split("\n")[0].slice(0, 40) : "passage", body: node.prompt ?? "", prompt: undefined, options: undefined };
+  }
+  if (from === "choice" && to === "fake_choice") {
+    return { type: "fake_choice", title: "*fake_choice", fakeOptions: (node.options ?? []).map((o) => ({ text: o.text })), options: undefined };
+  }
+  if (from === "fake_choice" && to === "passage") {
+    return { type: "passage", title: node.prompt ? node.prompt.split("\n")[0].slice(0, 40) : "passage", body: node.prompt ?? "", prompt: undefined, fakeOptions: undefined };
+  }
+  if (from === "fake_choice" && to === "choice") {
+    return { type: "choice", title: "*choice", options: (node.fakeOptions ?? []).map((o) => ({ text: o.text, to: fallbackNodeId })), fakeOptions: undefined };
+  }
+  if (from === "comment" && to === "passage") {
+    return { type: "passage", title: "passage", body: node.body ?? "" };
+  }
+  if (from === "page_break" && to === "passage") {
+    return { type: "passage", title: "passage", body: "" };
+  }
+  return null;
 }

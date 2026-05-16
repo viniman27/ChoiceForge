@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 62
+- **Node type conversion in the inspector.**
+  - `RightPanel.tsx`: Added `CONVERTIBLE` map defining allowed target types per source type: `passage → [choice, fake_choice, page_break, comment]`, `choice → [passage, fake_choice]`, `fake_choice → [passage, choice]`, `comment → [passage]`, `page_break → [passage]`. Added `getConvertibleTypes(from)` helper. Added `buildTypeConversionPatch(node, to, fallbackNodeId)` pure function implementing all conversion rules with appropriate field mapping (e.g., `passage.body → choice.prompt`, `choice.options → fake_choice.fakeOptions`, etc.). Added a `convert →` row in the inspector header (between color dots and meta row), visible when the current node type has at least one valid conversion and source is not preserved. Selecting a type triggers the patch immediately via `onUpdateNode`. Added `NodeType` to the import line.
+  - `styles.css`: Added `.ip-convert-row`, `.ip-convert-label`, `.ip-convert-select`.
+  - No store changes, no domain changes, no test changes. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 61
 - **`gosub_scene` entry-label autocomplete from target scene.**
   - `RightPanel.tsx / CommandNodeFields`: When a `gosub_scene` node has a target scene set, the inspector now resolves the target scene's graph from `project.sceneData` (falling back to `project.nodes` when the target is the active scene). It filters for `label` nodes and extracts their names via `stripCommandPrefix`. If any labels are found, the free-text input is replaced with a `<select>` listing them (plus a `— none —` option). Falls back to the plain `<input>` when the target scene has no labels or hasn't been visited yet. Changing the target scene clears the label selection (`body: ""`).
