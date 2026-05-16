@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 66
+- **`*stat_chart opposed_pair` support.**
+  - `types.ts / VariableSummary`: Added optional `opposedLow?: string` field — the low-end label for the opposed pair (high-end label is the existing `desc`).
+  - `choicescript.ts / generateStatsChoiceScript`: When a visible variable has `opposedLow !== undefined` and `type === "number"`, emits the multi-line `opposed_pair` format (`  opposed_pair varName\n    High Label\n    Low Label`), falling back to `variable.name` as the low label when `opposedLow` is empty. Otherwise falls through to the existing `percent` / `text` logic.
+  - `LeftPanel.tsx / VariablesList`: Expanded the stat-chart `<select>` from 3 to 4 options: `off` / `text` / `%` / `pair` (pair disabled for non-number types). Selecting "pair" sets `opposedLow: ""` and shows a compact `.stat-chart-low-input` text input below the select for the low-end label; switching away clears `opposedLow`.
+  - `styles.css`: Added `.stat-chart-cell` (flex column), `.stat-chart-low-input`.
+  - `domain.test.ts`: Added two tests — one asserting full `opposed_pair` output; one asserting the variable name is used as the low-label fallback when `opposedLow` is empty. 93 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 65
 - **Playtest achievement tracking + `*achieve` line stripping.**
   - `choicescript.ts`: Exported `extractAchievementCommandTargets` (was private). Added new export `stripAchieveCommands(text)` — removes `*achieve` lines and collapses excess blank lines.
