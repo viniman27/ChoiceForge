@@ -743,7 +743,12 @@ function SetFields({
           <option value="false">false</option>
         </select>
       ) : (
-        <input value={set.val} inputMode={variable?.type === "number" ? "decimal" : "text"} onChange={(event) => onChange({ val: event.target.value })} />
+        <ConditionInput
+          value={set.val}
+          onChange={(val) => onChange({ val })}
+          variables={variables.map((v) => v.name)}
+          className={`set-val-input${variable?.type === "number" ? " is-numeric" : ""}`}
+        />
       )}
     </>
   );

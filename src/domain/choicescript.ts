@@ -548,6 +548,20 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
       } else if (!scenes.has(target)) {
         issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
+      } else {
+        const entryLabel = node.body?.trim();
+        if (entryLabel) {
+          const targetGraph = project.sceneData?.[target];
+          const targetLabelNames = new Set(
+            (targetGraph?.nodes ?? [])
+              .filter((n) => n.type === "label")
+              .map((n) => stripCommandPrefix(n.title, "*label"))
+              .filter(Boolean),
+          );
+          if (targetLabelNames.size > 0 && !targetLabelNames.has(entryLabel)) {
+            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, node: node.id });
+          }
+        }
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
         issues.push({ level: "warning", msg: "*gosub_scene has no flow continuation for the return", scene: sceneName, node: node.id });
@@ -1408,6 +1422,11 @@ function lintSet(
   if (variable.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
     issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, scene, node });
   }
+  extractExpressionNames(set.val).forEach((name) => {
+    if (!variables.has(name)) {
+      issues.push({ level: "warning", msg: `*set ${set.var} value references an undeclared variable: ${name}`, scene, node });
+    }
+  });
 }
 
 function lintInputNode(
