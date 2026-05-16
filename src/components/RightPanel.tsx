@@ -86,7 +86,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       </div>
 
       <div className={`ip-body ${sourcePreserved ? "is-source-locked" : ""}`}>
-        {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} />}
+        {tab === "content" && <ContentTab node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} onSelectNode={onSelectNode} />}
         {tab === "logic" && (
           <LogicTab
             node={node}
@@ -121,12 +121,14 @@ function ContentTab({
   labels,
   onUpdateNode,
   onSelectScene,
+  onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onSelectScene?: (id: string) => void;
+  onSelectNode?: (id: string) => void;
 }) {
   const variableNames = project.variables.map((v) => v.name);
   const achievementIds = project.achievements.map((a) => a.id);
@@ -248,6 +250,7 @@ function ContentTab({
                 <select value={option.to} onChange={(event) => updateOption(node, index, { to: event.target.value }, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
+                <button className="mini-action" title="Navigate to target node" onClick={() => onSelectNode?.(option.to)}>→</button>
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
@@ -871,6 +874,7 @@ function LogicTab({
                 <select value={branch.to} onChange={(event) => updateBranch(node, index, { to: event.target.value }, fallbackTarget, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
+                <button className="mini-action" title="Navigate to target node" onClick={() => onSelectNode(branch.to)}>→</button>
                 <button className="mini-action danger" disabled={branches.length <= 1} onClick={() => removeBranch(node, index, fallbackTarget, onUpdateNode)}>del</button>
               </div>
               <BranchSets node={node} branch={branch} branchIndex={index} project={project} onUpdateNode={onUpdateNode} />
@@ -882,6 +886,7 @@ function LogicTab({
           <button className="ghost-btn" disabled={hasElseBranch} onClick={() => addBranch(node, "else", fallbackTarget, onUpdateNode)}>+ *else</button>
         </div>
         <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
+        <IncomingConnections node={node} project={project} onSelectNode={onSelectNode} />
       </div>
     );
   }
@@ -898,6 +903,7 @@ function LogicTab({
         <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ connect</button>
       </div>
       <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
+      <IncomingConnections node={node} project={project} onSelectNode={onSelectNode} />
     </div>
   );
 }
@@ -935,6 +941,38 @@ function OutgoingEdges({
 function targetLabel(project: ChoiceForgeProject, edge: StoryEdge): string {
   const target = project.nodes.find((node) => node.id === edge.to);
   return target ? `${target.id} - ${target.title}` : edge.to;
+}
+
+function IncomingConnections({
+  node,
+  project,
+  onSelectNode,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onSelectNode: (id: string) => void;
+}) {
+  const incoming = project.edges.filter((edge) => edge.to === node.id);
+  if (!incoming.length) return null;
+
+  return (
+    <>
+      <label className="ip-label">incoming connections</label>
+      <ul className="flow-list">
+        {incoming.map((edge, index) => {
+          const source = project.nodes.find((n) => n.id === edge.from);
+          return (
+            <li key={`${edge.from}-${edge.to}-${edge.kind}-${index}`} className="flow-row">
+              <span className={`flow-kind flow-${edge.kind}`}>{edge.kind}</span>
+              <button className="flow-target" type="button" onClick={() => onSelectNode(edge.from)}>
+                <code>{source ? `${source.id} - ${source.title}` : edge.from}</code>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
 }
 
 function RawTab({ node, project }: { node: StoryNode; project: ChoiceForgeProject }) {
