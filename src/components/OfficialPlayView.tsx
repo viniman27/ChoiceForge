@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject } from "../domain/types";
 
@@ -31,7 +32,7 @@ function safeJson(value: unknown): string {
   return JSON.stringify(value).replace(/<\//g, "<\\/");
 }
 
-function buildInitJs(project: ChoiceForgeProject): string {
+function buildInitJs(project: ChoiceForgeProject, forcedScene: string): string {
   const playableScenes = project.scenes.filter((s) => !s.isStart && !s.special);
   const firstScene = playableScenes[0]?.name ?? project.sceneTitle;
 
@@ -60,28 +61,35 @@ function buildInitJs(project: ChoiceForgeProject): string {
   }
 
   const achievements = project.achievements.map((a) => [
-    a.id,
-    !a.hidden,
-    a.points,
-    a.title,
-    a.postDesc || a.desc,
-    a.preDesc || a.desc,
+    a.id, !a.hidden, a.points, a.title, a.postDesc || a.desc, a.preDesc || a.desc,
   ]);
+
+  // When jumping to a specific scene, initialize nav with the full scene chain so
+  // *finish commands know which scene comes next. Override getStartupScene to skip
+  // the startup scene entirely and go directly to the chosen scene.
+  const navInit = forcedScene
+    ? `new SceneNavigator(${safeJson(["startup", ...playableScenes.map((s) => s.name)])})`
+    : `new SceneNavigator(["startup"])`;
+
+  const forcedOverride = forcedScene
+    ? `window.nav.getStartupScene=function(){return ${safeJson(forcedScene)};};`
+    : "";
 
   return `(function(){
 window.storeName=null;window.version="1.0";
 window.knownProducts=[];window.purchases={};
 window.achievements=${safeJson(achievements)};
-window.nav=new SceneNavigator(["startup"]);
+window.nav=${navInit};
+${forcedOverride}
 window.stats=${safeJson(initialStats)};
 window.allScenes=${safeJson(allScenes)};
 })();`;
 }
 
-function buildSrcdoc(project: ChoiceForgeProject): string {
+function buildSrcdoc(project: ChoiceForgeProject, forcedScene: string): string {
   const base = window.location.origin;
   const play = `${base}/play`;
-  const initJs = buildInitJs(project);
+  const initJs = buildInitJs(project, forcedScene);
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -125,16 +133,51 @@ function buildSrcdoc(project: ChoiceForgeProject): string {
 }
 
 export function OfficialPlayView({ project, onClose }: Props) {
+  const [startScene, setStartScene] = useState("");
+  const [srcdoc, setSrcdoc] = useState(() => buildSrcdoc(project, ""));
+  const [iframeKey, setIframeKey] = useState(0);
+  const projectRef = useRef(project);
+  projectRef.current = project;
+
+  const playFrom = useCallback((scene: string) => {
+    setStartScene(scene);
+    setSrcdoc(buildSrcdoc(projectRef.current, scene));
+    setIframeKey((k) => k + 1);
+  }, []);
+
+  const handleReload = useCallback(() => {
+    setSrcdoc(buildSrcdoc(projectRef.current, startScene));
+    setIframeKey((k) => k + 1);
+  }, [startScene]);
+
+  const playableScenes = project.scenes.filter((s) => !s.isStart && !s.special);
+
   return (
     <div className="official-play">
       <div className="official-play-head">
         <h1>{project.title}</h1>
-        <button className="icon-btn" onClick={onClose} title="Close">✕</button>
+        <div className="official-play-actions">
+          {playableScenes.length > 1 && (
+            <select
+              className="official-play-scene-select"
+              value={startScene}
+              onChange={(e) => playFrom(e.target.value)}
+              title="Start from scene"
+            >
+              <option value="">from beginning</option>
+              {playableScenes.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          )}
+          <button className="icon-btn" onClick={handleReload} title="Reload game with latest changes">↺</button>
+          <button className="icon-btn" onClick={onClose} title="Close">✕</button>
+        </div>
       </div>
       <iframe
-        key={project.title + project.scenes.map((s) => s.name).join(",")}
+        key={iframeKey}
         className="official-play-iframe"
-        srcDoc={buildSrcdoc(project)}
+        srcDoc={srcdoc}
         title="ChoiceScript preview"
       />
     </div>
