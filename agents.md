@@ -344,6 +344,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 83
+- **Balance sample project variables so all story branches are reachable.**
+  - Traced all three paths from intro (A: sala da lente, B: praia, C: radio) and found two dead branches:
+    1. `praia_neblina` good branch (`coragem >= 55`) unreachable: path B only accumulated coragem ≈ 51 via fairmath `%+10`, short of the threshold.
+    2. `sala_maquinas` bad branch (`pistas < 2`) unreachable: both paths A and C arrived with pistas = 2.
+  - **Fix 1 — intro n3 (sala_da_lente)**: Removed `pistas + 1` set and updated body text. Path A (bold/impatient, goes straight to lens) now arrives at `sala_maquinas` with pistas = 1 → hits the bad branch (`tentativa_as_cegas`) → bad ending. Narratively: courage without information fails.
+  - **Fix 2 — intro n4 (marcas_na_areia)**: Removed `coragem %+ 10` set. Courage no longer comes from seeing the footprints — it comes from the player's decision at the cave itself.
+  - **Fix 3 — praiaNeblina**: Added choice node `n6` (entrada_da_gruta) between n1 and the if-node n2. Options: "Entrar imediatamente" (sets `coragem + 10`) or "Recuar e esperar" (no set). Both options point to n2. Threshold stays at `coragem >= 55`. Results:
+    - Enters + coragem was 45 → 55 ≥ 55 → good ending ✓
+    - Recua + coragem stays 45 → 45 < 55 → bad ending ✓
+  - All six branches now reachable: sala_maquinas good (path C), sala_maquinas bad (path A), praia good (path B + enter), praia bad (path B + retreat), final good (C or B+enter), final bad (A or B+retreat).
+  - 109 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 82
 - **Stable play panel + scene selector for OfficialPlayView.**
   - `OfficialPlayView.tsx`: Full rewrite to stabilise the iframe across project edits and add direct scene access.
