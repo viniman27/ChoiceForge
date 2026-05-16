@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 78
+- **Playtest: interpolate option text. Use-tracker: count set.val reads. Linter: warn on never-read variables.**
+  - `PlaytestView.tsx / choice + fake_choice option rendering`: Changed `{option.text}` to `{interpolate(option.text, stats)}` so ChoiceScript `@{var ...}` and `${var}` substitutions in option labels are resolved during play. The play trail also records the interpolated text. Both real choice and fake_choice rendering updated.
+  - `choicescript.ts / computeVariableUses`: Extended `scanNode` to call `extractExpressionNames(set.val)` for every `*set` operation (node.sets, option.sets, fakeOption.sets, branch.sets) and `extractVariableReferences(option.text)` for option/fakeOption text. Previously a `*set strength rival + 10` did not count `rival` as a read use.
+  - `choicescript.ts / computeVariableLocations`: Same gap fixed in `scanGraph` — `set.val` expression variable references and option/fakeOption text variable references now produce "read" location entries with correct scene/node info.
+  - `choicescript.ts / lintUnusedVariables` (new function): Scans all scene graphs and preserved source texts for variable READ references (body/prompt interpolations, condition expressions, set.val expressions, option text). Emits `warning: variable "x" is declared but never read` for any declared variable with zero reads — UNLESS it is shown in the stats screen (`showInStats !== false`), which reads it implicitly. Called from `lintProject` after scene reachability.
+  - `domain.test.ts`: 3 new tests. 109 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 77
 - **Playtest: option reuse tracking (`*hide_reuse` / `*disable_reuse` / `*allow_reuse`).**
   - `PlaytestView.tsx / PlaySnapshot`: Added `usedOptions: string[]` field so undo (`goBack`) can restore which options had been used before the undone action.

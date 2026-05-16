@@ -384,12 +384,12 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                           if (optSets.length) flashVars(optSets.map((s) => s.var));
                           setStats((current) => applySets(current, optSets, project.variables));
                           setPageBlocks([]);
-                          setPlayTrail((prev) => [...prev, { kind: "choice", text: option.text, num: index + 1 }]);
+                          setPlayTrail((prev) => [...prev, { kind: "choice", text: interpolate(option.text, stats), num: index + 1 }]);
                           setNodeId(flowTarget);
                         }}
                       >
                         <span>#{index + 1}</span>
-                        {option.text}
+                        {interpolate(option.text, stats)}
                       </button>
                     );
                   })}
@@ -416,12 +416,12 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                           if (optSets.length) flashVars(optSets.map((s) => s.var));
                           setStats((current) => applySets(current, optSets, project.variables));
                           setPageBlocks([]);
-                          setPlayTrail((prev) => [...prev, { kind: "choice", text: option.text, num: index + 1 }]);
+                          setPlayTrail((prev) => [...prev, { kind: "choice", text: interpolate(option.text, stats), num: index + 1 }]);
                           setNodeId(option.to);
                         }}
                       >
                         <span>#{index + 1}</span>
-                        {option.text}
+                        {interpolate(option.text, stats)}
                       </button>
                     );
                   })}
