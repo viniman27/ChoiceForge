@@ -32,6 +32,7 @@ export const typeColors: Record<NodeType, { dot: string; tint: string; label: st
   rand: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*rand" },
   gosub_scene: { dot: "var(--c-gosub)", tint: "var(--c-gosub-tint)", label: "*gosub_scene" },
   image: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "*image" },
+  sound: { dot: "var(--c-passage)", tint: "var(--c-passage-tint)", label: "*sound" },
   temp: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*temp" },
   params: { dot: "var(--c-set)", tint: "var(--c-set-tint)", label: "*params" },
 };
@@ -67,6 +68,7 @@ export function NodeIcon({ type }: { type: NodeType }) {
   if (type === "rand") return <svg {...common}><path d="M3 3h6v6H3z" /><path d="M5 5h.01M7 7h.01M7 5h.01M5 7h.01" /></svg>;
   if (type === "gosub_scene") return <svg {...common}><path d="M2 6h6M7 3l3 3-3 3M2 3v6" /></svg>;
   if (type === "image") return <svg {...common}><path d="M2 2h8v8H2z" /><path d="M2 8l2-3 2 2 1-1 3 2" /></svg>;
+  if (type === "sound") return <svg {...common}><path d="M2 4v4h2l3 3V1L4 4H2z" /><path d="M9 4a3 3 0 0 1 0 4" /></svg>;
   if (type === "temp") return <svg {...common}><path d="M2 4h8M2 8h6M6 2v4" /><circle cx="9" cy="9" r="1.5" /></svg>;
   if (type === "params") return <svg {...common}><path d="M2 6h2M10 6h-2M4 6a2 2 0 0 0 4 0 2 2 0 0 0-4 0" /><path d="M3 3h6M3 9h6" /></svg>;
   return <svg {...common}><path d="M2 3h8M2 6h8M2 9h5" /></svg>;
@@ -221,8 +223,8 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
       )}
 
       {isRich && node.sets && <div className="node-sets">{node.sets.map((set, index) => <VarDelta key={`${set.var}-${index}`} set={set} />)}</div>}
-      {isRich && node.target && node.type !== "image" && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
-      {isRich && node.type === "image" && node.target && <div className="node-target"><code>{node.target}</code></div>}
+      {isRich && node.target && node.type !== "image" && node.type !== "sound" && <div className="node-target">-&gt; <code>{node.target}.txt</code></div>}
+      {isRich && (node.type === "image" || node.type === "sound") && node.target && <div className="node-target"><code>{node.target}</code></div>}
       {isRich && node.inputVar && <div className="node-target">-&gt; <code>{node.inputVar}</code></div>}
       {isRich && node.type === "passage" && node.body && (() => { const wc = countCardWords(node.body); return wc > 0 ? <div className={`node-wc${wc > 600 ? " node-wc-long" : ""}`}>{wc} words</div> : null; })()}
       <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />

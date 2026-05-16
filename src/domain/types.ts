@@ -25,6 +25,7 @@ export type NodeType =
   | "rand"
   | "gosub_scene"
   | "image"
+  | "sound"
   | "temp"
   | "params";
 

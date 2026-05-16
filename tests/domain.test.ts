@@ -1466,6 +1466,45 @@ test("warns about image nodes with missing filename", () => {
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
 });
 
+test("generates *sound command with filename", () => {
+  const node: StoryNode = { id: "n1", type: "sound", x: 0, y: 0, w: 280, title: "*sound theme.mp3", target: "theme.mp3" };
+  const code = generateNodeChoiceScript(node, []);
+  assert.ok(code.includes("*sound theme.mp3"), "should emit *sound with filename");
+});
+
+test("skips *sound command when filename is empty", () => {
+  const node: StoryNode = { id: "n1", type: "sound", x: 0, y: 0, w: 280, title: "*sound", target: "" };
+  const code = generateNodeChoiceScript(node, []);
+  assert.ok(!code.includes("*sound "), "should not emit *sound with empty filename");
+});
+
+test("warns about sound nodes with missing filename", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "sound", x: 0, y: 0, w: 280, title: "*sound", target: "" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((message) => message.includes("*sound needs a filename")));
+});
+
+test("imports *sound lines as sound nodes", () => {
+  const graph = importChoiceScriptSceneText("intro", [
+    "*label cf_n1",
+    "*sound theme.mp3",
+    "*goto cf_n2",
+    "*label cf_n2",
+    "*finish",
+  ].join("\n"));
+  const soundNode = graph.nodes.find((node) => node.type === "sound");
+  assert.ok(soundNode, "sound node should be imported");
+  assert.equal(soundNode?.target, "theme.mp3");
+  assert.equal(soundNode?.title, "*sound theme.mp3");
+});
+
 test("warns when a passage node exceeds 600 words", () => {
   const longBody = Array(601).fill("word").join(" ");
   const shortBody = Array(600).fill("word").join(" ");

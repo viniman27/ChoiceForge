@@ -421,6 +421,31 @@ function ContentTab({
     );
   }
 
+  if (node.type === "sound") {
+    const assets = project.assets ?? [];
+    const audioAssets = assets.filter((a) => /\.(mp3|ogg|wav|aac|flac|m4a)$/i.test(a.fileName ?? ""));
+    return (
+      <div className="ip-content">
+        <label className="ip-label">filename</label>
+        {audioAssets.length > 0 ? (
+          <select
+            className="command-input"
+            value={node.target ?? ""}
+            onChange={(event) => onUpdateNode(node.id, { title: `*sound ${event.target.value}`.trim(), target: event.target.value })}
+          >
+            <option value="">— choose asset —</option>
+            {node.target && !audioAssets.find((a) => a.fileName === node.target) && (
+              <option value={node.target}>{node.target} (missing)</option>
+            )}
+            {audioAssets.map((a) => <option key={a.id} value={a.fileName}>{a.fileName}</option>)}
+          </select>
+        ) : (
+          <input className="command-input" value={node.target ?? ""} placeholder="music.mp3" onChange={(event) => onUpdateNode(node.id, { title: `*sound ${event.target.value}`.trim(), target: event.target.value })} />
+        )}
+      </div>
+    );
+  }
+
   if (["label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} />;
   }
