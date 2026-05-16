@@ -466,6 +466,29 @@ function ScenesList({
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => onUpdateScene(scene.id, { notes: e.target.value || undefined })}
               />
+              {!scene.isStart && !scene.special && (() => {
+                const pct = scene.wordGoal ? Math.min(100, Math.round((scene.words / scene.wordGoal) * 100)) : null;
+                return (
+                  <div className="scene-goal-row" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      className="scene-goal-input"
+                      type="number"
+                      min="0"
+                      value={scene.wordGoal ?? ""}
+                      placeholder="word goal…"
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10);
+                        onUpdateScene(scene.id, { wordGoal: isNaN(n) || n <= 0 ? undefined : n });
+                      }}
+                    />
+                    {pct !== null && (
+                      <div className="scene-goal-track" title={`${scene.words.toLocaleString()} / ${scene.wordGoal!.toLocaleString()} words (${pct}%)`}>
+                        <div className="scene-goal-fill" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--accent-2)" : "var(--accent-1)" }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">

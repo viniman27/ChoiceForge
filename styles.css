@@ -533,6 +533,22 @@ input, select, textarea { font-family: inherit; color: inherit; }
   margin: 3px 0 2px; overflow: hidden;
 }
 .scene-progress-fill { height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.3s ease; }
+.scene-goal-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.scene-goal-input {
+  width: 72px; flex-shrink: 0;
+  background: none; border: none; border-bottom: 1px dashed var(--paper-edge);
+  color: var(--ink-mute); font-family: var(--ff-mono); font-size: 10px;
+  padding: 1px 2px; outline: none;
+}
+.scene-goal-input::placeholder { color: var(--ink-faint); }
+.scene-goal-input:focus { border-bottom-color: var(--accent-1); color: var(--ink); }
+.scene-goal-track { flex: 1; height: 3px; background: var(--paper-edge); border-radius: 999px; overflow: hidden; position: relative; }
+.scene-goal-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+.bar-goal-marker {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 2px; height: 10px; background: var(--ink-mute);
+  border-radius: 1px; pointer-events: none;
+}
 .scene-item.is-special { opacity: 0.85; }
 .scene-edit {
   flex: 1;
@@ -1340,6 +1356,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-family: var(--ff-mono);
 }
 .node-flag.warn { background: var(--warn); color: var(--ink); }
+.node-flag-warn { background: var(--warn) !important; color: var(--ink) !important; font-size: 10px !important; }
 .node-status {
   font-family: var(--ff-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
   padding: 1px 5px; border-radius: 999px; white-space: nowrap;

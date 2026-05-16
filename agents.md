@@ -343,6 +343,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 60
+- **Lint warning badges on canvas node cards.**
+  - `NodeCard.tsx`: Added `hasWarning?: boolean` prop. Updated className to use `hasWarning` instead of `node.warning` (the latter was always undefined). Added a `⚠` badge element (`.node-flag.node-flag-warn`) when `hasWarning && !hasError`.
+  - `GraphCanvas.tsx`: Added `warnNodeIds` computed from `data.lints` where `level === "warning"` and `lint.node` is set. Passed `hasWarning={!errorNodeIds.has(node.id) && warnNodeIds.has(node.id)}` to each `NodeCard`. Error takes priority over warning.
+  - `styles.css`: Added `.node-flag-warn` overriding background to `var(--warn)` and color to `var(--ink)`.
+- **Per-scene word count goals.**
+  - `types.ts`: Added `wordGoal?: number` to `SceneSummary`. Persists via the existing `updateScene` action (no store changes needed).
+  - `LeftPanel.tsx`: Added a `scene-goal-row` below the synopsis input for non-special scenes. Contains a dashed number input for the goal (updates `scene.wordGoal` via `onUpdateScene`) and a thin progress bar tracking words vs. goal. Progress bar turns green when goal is met.
+  - `Dashboard.tsx`: Words-by-scene bar chart now shows a `bar-goal-marker` (vertical tick) at the goal position when a scene has a goal. The bar turns green when the goal is reached. The value label appends the completion percentage when a goal is set.
+  - `styles.css`: Added `.scene-goal-row`, `.scene-goal-input`, `.scene-goal-track`, `.scene-goal-fill`, `.bar-goal-marker`.
+  - 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 59
 - **Variable reordering in the Variables tab.**
   - `projectStore.ts`: Added `moveVariable(name, direction: "up" | "down")` to `ProjectActions` interface and implementation. Finds the variable by name, swaps it with the neighbour in the `variables` array, then commits via `commitProject` + `clearStartupSource` (because variable order affects the generated `*create` block in `startup.txt`).
