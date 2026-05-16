@@ -307,6 +307,7 @@ export default function App() {
         onAddAchievement={actions.addAchievement}
         onUpdateAchievement={actions.updateAchievement}
         onDeleteAchievement={actions.deleteAchievement}
+        onMoveAchievement={actions.moveAchievement}
         onAddAsset={actions.addAsset}
         onUpdateAsset={actions.updateAsset}
         onDeleteAsset={actions.deleteAsset}

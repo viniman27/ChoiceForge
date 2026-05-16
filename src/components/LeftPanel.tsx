@@ -23,6 +23,7 @@ interface LeftPanelProps {
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
+  onMoveAchievement: (id: string, direction: "up" | "down") => void;
   onAddAsset: () => void;
   onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   onDeleteAsset: (id: string) => void;
@@ -51,6 +52,7 @@ export function LeftPanel({
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
+  onMoveAchievement,
   onAddAsset,
   onUpdateAsset,
   onDeleteAsset,
@@ -207,6 +209,7 @@ export function LeftPanel({
             onAddAchievement={onAddAchievement}
             onUpdateAchievement={onUpdateAchievement}
             onDeleteAchievement={onDeleteAchievement}
+            onMoveAchievement={onMoveAchievement}
             onNavigateToNode={onNavigateToNode}
           />
         )}
@@ -689,6 +692,7 @@ function AchievementsList({
   onAddAchievement,
   onUpdateAchievement,
   onDeleteAchievement,
+  onMoveAchievement,
   onNavigateToNode,
 }: {
   data: ChoiceForgeProject;
@@ -696,6 +700,7 @@ function AchievementsList({
   onAddAchievement: () => void;
   onUpdateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   onDeleteAchievement: (id: string) => void;
+  onMoveAchievement: (id: string, direction: "up" | "down") => void;
   onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }) {
   const achievementUses = useMemo(() => computeAchievementUses(data), [data]);
@@ -736,6 +741,10 @@ function AchievementsList({
                   />
                   hidden
                 </label>
+                <span className="var-move-cell">
+                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === 0} onClick={() => onMoveAchievement(achievement.id, "up")} title="move up">↑</button>
+                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === data.achievements.length - 1} onClick={() => onMoveAchievement(achievement.id, "down")} title="move down">↓</button>
+                </span>
                 <button className="mini-action danger" onClick={() => onDeleteAchievement(achievement.id)}>del</button>
               </div>
               <div className="ach-code-row">
