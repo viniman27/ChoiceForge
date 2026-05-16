@@ -48,6 +48,7 @@ export interface VariableSummary {
   desc: string;
   uses: number;
   fairmath?: boolean;
+  showInStats?: boolean;
 }
 
 export interface AchievementSummary {

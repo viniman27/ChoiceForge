@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 64
+- **Per-variable stat chart visibility (`showInStats`).**
+  - `types.ts / VariableSummary`: Added optional `showInStats?: boolean` field (default `true` / shown when undefined).
+  - `choicescript.ts / generateStatsChoiceScript`: Filters `project.variables` to `statVars` (those with `showInStats !== false`) before writing the `*stat_chart` block. If no visible variables remain the block is omitted entirely.
+  - `LeftPanel.tsx / VariablesList`: Replaced the `fairmath` checkbox in the "stats" column with a `<select>` offering three options — `off` (sets `showInStats: false, fairmath: false`), `text` (sets `showInStats: undefined, fairmath: false`), `%` (sets `showInStats: undefined, fairmath: true`; disabled unless `type === "number"`). The column header "stats" is unchanged.
+  - `styles.css`: Added `.stat-chart-select` (mono font, compact width, paper-1 background).
+  - `domain.test.ts`: Added two new tests — one asserting hidden variables are excluded and visible ones remain; one asserting the `*stat_chart` block is omitted entirely when all variables are hidden. 91 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 63
 - **Achievement reordering.**
   - `projectStore.ts / ProjectActions`: Added `moveAchievement(id: string, direction: "up" | "down") => void` to the interface.

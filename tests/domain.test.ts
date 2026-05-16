@@ -1912,6 +1912,34 @@ test("does not warn when @{} substitution references a declared variable", () =>
   assert.ok(!warnings.some((msg) => msg.includes("strength")));
 });
 
+test("generateStatsChoiceScript excludes variables with showInStats false", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "score", type: "number" as const, initial: "0", desc: "Score", fairmath: false, uses: 0 },
+      { name: "internal", type: "number" as const, initial: "0", desc: "Internal", fairmath: false, uses: 0, showInStats: false },
+      { name: "name", type: "string" as const, initial: '""', desc: "Name", fairmath: false, uses: 0 },
+    ],
+  };
+  const stats = generateStatsChoiceScript(project);
+
+  assert.ok(stats.includes("text score"), "score should appear in stat chart");
+  assert.ok(stats.includes("text name"), "name should appear in stat chart");
+  assert.ok(!stats.includes("internal"), "internal should be excluded from stat chart");
+});
+
+test("generateStatsChoiceScript omits stat_chart block when all variables are hidden", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "flag", type: "boolean" as const, initial: "false", desc: "Flag", fairmath: false, uses: 0, showInStats: false },
+    ],
+  };
+  const stats = generateStatsChoiceScript(project);
+
+  assert.ok(!stats.includes("*stat_chart"), "stat_chart block should be absent when all variables are hidden");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
