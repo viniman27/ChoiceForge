@@ -447,7 +447,7 @@ function ContentTab({
   }
 
   if (["label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
-    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} />;
+    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} onSelectNode={onSelectNode} />;
   }
 
   return <div className="ip-content"><p className="dim">Simple node - no content fields.</p></div>;
@@ -492,11 +492,13 @@ function CommandNodeFields({
   project,
   onUpdateNode,
   onSelectScene,
+  onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onSelectScene?: (id: string) => void;
+  onSelectNode?: (id: string) => void;
 }) {
   const labels = project.nodes.filter((candidate) => candidate.type === "label");
   const currentLabel = stripCommandPrefix(node.title, node.type === "gosub" ? "*gosub" : node.type === "goto" ? "*goto" : "*label");
@@ -513,14 +515,20 @@ function CommandNodeFields({
   if (node.type === "goto" || node.type === "gosub") {
     const command = node.type === "goto" ? "*goto" : "*gosub";
     const labelNames = labels.map((label) => stripCommandPrefix(label.title, "*label"));
+    const targetLabelNode = labels.find((label) => stripCommandPrefix(label.title, "*label") === currentLabel);
     return (
       <div className="ip-content">
         <label className="ip-label">{command} destination</label>
-        <select className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `${command} ${event.target.value}` })}>
-          {currentLabel && !labelNames.includes(currentLabel) && <option value={currentLabel}>{currentLabel}</option>}
-          {!currentLabel && <option value="">label</option>}
-          {labelNames.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
+        <div className="ip-scene-row">
+          <select className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `${command} ${event.target.value}` })}>
+            {currentLabel && !labelNames.includes(currentLabel) && <option value={currentLabel}>{currentLabel}</option>}
+            {!currentLabel && <option value="">label</option>}
+            {labelNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+          {onSelectNode && targetLabelNode && (
+            <button className="scene-jump-btn" title={`jump to *label ${currentLabel}`} onClick={() => onSelectNode(targetLabelNode.id)}>→</button>
+          )}
+        </div>
       </div>
     );
   }
