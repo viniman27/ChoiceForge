@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 67
+- **Lint console level+scene filters + `opposed_pair` linter fix + duplicate shortcut cleanup.**
+  - `choicescript.ts / lintPreservedStatsSource`: Fixed linter incorrectly flagging `opposed_pair` label sub-lines as invalid row types. Added `opposedPairLabelsLeft` counter: after parsing an `opposed_pair varname` row, the next two indented lines are skipped as expected label lines. Added test asserting no errors for a valid `opposed_pair` block.
+  - `BottomBar.tsx`: Added `filterScene` and `filterLevel` state. The console now shows a filter bar (`.con-filters`) with a level select (`all levels` / `errors only` / `warnings only`) and, when there are issues from more than one scene, a scene select. A `×` clear button and a "N shown" counter appear when any filter is active. Filters apply to the visible list only — the pills in the summary continue to show global totals. Added "no issues match" empty state.
+  - `KeyboardShortcutOverlay.tsx`: Removed duplicate "F → Fit view" entry. Renamed the two remaining fit entries to "Fit all nodes to view" / "Fit selected nodes to view" and "Filter / search nodes" for clarity.
+  - `styles.css`: Added `.con-filters`, `.con-filter-select`, `.con-filter-clear`, `.con-filter-count`, `.con-empty`.
+  - 94 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 66
 - **`*stat_chart opposed_pair` support.**
   - `types.ts / VariableSummary`: Added optional `opposedLow?: string` field — the low-end label for the opposed pair (high-end label is the existing `desc`).
