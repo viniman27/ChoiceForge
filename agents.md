@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 76
+- **Variable rename propagation fixes + goto/gosub jump-to-label button.**
+  - `projectStore.ts / renameVariableReferences`: Extended to also rename `@{varname` patterns (ChoiceScript conditional substitution), not just `${varname}` interpolation. Previously renaming `score` would leave `@{score high mid low}` unchanged.
+  - `projectStore.ts / renameNodeVariable`: Added `prompt` field to renamed fields (choice/fake_choice prompts with `${var}` interpolation were silently skipped). Introduced `renameSet` helper that updates both `set.var` (the variable being assigned) and `set.val` (the value expression, which can reference other variables like `rival + 10`). Applied to node sets, option sets, fake-option sets, and branch sets. Also imported `VariableSet` type to keep the helper correctly typed.
+  - `RightPanel.tsx / CommandNodeFields`: Added `onSelectNode` prop and passed it from `ContentTab`. In the `*goto` / `*gosub` inspector, added a `→` jump button (same style as the `*goto_scene` jump button) that calls `onSelectNode(targetLabelNode.id)` when the selected label exists in the current scene — allows one-click navigation from a goto node to its target label node.
+  - 106 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 75
 - **Linter: `*set` value variable refs + `*gosub_scene` entry label validation. Inspector: variable autocomplete in set value field.**
   - `choicescript.ts / lintSet`: Added `extractExpressionNames(set.val)` scan after the existing type/op checks. Any identifier in the value expression that isn't a declared variable (global, temp, or params) produces a `warning` — catches patterns like `*set score ghost_var + 10` where the referenced variable is undeclared.

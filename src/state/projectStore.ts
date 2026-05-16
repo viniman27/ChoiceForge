@@ -3,7 +3,7 @@ import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import { layoutProjectGraphs, layoutSceneGraph } from "../domain/graphLayout";
 import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
-import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSummary } from "../domain/types";
+import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v2";
 const HISTORY_LIMIT = 50;
@@ -809,7 +809,10 @@ export function useProjectStore() {
 }
 
 function renameVariableReferences(text: string, from: string, to: string): string {
-  return text.replace(new RegExp(`\\$\\{${escapeRegex(from)}\\}`, "g"), `\${${to}}`);
+  const esc = escapeRegex(from);
+  return text
+    .replace(new RegExp(`\\$\\{${esc}\\}`, "g"), `\${${to}}`)
+    .replace(new RegExp(`@\\{${esc}\\b`, "g"), `@\{${to}`);
 }
 
 function renameExpressionName(expression: string, from: string, to: string): string {
@@ -831,25 +834,31 @@ function mapSceneGraphs(project: ChoiceForgeProject, mapper: (graph: SceneGraph)
 }
 
 function renameNodeVariable(node: StoryNode, from: string, to: string): StoryNode {
+  const renameSet = (set: VariableSet): VariableSet => ({
+    ...set,
+    var: set.var === from ? to : set.var,
+    val: renameExpressionName(set.val, from, to),
+  });
   return {
     ...node,
     body: node.body ? renameVariableReferences(node.body, from, to) : node.body,
+    prompt: node.prompt ? renameVariableReferences(node.prompt, from, to) : node.prompt,
     inputVar: node.inputVar === from ? to : node.inputVar,
-    sets: node.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+    sets: node.sets?.map(renameSet),
     options: node.options?.map((option) => ({
       ...option,
       cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
-      sets: option.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+      sets: option.sets?.map(renameSet),
     })),
     fakeOptions: node.fakeOptions?.map((option) => ({
       ...option,
       cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
-      sets: option.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+      sets: option.sets?.map(renameSet),
     })),
     branches: node.branches?.map((branch) => ({
       ...branch,
       expr: branch.expr ? renameExpressionName(branch.expr, from, to) : branch.expr,
-      sets: branch.sets?.map((set) => (set.var === from ? { ...set, var: to } : set)),
+      sets: branch.sets?.map(renameSet),
     })),
   };
 }
