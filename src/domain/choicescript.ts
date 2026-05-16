@@ -157,9 +157,10 @@ export function generateStatsChoiceScript(project: ChoiceForgeProject): string {
     return `${lines.join("\n")}\n`;
   }
 
-  if (project.variables.length) {
+  const statVars = project.variables.filter((v) => v.showInStats !== false);
+  if (statVars.length) {
     lines.push("*stat_chart");
-    project.variables.forEach((variable) => {
+    statVars.forEach((variable) => {
       const chartType = variable.type === "number" && variable.fairmath ? "percent" : "text";
       lines.push(`  ${chartType} ${variable.name} ${formatStatsLabel(variable.desc || variable.name)}`);
     });

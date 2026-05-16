@@ -646,6 +646,16 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .stat-format-toggle.is-disabled {
   opacity: 0.45;
 }
+.stat-chart-select {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  padding: 1px 2px;
+  background: var(--paper-1);
+  color: var(--ink);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  max-width: 56px;
+}
 
 .var-detail {
   margin-top: 16px; padding: 10px;

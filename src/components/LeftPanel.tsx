@@ -578,15 +578,20 @@ function VariablesList({
                   </td>
                   <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
                   <td>
-                    <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(variable.fairmath)}
-                        disabled={variable.type !== "number"}
-                        onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
-                      />
-                      <span>{variable.fairmath ? "percent" : "text"}</span>
-                    </label>
+                    <select
+                      className="stat-chart-select"
+                      value={variable.showInStats === false ? "off" : variable.fairmath ? "percent" : "text"}
+                      onChange={(event) => {
+                        const v = event.target.value;
+                        if (v === "off") onUpdateVariable(variable.name, { showInStats: false, fairmath: false });
+                        else if (v === "percent") onUpdateVariable(variable.name, { showInStats: undefined, fairmath: true });
+                        else onUpdateVariable(variable.name, { showInStats: undefined, fairmath: false });
+                      }}
+                    >
+                      <option value="off">off</option>
+                      <option value="text">text</option>
+                      <option value="percent" disabled={variable.type !== "number"}>%</option>
+                    </select>
                   </td>
                   <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
                   <td>
