@@ -143,6 +143,10 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
+    if (node.type === "comment" || node.type === "label") {
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
+    }
   }, [graph.edges, node, project, project.variables, returnStack, sceneName, stats]);
 
   const options = node?.type === "choice" ? node.options ?? [] : [];
@@ -400,7 +404,21 @@ function parseValue(value: string, variable: VariableSummary | undefined): strin
 }
 
 function interpolate(text: string, stats: Record<string, string | number | boolean>): string {
-  return text.replace(/\$\{([a-zA-Z_][\w]*)\}/g, (_, name: string) => String(stats[name] ?? `{${name}}`));
+  const withAt = text.replace(/@\{([^}]+)\}/g, (match, inner: string) => {
+    const parts = inner.trim().split(/\s+/);
+    if (parts.length < 2) return match;
+    const [varName, ...options] = parts;
+    const value = stats[varName];
+    if (value === undefined) return match;
+    if (options.length === 1) return options[0];
+    const isTruthy = value === true || value === "true" || (typeof value === "number" && value !== 0);
+    if (options.length === 2) return isTruthy ? options[0] : options[1];
+    if (options.length >= 5 && typeof value === "number") {
+      return options[Math.min(4, Math.floor((value as number) / 20))];
+    }
+    return isTruthy ? options[0] : options[options.length - 1];
+  });
+  return withAt.replace(/\$\{([a-zA-Z_][\w]*)\}/g, (_, name: string) => String(stats[name] ?? `{${name}}`));
 }
 
 function evaluateExpression(expression: string, stats: Record<string, string | number | boolean>): boolean {

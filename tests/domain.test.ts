@@ -1878,6 +1878,40 @@ test("imports standalone *params lines as params nodes", () => {
   assert.equal(paramsNode?.w, 280);
 });
 
+test("warns when @{} substitution references an undeclared variable", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "sub", body: "You are @{strength strong weak}." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(warnings.some((msg) => msg.includes("strength") && msg.includes("undeclared")));
+});
+
+test("does not warn when @{} substitution references a declared variable", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "sub", body: "You are @{strength strong weak}." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "strength", type: "number" as const, initial: "50", desc: "Strength", fairmath: false, uses: 0 }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
+
+  assert.ok(!warnings.some((msg) => msg.includes("strength")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
