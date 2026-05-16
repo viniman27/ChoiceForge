@@ -94,6 +94,7 @@ export interface ProjectActions {
   addAchievement: () => void;
   updateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   deleteAchievement: (id: string) => void;
+  moveAchievement: (id: string, direction: "up" | "down") => void;
   addAsset: () => void;
   updateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   deleteAsset: (id: string) => void;
@@ -721,6 +722,18 @@ export function useProjectStore() {
           nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeAchievement(node, id)),
           edges: activeGraph?.edges ?? saved.edges,
         })));
+      });
+    },
+    moveAchievement: (id, direction) => {
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        const achs = saved.achievements;
+        const idx = achs.findIndex((a) => a.id === id);
+        const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+        if (idx < 0 || targetIdx < 0 || targetIdx >= achs.length) return current;
+        const reordered = [...achs];
+        [reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]];
+        return commitProject(clearStatsSource(clearStartupSource({ ...saved, achievements: reordered })));
       });
     },
     addAsset: () => {

@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 63
+- **Achievement reordering.**
+  - `projectStore.ts / ProjectActions`: Added `moveAchievement(id: string, direction: "up" | "down") => void` to the interface.
+  - `projectStore.ts / useProjectStore`: Implemented `moveAchievement` — finds the achievement by id, swaps it with its neighbor in the `achievements` array, then commits with `clearStatsSource(clearStartupSource(...))` (affects both `startup.txt` and `choicescript_stats.txt` ordering).
+  - `LeftPanel.tsx`: Added `onMoveAchievement` to `LeftPanelProps`, destructuring, `AchievementsList` call site, and `AchievementsList` component signature. Added ↑/↓ `.var-move-btn` buttons inside each `ach-row` (reuses existing `.var-move-cell` / `.var-move-btn` styles). Buttons are disabled when the achievement is already first/last.
+  - `App.tsx`: Wired `onMoveAchievement={actions.moveAchievement}`.
+  - No new styles needed (reuses `.var-move-cell` / `.var-move-btn` from session 59). 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 62
 - **Node type conversion in the inspector.**
   - `RightPanel.tsx`: Added `CONVERTIBLE` map defining allowed target types per source type: `passage → [choice, fake_choice, page_break, comment]`, `choice → [passage, fake_choice]`, `fake_choice → [passage, choice]`, `comment → [passage]`, `page_break → [passage]`. Added `getConvertibleTypes(from)` helper. Added `buildTypeConversionPatch(node, to, fallbackNodeId)` pure function implementing all conversion rules with appropriate field mapping (e.g., `passage.body → choice.prompt`, `choice.options → fake_choice.fakeOptions`, etc.). Added a `convert →` row in the inspector header (between color dots and meta row), visible when the current node type has at least one valid conversion and source is not preserved. Selecting a type triggers the patch immediately via `onUpdateNode`. Added `NodeType` to the import line.
