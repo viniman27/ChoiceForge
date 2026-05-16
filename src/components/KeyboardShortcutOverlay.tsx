@@ -15,7 +15,7 @@ const GROUPS: ShortcutGroup[] = [
       { keys: ["double-click"], label: "Create passage node" },
       { keys: ["F"], label: "Fit all nodes to view" },
       { keys: ["Shift", "F"], label: "Fit selected nodes to view" },
-      { keys: ["Ctrl", "F"], label: "Filter / search nodes" },
+      { keys: ["Ctrl", "F"], label: "Filter nodes (text, type:, tag:, has:error…)" },
       { keys: ["G"], label: "Toggle snap-to-grid" },
       { keys: ["A"], label: "Add passage at viewport center" },
       { keys: ["Ctrl", "scroll"], label: "Zoom in/out" },

@@ -343,6 +343,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 69
+- **Canvas node filter: structured filter syntax.**
+  - `GraphCanvas.tsx / nodeMatchesFilter`: Extended text search to support prefix filters. New accepted patterns:
+    - `type:<X>` — matches nodes whose `type` contains X (e.g. `type:choice`, `type:passage`, `type:if`)
+    - `tag:<X>` or `color:<X>` — matches nodes whose `colorTag` contains X (e.g. `tag:red`)
+    - `status:todo` / `:todo`, `status:done` / `:done` — matches nodes by writing status
+    - `has:note` — matches nodes with a private note set
+    - `has:error` — matches nodes with a lint error
+    - `has:warning` / `has:warn` — matches nodes with a lint warning
+    - Plain text search now also matches `node.id`
+  - `nodeMatchesFilter` now receives `errorIds` and `warnIds` sets (derived from `data.lints`) to support `has:error` / `has:warning`.
+  - Filter input `placeholder` updated to show the syntax hint; `title` tooltip lists all supported prefixes.
+  - `KeyboardShortcutOverlay.tsx`: Updated "Filter / search nodes" description to mention `type:`, `tag:`, `has:error` syntax.
+  - 95 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 68
 - **`opposed_pair` import round-trip fix + per-scene word count goals.**
   - `projectStore.ts / parseStatChartRows`: Replaced the simple per/text-only parser with a state-machine identical to `choicescriptImport.ts`. Added `StatChartRow` union type (`percent | text | opposed_pair`). The new `applyStatsText` branches on `chartType === "opposed_pair"` to set `opposedLow` and `fairmath: false`; `text`/`percent` rows now also clear `opposedLow`. This fixes `opposed_pair` variables losing their configuration when editing the generated `choicescript_stats.txt` and saving back.
