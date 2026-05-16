@@ -1060,6 +1060,19 @@ input, select, textarea { font-family: inherit; color: inherit; }
   flex: 0 0 auto;
   color: var(--accent);
 }
+.playtest-stat.is-temp {
+  opacity: 0.65;
+}
+.playtest-stat.is-temp code {
+  color: var(--c-set);
+}
+.pt-temp-section {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: 4px;
+  margin-top: 2px;
+  display: grid;
+  gap: 4px;
+}
 .playtest-card {
   min-height: 360px;
   padding: 24px;

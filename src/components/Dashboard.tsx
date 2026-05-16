@@ -11,9 +11,17 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onUpdateSce
   }));
   const totalWords = sceneRows.reduce((sum, scene) => sum + scene.words, 0);
   const totalNodes = sceneRows.reduce((sum, scene) => sum + scene.nodes, 0);
-  const choiceCount = data.nodes.filter((node) => node.type === "choice").length;
-  const optionCount = data.nodes.reduce((sum, node) => sum + (node.options?.length ?? 0), 0);
-  const endingCount = data.nodes.filter((node) => node.type === "ending" || node.type === "finish").length;
+  const nonSpecialSceneNames = new Set(data.scenes.filter((s) => !s.special).map((s) => s.name));
+  const allProjectNodes = [
+    ...data.nodes,
+    ...Object.entries(data.sceneData ?? {})
+      .filter(([name]) => name !== data.sceneTitle && nonSpecialSceneNames.has(name))
+      .flatMap(([, graph]) => graph.nodes),
+  ];
+  const choiceCount = allProjectNodes.filter((node) => node.type === "choice").length;
+  const fakeChoiceCount = allProjectNodes.filter((node) => node.type === "fake_choice").length;
+  const optionCount = allProjectNodes.reduce((sum, node) => sum + (node.options?.length ?? 0) + (node.fakeOptions?.length ?? 0), 0);
+  const endingCount = allProjectNodes.filter((node) => node.type === "ending" || node.type === "finish").length;
   const maxWords = Math.max(1, ...sceneRows.map((scene) => scene.words));
   const typeRows = summarizeNodeTypes(data.nodes);
   const variableUses = computeVariableUses(data);
@@ -50,8 +58,8 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onUpdateSce
       <div className="dash-grid">
         <div className="kpi-card" data-accent="1"><span className="kpi-label">total words</span><span className="kpi-value">{totalWords.toLocaleString()}</span></div>
         <div className="kpi-card" data-accent="2"><span className="kpi-label">{labels.nodes}</span><span className="kpi-value">{totalNodes}</span></div>
-        <div className="kpi-card" data-accent="3"><span className="kpi-label">choices / options</span><span className="kpi-value">{choiceCount}/{optionCount}</span></div>
-        <div className="kpi-card" data-accent="4"><span className="kpi-label">endings in this scene</span><span className="kpi-value">{endingCount}</span></div>
+        <div className="kpi-card" data-accent="3"><span className="kpi-label">choices / options</span><span className="kpi-value">{choiceCount + fakeChoiceCount}/{optionCount}</span></div>
+        <div className="kpi-card" data-accent="4"><span className="kpi-label">endings</span><span className="kpi-value">{endingCount}</span></div>
         <div className="kpi-card" data-accent={unusedVariables.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused variables</span><span className="kpi-value">{unusedVariables.length}</span></div>
         <div className="kpi-card" data-accent={unusedAchievements.length > 0 ? "warn" : "ok"}><span className="kpi-label">unused achievements</span><span className="kpi-value">{unusedAchievements.length}</span></div>
 
