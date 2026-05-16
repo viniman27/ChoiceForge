@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 61
+- **`gosub_scene` entry-label autocomplete from target scene.**
+  - `RightPanel.tsx / CommandNodeFields`: When a `gosub_scene` node has a target scene set, the inspector now resolves the target scene's graph from `project.sceneData` (falling back to `project.nodes` when the target is the active scene). It filters for `label` nodes and extracts their names via `stripCommandPrefix`. If any labels are found, the free-text input is replaced with a `<select>` listing them (plus a `— none —` option). Falls back to the plain `<input>` when the target scene has no labels or hasn't been visited yet. Changing the target scene clears the label selection (`body: ""`).
+- **`image` node asset picker.**
+  - `RightPanel.tsx / ContentTab`: The `image` node filename field is now a `<select>` listing all image-typed assets (filtered by extension: png, jpg, gif, webp, svg, avif) when at least one such asset exists in the project. Shows a "missing" option if the current value doesn't match any asset. Falls back to the plain `<input>` when no image assets are imported.
+  - 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 60
 - **Lint warning badges on canvas node cards.**
   - `NodeCard.tsx`: Added `hasWarning?: boolean` prop. Updated className to use `hasWarning` instead of `node.warning` (the latter was always undefined). Added a `⚠` badge element (`.node-flag.node-flag-warn`) when `hasWarning && !hasError`.
