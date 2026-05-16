@@ -289,9 +289,66 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   });
 
   lintSceneReachability(project, sceneNames, issues);
+  lintUnusedVariables(project, issues);
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
   return issues;
+}
+
+function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
+  if (!project.variables.length) return;
+  const names = new Set(project.variables.map((v) => v.name));
+  const readVars = new Set<string>();
+
+  const recordRead = (name: string) => { if (names.has(name)) readVars.add(name); };
+  const scanExpr = (expr: string) => extractExpressionNames(expr).forEach(recordRead);
+  const scanText = (text: string) => extractVariableReferences(text).forEach(recordRead);
+
+  const scanNode = (node: StoryNode) => {
+    scanText(node.body ?? "");
+    scanText(node.prompt ?? "");
+    node.sets?.forEach((s) => scanExpr(s.val));
+    node.options?.forEach((opt) => {
+      scanText(opt.text);
+      if (opt.cond?.expr) scanExpr(opt.cond.expr);
+      opt.sets?.forEach((s) => scanExpr(s.val));
+    });
+    node.fakeOptions?.forEach((opt) => {
+      scanText(opt.text);
+      if (opt.cond?.expr) scanExpr(opt.cond.expr);
+      opt.sets?.forEach((s) => scanExpr(s.val));
+    });
+    node.branches?.forEach((branch) => {
+      if (branch.expr) scanExpr(branch.expr);
+      branch.sets?.forEach((s) => scanExpr(s.val));
+    });
+  };
+
+  const scanSource = (text: string) => {
+    text.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      scanText(trimmed);
+      const command = sourceCommand(trimmed);
+      if (command === "if" || command === "elseif") {
+        scanExpr(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`)));
+      }
+    });
+  };
+
+  const graphs = project.sceneData ? Object.values(project.sceneData) : [{ nodes: project.nodes, edges: project.edges }];
+  graphs.forEach((graph) => {
+    graph.nodes.forEach(scanNode);
+    if (graph.sourceText) scanSource(graph.sourceText);
+  });
+  if (project.startupSource) scanSource(project.startupSource);
+  if (project.statsSource) scanSource(project.statsSource);
+
+  for (const variable of project.variables) {
+    if (variable.showInStats !== false) continue;
+    if (!readVars.has(variable.name)) {
+      issues.push({ level: "warning", msg: `variable "${variable.name}" is declared but never read`, scene: null });
+    }
+  }
 }
 
 function lintSceneReachability(project: ChoiceForgeProject, sceneNames: string[], issues: LintIssue[]) {
@@ -1563,20 +1620,22 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
   };
 
   const scanNode = (node: StoryNode) => {
-    node.sets?.forEach((set) => tally(set.var));
+    node.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
     if (node.inputVar) tally(node.inputVar);
     extractVariableReferences(node.body ?? "").forEach(tally);
     extractVariableReferences(node.prompt ?? "").forEach(tally);
     node.options?.forEach((option) => {
-      option.sets?.forEach((set) => tally(set.var));
+      option.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
+      extractVariableReferences(option.text).forEach(tally);
       if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
     });
     node.fakeOptions?.forEach((option) => {
-      option.sets?.forEach((set) => tally(set.var));
+      option.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
+      extractVariableReferences(option.text).forEach(tally);
       if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
     });
     node.branches?.forEach((branch) => {
-      branch.sets?.forEach((set) => tally(set.var));
+      branch.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
       if (branch.expr) extractExpressionNames(branch.expr).forEach(tally);
     });
   };
@@ -1632,20 +1691,34 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
 
   const scanGraph = (sceneName: string, nodes: StoryNode[]) => {
     for (const node of nodes) {
-      node.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+      node.sets?.forEach((s) => {
+        addLoc(s.var, sceneName, node.id, node.title, "write");
+        extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      });
       if (node.inputVar) addLoc(node.inputVar, sceneName, node.id, node.title, "write");
       extractVariableReferences(node.body ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       extractVariableReferences(node.prompt ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       node.options?.forEach((opt) => {
-        opt.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        opt.sets?.forEach((s) => {
+          addLoc(s.var, sceneName, node.id, node.title, "write");
+          extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+        });
+        extractVariableReferences(opt.text).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
       node.fakeOptions?.forEach((opt) => {
-        opt.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        opt.sets?.forEach((s) => {
+          addLoc(s.var, sceneName, node.id, node.title, "write");
+          extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+        });
+        extractVariableReferences(opt.text).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
       node.branches?.forEach((branch) => {
-        branch.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        branch.sets?.forEach((s) => {
+          addLoc(s.var, sceneName, node.id, node.title, "write");
+          extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+        });
         if (branch.expr) extractExpressionNames(branch.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
     }

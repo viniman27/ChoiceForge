@@ -2234,6 +2234,69 @@ test("lints *gosub_scene entry label that does not exist in target scene", () =>
   assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes('entry label "missing_sub" not found in scene sub')));
 });
 
+test("warns when a variable is declared but never read", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 280, title: "*set courage", sets: [{ var: "courage", op: "=", val: "50" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "courage", type: "number", initial: "50", desc: "Courage", fairmath: false, showInStats: false }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes('"courage"') && i.msg.includes("never read")));
+});
+
+test("does not warn when variable is read in a condition", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 280, title: "*set courage", sets: [{ var: "courage", op: "=", val: "50" }] },
+      {
+        id: "n2",
+        type: "choice",
+        x: 0, y: 160, w: 340,
+        title: "choice",
+        prompt: "Choose.",
+        options: [{ text: "Bold move", to: "n3", cond: { type: "if", expr: "courage > 40" } }],
+      },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "courage", type: "number", initial: "50", desc: "Courage", fairmath: false, showInStats: false }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  assert.ok(!lintProject(project).some((i) => i.msg.includes('"courage"') && i.msg.includes("never read")));
+});
+
+test("does not warn about unused variable when it is shown in the stats screen", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Begin." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "strength", type: "number", initial: "50", desc: "Strength", fairmath: false }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  assert.ok(!lintProject(project).some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
