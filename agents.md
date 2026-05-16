@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 65
+- **Playtest achievement tracking + `*achieve` line stripping.**
+  - `choicescript.ts`: Exported `extractAchievementCommandTargets` (was private). Added new export `stripAchieveCommands(text)` — removes `*achieve` lines and collapses excess blank lines.
+  - `PlaytestView.tsx`: Added `earnedAchievements: string[]` to state and `PlaySnapshot` (so back navigation restores them). `restart()` clears the list. When passage nodes auto-advance, `*achieve` command IDs are extracted from `node.body` and merged into `earnedAchievements` (dedup by ID). Same extraction happens for `set` nodes. The body text stored in `pageBlocks` and rendered in the terminal passage branch has `*achieve` lines stripped via `stripAchieveCommands`. Added an achievements section in the playtest sidebar (`.pt-achievements`) that appears once any achievement is earned, showing points and title for each.
+  - `styles.css`: Added `.pt-achievements`, `.pt-achievement-row`, `.pt-ach-points`.
+  - 91 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 64
 - **Per-variable stat chart visibility (`showInStats`).**
   - `types.ts / VariableSummary`: Added optional `showInStats?: boolean` field (default `true` / shown when undefined).

@@ -1199,6 +1199,29 @@ input, select, textarea { font-family: inherit; color: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.pt-achievements {
+  border-top: 1px solid var(--paper-edge);
+  margin-top: 8px;
+  padding-top: 4px;
+}
+.pt-achievement-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  font-size: 11px;
+  color: var(--ink-2);
+  background: var(--paper-1);
+  border-radius: var(--r-1);
+  margin-bottom: 2px;
+}
+.pt-ach-points {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  color: var(--accent-3);
+  min-width: 18px;
+  text-align: right;
+}
 .playtest-goto-btn {
   margin-left: auto;
   padding: 2px 7px;
