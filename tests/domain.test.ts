@@ -399,6 +399,28 @@ test("lints preserved startup and stats source by line", () => {
   assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 8));
 });
 
+test("lintPreservedStatsSource does not flag opposed_pair label lines as invalid rows", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Pair Test",
+      "*author Writer",
+      "*scene_list",
+      "  ch1",
+      "*create courage 50",
+    ].join("\n")),
+    textEntry("choicescript_stats.txt", [
+      "*stat_chart",
+      "  opposed_pair courage",
+      "    Brave",
+      "    Cowardly",
+    ].join("\n")),
+    textEntry("ch1.txt", "Chapter one.\n*ending"),
+  ]);
+  const issues = lintProject(project).filter((i) => i.scene === "choicescript_stats" && i.level === "error");
+
+  assert.equal(issues.length, 0, `unexpected stat chart errors: ${issues.map((i) => i.msg).join(", ")}`);
+});
+
 test("warns about preserved returns without gosub commands", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [

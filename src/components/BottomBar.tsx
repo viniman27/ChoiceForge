@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ChoiceForgeProject, I18nLabels, LintIssue } from "../domain/types";
 
 export function BottomBar({
@@ -13,9 +14,23 @@ export function BottomBar({
   onOpenChange: (open: boolean) => void;
   onSelectIssue: (lint: LintIssue) => void;
 }) {
+  const [filterScene, setFilterScene] = useState("");
+  const [filterLevel, setFilterLevel] = useState<"" | "error" | "warning">("");
+
   const errors = data.lints.filter((lint) => lint.level === "error").length;
   const warnings = data.lints.filter((lint) => lint.level === "warning").length;
-  const visibleLints = [...data.lints].sort((a, b) => lintSeverityRank(a.level) - lintSeverityRank(b.level));
+
+  const sceneNames = [...new Set(data.lints.map((l) => l.scene).filter(Boolean))] as string[];
+
+  const sorted = [...data.lints].sort((a, b) => lintSeverityRank(a.level) - lintSeverityRank(b.level));
+  const visibleLints = sorted.filter((lint) => {
+    if (filterLevel && lint.level !== filterLevel) return false;
+    if (filterScene && lint.scene !== filterScene) return false;
+    return true;
+  });
+
+  const isFiltered = Boolean(filterScene || filterLevel);
+
   return (
     <footer className="bot-bar">
       <div className="bot-left">
@@ -26,6 +41,39 @@ export function BottomBar({
             {warnings > 0 && <span className="bot-pill warn">{warnings} {labels.warnings}</span>}
             {errors === 0 && warnings === 0 && <span className="bot-pill ok">{labels.linterPasses}</span>}
           </summary>
+          {(data.lints.length > 0) && (
+            <div className="con-filters">
+              <select
+                className="con-filter-select"
+                value={filterLevel}
+                onChange={(e) => setFilterLevel(e.target.value as "" | "error" | "warning")}
+              >
+                <option value="">all levels</option>
+                <option value="error">errors only</option>
+                <option value="warning">warnings only</option>
+              </select>
+              {sceneNames.length > 1 && (
+                <select
+                  className="con-filter-select"
+                  value={filterScene}
+                  onChange={(e) => setFilterScene(e.target.value)}
+                >
+                  <option value="">all scenes</option>
+                  {sceneNames.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              )}
+              {isFiltered && (
+                <button
+                  className="con-filter-clear"
+                  onClick={() => { setFilterScene(""); setFilterLevel(""); }}
+                  title="Clear filters"
+                >×</button>
+              )}
+              {isFiltered && (
+                <span className="con-filter-count">{visibleLints.length} shown</span>
+              )}
+            </div>
+          )}
           <ul className="con-list">
             {visibleLints.map((lint, index) => (
               <li
@@ -39,6 +87,9 @@ export function BottomBar({
                 <span className="con-loc dim">{lint.scene && <code>{lint.scene}</code>}{lint.node && <code>{lint.node}</code>}{lint.line && <span> :{lint.line}</span>}</span>
               </li>
             ))}
+            {visibleLints.length === 0 && isFiltered && (
+              <li className="con-row con-empty">no issues match the current filter</li>
+            )}
           </ul>
         </details>
       </div>

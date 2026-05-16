@@ -1072,21 +1072,29 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
 
   const statVariables = new Map(project.variables.map((variable) => [variable.name, variable]));
   let inStatChart = false;
+  let opposedPairLabelsLeft = 0;
   sourceText.split(/\r?\n/).forEach((line, index) => {
     const lineNumber = index + 1;
     const trimmed = line.trim();
     const command = sourceCommand(trimmed);
     if (command === "stat_chart") {
       inStatChart = true;
+      opposedPairLabelsLeft = 0;
       return;
     }
     if (command) {
       inStatChart = false;
+      opposedPairLabelsLeft = 0;
       return;
     }
     if (!inStatChart || !trimmed) return;
     if (!/^\s+\S/.test(line)) {
       inStatChart = false;
+      opposedPairLabelsLeft = 0;
+      return;
+    }
+    if (opposedPairLabelsLeft > 0) {
+      opposedPairLabelsLeft--;
       return;
     }
     const [chartType = "", rawVariable = ""] = trimmed.split(/\s+/, 2);
@@ -1098,6 +1106,9 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
     if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
       issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
       return;
+    }
+    if (chartType === "opposed_pair") {
+      opposedPairLabelsLeft = 2;
     }
     const projectVariable = statVariables.get(variable);
     if (variable && !projectVariable) {
