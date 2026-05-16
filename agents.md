@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 56
+- **Variable cross-reference navigation in the Variables tab.**
+  - `choicescript.ts`: New exported function `computeVariableLocations(project)` returns `Map<string, VarLocation[]>`. `VarLocation` carries `{ sceneName, nodeId, nodeTitle, kind: "write" | "read" }`. The function scans all `sceneData` graphs (not just the active scene): `*set` nodes and `inputVar` fields produce `"write"` entries; variable references in `body`, `prompt`, `option.cond.expr`, `branch.expr` produce `"read"` entries. Duplicate (scene+node+kind) entries are suppressed so the list stays concise.
+  - `LeftPanel.tsx`: Imported `computeVariableLocations` and `VarLocation`. Added `onNavigateToNode?: (sceneName: string, nodeId: string) => void` to `LeftPanelProps` and `VariablesList`. The `uses` count in each variable row is now a `<button className="var-uses-btn">` that, when clicked, toggles an inline expansion row (`var-locs-row`) showing all usage locations. Locations are grouped by scene, each rendered as a clickable `var-loc-row` button that fires `onNavigateToNode`. Zero-use variables keep the count non-interactive (greyed). New helper components `VarLocationList` and `groupVarLocsByScene` added at the bottom of the file.
+  - `App.tsx`: Wired `onNavigateToNode` in the `<LeftPanel>` call — navigates to the target scene then focuses the node after a tick (to let the scene switch settle).
+  - `styles.css`: Replaced `.var-uses` static span with `.var-uses-btn` interactive button styles (hover, active state). Added `.var-locs-row`, `.var-locs`, `.var-locs-scene`, `.var-locs-scene-name`, `.var-loc-row`, `.var-loc-kind`, `.var-loc-kind-write`, `.var-loc-kind-read`, `.var-loc-title`.
+  - 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 55
 - **Manuscript view: TOC sidebar, scene synopses, multi-line prompt fixes.**
   - `ManuscriptView.tsx`: Added `sectionWordCounts` (Map from scene name to word count) to drive per-scene word counts in the TOC. Restructured `ms-body` to a flex row: a fixed-width `<nav className="ms-toc">` sidebar (project scope only) and a `<div className="ms-content">` scrollable column. Each TOC entry is a `<button>` that scrolls to the scene divider via `getElementById` + `scrollIntoView`. Scene synopsis (from `scene.notes`) appears below the scene name in both the TOC and at the scene divider in the content column.

@@ -1443,7 +1443,9 @@ function lintSourceExpression(expression: string, variables: Set<string>, issues
 }
 
 function extractVariableReferences(text: string): string[] {
-  return [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((match) => match[1]);
+  const dollar = [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((m) => m[1]);
+  const at = [...text.matchAll(/@\{([a-zA-Z_][\w]*)\b/g)].map((m) => m[1]);
+  return [...dollar, ...at];
 }
 
 function extractAchievementCommandTargets(text: string): string[] {
@@ -1552,6 +1554,57 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
   if (project.statsSource) scanSource(project.statsSource);
 
   return counts;
+}
+
+export type VarLocation = {
+  sceneName: string;
+  nodeId: string;
+  nodeTitle: string;
+  kind: "write" | "read";
+};
+
+export function computeVariableLocations(project: ChoiceForgeProject): Map<string, VarLocation[]> {
+  const result = new Map(project.variables.map((v) => [v.name, [] as VarLocation[]]));
+  const names = new Set(project.variables.map((v) => v.name));
+
+  const addLoc = (name: string, sceneName: string, nodeId: string, nodeTitle: string, kind: "write" | "read") => {
+    if (!names.has(name)) return;
+    const list = result.get(name)!;
+    if (!list.some((l) => l.sceneName === sceneName && l.nodeId === nodeId && l.kind === kind)) {
+      list.push({ sceneName, nodeId, nodeTitle, kind });
+    }
+  };
+
+  const scanGraph = (sceneName: string, nodes: StoryNode[]) => {
+    for (const node of nodes) {
+      node.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+      if (node.inputVar) addLoc(node.inputVar, sceneName, node.id, node.title, "write");
+      extractVariableReferences(node.body ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      extractVariableReferences(node.prompt ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      node.options?.forEach((opt) => {
+        opt.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      });
+      node.fakeOptions?.forEach((opt) => {
+        opt.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      });
+      node.branches?.forEach((branch) => {
+        branch.sets?.forEach((s) => addLoc(s.var, sceneName, node.id, node.title, "write"));
+        if (branch.expr) extractExpressionNames(branch.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+      });
+    }
+  };
+
+  if (project.sceneData) {
+    for (const [sceneName, graph] of Object.entries(project.sceneData)) {
+      scanGraph(sceneName, graph.nodes);
+    }
+  } else {
+    scanGraph(project.sceneTitle, project.nodes);
+  }
+
+  return result;
 }
 
 export function computeAchievementUses(project: ChoiceForgeProject): Map<string, number> {

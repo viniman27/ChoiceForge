@@ -310,6 +310,11 @@ export default function App() {
         onUpdateAsset={actions.updateAsset}
         onDeleteAsset={actions.deleteAsset}
         onSelectNode={focusNode}
+        onNavigateToNode={(sceneName, nodeId) => {
+          const scene = lintedProject.scenes.find((s) => s.name === sceneName);
+          if (scene) navigateToScene(scene.id);
+          setTimeout(() => focusNode(nodeId), 0);
+        }}
         onReplace={actions.replaceInNodes}
       />
       <button
