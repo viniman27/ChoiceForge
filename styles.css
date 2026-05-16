@@ -646,6 +646,11 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .stat-format-toggle.is-disabled {
   opacity: 0.45;
 }
+.stat-chart-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .stat-chart-select {
   font-family: var(--ff-mono);
   font-size: 10px;
@@ -655,6 +660,16 @@ input, select, textarea { font-family: inherit; color: inherit; }
   border: 1px solid var(--paper-edge);
   border-radius: var(--r-1);
   max-width: 56px;
+}
+.stat-chart-low-input {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  padding: 1px 3px;
+  background: var(--paper-1);
+  color: var(--ink-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  width: 56px;
 }
 
 .var-detail {

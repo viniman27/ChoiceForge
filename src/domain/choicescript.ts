@@ -161,8 +161,14 @@ export function generateStatsChoiceScript(project: ChoiceForgeProject): string {
   if (statVars.length) {
     lines.push("*stat_chart");
     statVars.forEach((variable) => {
-      const chartType = variable.type === "number" && variable.fairmath ? "percent" : "text";
-      lines.push(`  ${chartType} ${variable.name} ${formatStatsLabel(variable.desc || variable.name)}`);
+      if (variable.opposedLow !== undefined && variable.type === "number") {
+        lines.push(`  opposed_pair ${variable.name}`);
+        lines.push(`    ${formatStatsLabel(variable.desc || variable.name)}`);
+        lines.push(`    ${formatStatsLabel(variable.opposedLow || variable.name)}`);
+      } else {
+        const chartType = variable.type === "number" && variable.fairmath ? "percent" : "text";
+        lines.push(`  ${chartType} ${variable.name} ${formatStatsLabel(variable.desc || variable.name)}`);
+      }
     });
   }
 

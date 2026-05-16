@@ -1912,6 +1912,36 @@ test("does not warn when @{} substitution references a declared variable", () =>
   assert.ok(!warnings.some((msg) => msg.includes("strength")));
 });
 
+test("generateStatsChoiceScript emits opposed_pair for variables with opposedLow set", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "courage", type: "number" as const, initial: "50", desc: "Brave", fairmath: false, uses: 0, opposedLow: "Cowardly" },
+    ],
+  };
+  const stats = generateStatsChoiceScript(project);
+
+  assert.ok(stats.includes("opposed_pair courage"), "should emit opposed_pair row");
+  assert.ok(stats.includes("    Brave"), "should include high label");
+  assert.ok(stats.includes("    Cowardly"), "should include low label");
+  assert.ok(!stats.includes("text courage"), "should not emit text row");
+  assert.ok(!stats.includes("percent courage"), "should not emit percent row");
+});
+
+test("generateStatsChoiceScript uses variable name as fallback when opposedLow is empty string", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [
+      { name: "mood", type: "number" as const, initial: "50", desc: "Happy", fairmath: false, uses: 0, opposedLow: "" },
+    ],
+  };
+  const stats = generateStatsChoiceScript(project);
+
+  assert.ok(stats.includes("opposed_pair mood"), "should emit opposed_pair row");
+  assert.ok(stats.includes("    Happy"), "should include desc as high label");
+  assert.ok(stats.includes("    Mood"), "should use variable name as low label fallback");
+});
+
 test("generateStatsChoiceScript excludes variables with showInStats false", () => {
   const project = {
     ...minimalProject(),

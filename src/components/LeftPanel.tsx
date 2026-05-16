@@ -578,20 +578,33 @@ function VariablesList({
                   </td>
                   <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
                   <td>
-                    <select
-                      className="stat-chart-select"
-                      value={variable.showInStats === false ? "off" : variable.fairmath ? "percent" : "text"}
-                      onChange={(event) => {
-                        const v = event.target.value;
-                        if (v === "off") onUpdateVariable(variable.name, { showInStats: false, fairmath: false });
-                        else if (v === "percent") onUpdateVariable(variable.name, { showInStats: undefined, fairmath: true });
-                        else onUpdateVariable(variable.name, { showInStats: undefined, fairmath: false });
-                      }}
-                    >
-                      <option value="off">off</option>
-                      <option value="text">text</option>
-                      <option value="percent" disabled={variable.type !== "number"}>%</option>
-                    </select>
+                    <div className="stat-chart-cell">
+                      <select
+                        className="stat-chart-select"
+                        value={variable.showInStats === false ? "off" : variable.opposedLow !== undefined ? "pair" : variable.fairmath ? "percent" : "text"}
+                        onChange={(event) => {
+                          const v = event.target.value;
+                          if (v === "off") onUpdateVariable(variable.name, { showInStats: false, fairmath: false, opposedLow: undefined });
+                          else if (v === "percent") onUpdateVariable(variable.name, { showInStats: undefined, fairmath: true, opposedLow: undefined });
+                          else if (v === "pair") onUpdateVariable(variable.name, { showInStats: undefined, fairmath: false, opposedLow: "" });
+                          else onUpdateVariable(variable.name, { showInStats: undefined, fairmath: false, opposedLow: undefined });
+                        }}
+                      >
+                        <option value="off">off</option>
+                        <option value="text">text</option>
+                        <option value="percent" disabled={variable.type !== "number"}>%</option>
+                        <option value="pair" disabled={variable.type !== "number"}>pair</option>
+                      </select>
+                      {variable.opposedLow !== undefined && (
+                        <input
+                          className="stat-chart-low-input"
+                          value={variable.opposedLow}
+                          placeholder="low label"
+                          onChange={(event) => onUpdateVariable(variable.name, { opposedLow: event.target.value })}
+                          title="Low-end label for opposed_pair (e.g. Cowardly)"
+                        />
+                      )}
+                    </div>
                   </td>
                   <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
                   <td>
