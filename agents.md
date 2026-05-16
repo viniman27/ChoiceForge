@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 72
+- **Playtest: interactive `*fake_choice` + `*sound` auto-advance. Import tests: `*achievement` and `*selectable_if`/reuse modes.**
+  - `PlaytestView.tsx / useEffect`: Added `node.type === "sound"` to the comment/label auto-advance branch. Sound nodes now silently advance to their flow target without showing a Continue button (same as comment nodes — no interactive content in the playtest).
+  - `PlaytestView.tsx / showContinue`: Added `node?.type !== "fake_choice"` to the exclusion list. `*fake_choice` nodes now require the reader to pick an option rather than showing a Continue button.
+  - `PlaytestView.tsx / fake_choice render`: Replaced unconditionally-disabled buttons with a full interactive implementation. Each option evaluates its condition: `*if` conditions hide the option; `*selectable_if` conditions show it as disabled. Clicking a visible option pushes a snapshot, applies option `*set` commands, appends a trail entry, clears `pageBlocks`, and advances to the flow target — matching ChoiceScript's actual `*fake_choice` semantics where all options converge on the same continuation.
+  - `domain.test.ts`: Added `imports *achievement declarations from startup.txt into project achievements` — verifies `id`, `title`, `points`, `hidden`, `preDesc`, `postDesc` for visible and hidden achievements.
+  - `domain.test.ts`: Added `imports *selectable_if and reuse-mode option prefixes from choice blocks` — verifies `cond.type === "selectable_if"`, `cond.expr`, and `reuse` values (`hide`, `disable`, `allow`) round-trip correctly through the importer.
+  - 103 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 71
 - **`*sound` node type (parallel to `*image`).**
   - `types.ts / NodeType`: Added `"sound"` as a new node type.

@@ -162,7 +162,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
-    if (node.type === "comment" || node.type === "label") {
+    if (node.type === "comment" || node.type === "label" || node.type === "sound") {
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
@@ -230,6 +230,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const showContinue = Boolean(flowTarget)
     && node?.type !== "passage"
     && node?.type !== "choice"
+    && node?.type !== "fake_choice"
     && node?.type !== "ending"
     && node?.type !== "input_text"
     && node?.type !== "input_number";
@@ -342,14 +343,30 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
                 <p key={i} className="playtest-prompt">{line}</p>
               ))}
 
-              {node.type === "fake_choice" && (
+              {node.type === "fake_choice" && flowTarget && (
                 <div className="playtest-options">
-                  {node.fakeOptions?.map((option, index) => (
-                    <button key={`${option.text}-${index}`} disabled>
-                      <span>#{index + 1}</span>
-                      {option.text}
-                    </button>
-                  ))}
+                  {node.fakeOptions?.map((option, index) => {
+                    const condMet = option.cond ? evaluateExpression(option.cond.expr, stats) : true;
+                    if (option.cond?.type === "if" && !condMet) return null;
+                    return (
+                      <button
+                        key={`${option.text}-${index}`}
+                        disabled={!condMet}
+                        onClick={() => {
+                          pushSnapshot();
+                          const optSets = option.sets ?? [];
+                          if (optSets.length) flashVars(optSets.map((s) => s.var));
+                          setStats((current) => applySets(current, optSets, project.variables));
+                          setPageBlocks([]);
+                          setPlayTrail((prev) => [...prev, { kind: "choice", text: option.text, num: index + 1 }]);
+                          setNodeId(flowTarget);
+                        }}
+                      >
+                        <span>#{index + 1}</span>
+                        {option.text}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

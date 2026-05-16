@@ -66,6 +66,40 @@ test("imports inline if branch bodies as branch targets", () => {
   assert.equal(graph.edges.filter((edge) => edge.from === condition.id && ["if", "else"].includes(edge.kind)).length, 2);
 });
 
+test("imports *selectable_if and reuse-mode option prefixes from choice blocks", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  *selectable_if (courage > 10) #Brave option",
+    "    You are brave.",
+    "    *finish",
+    "  *hide_reuse #Hide after use",
+    "    Hidden.",
+    "    *finish",
+    "  *disable_reuse #Disable after use",
+    "    Disabled.",
+    "    *finish",
+    "  *allow_reuse #Always available",
+    "    Always.",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((node) => node.type === "choice");
+  assert.ok(choice, "choice node should be imported");
+  assert.equal(choice?.options?.length, 4);
+  const selectableOpt = choice?.options?.[0];
+  assert.equal(selectableOpt?.cond?.type, "selectable_if");
+  assert.equal(selectableOpt?.cond?.expr, "courage > 10");
+  assert.equal(selectableOpt?.text, "Brave option");
+  const hideOpt = choice?.options?.[1];
+  assert.equal(hideOpt?.reuse, "hide");
+  assert.equal(hideOpt?.text, "Hide after use");
+  const disableOpt = choice?.options?.[2];
+  assert.equal(disableOpt?.reuse, "disable");
+  assert.equal(disableOpt?.text, "Disable after use");
+  const allowOpt = choice?.options?.[3];
+  assert.equal(allowOpt?.reuse, "allow");
+  assert.equal(allowOpt?.text, "Always available");
+});
+
 test("imports top-level set commands as set nodes", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*set Player-Score + 5",
@@ -174,6 +208,36 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
   assert.equal(project.startupSource, startupSource);
   assert.equal(generateStartupChoiceScript(project), `${startupSource}\n`);
+});
+
+test("imports *achievement declarations from startup.txt into project achievements", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("mygame/startup.txt", [
+      "*title Hero's Journey",
+      "*author Dev",
+      "*achievement first_blood visible 10 First Blood",
+      "  Kill your first enemy.",
+      "  You have vanquished a foe.",
+      "*achievement secret_ending hidden 50 True Ending",
+      "  Find the secret path.",
+      "  You found the true ending.",
+      "*scene_list",
+      "  startup",
+    ].join("\n")),
+  ]);
+
+  assert.equal(project.achievements.length, 2);
+  const fb = project.achievements.find((a) => a.id === "first_blood");
+  assert.ok(fb, "first_blood achievement should be imported");
+  assert.equal(fb?.title, "First Blood");
+  assert.equal(fb?.points, 10);
+  assert.equal(fb?.hidden, false);
+  assert.equal(fb?.preDesc, "Kill your first enemy.");
+  assert.equal(fb?.postDesc, "You have vanquished a foe.");
+  const se = project.achievements.find((a) => a.id === "secret_ending");
+  assert.ok(se, "secret_ending achievement should be imported");
+  assert.equal(se?.points, 50);
+  assert.equal(se?.hidden, true);
 });
 
 test("imports startup body as prologue without duplicating startup scene", () => {
