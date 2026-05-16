@@ -1964,6 +1964,36 @@ test("generateStatsChoiceScript uses variable name as fallback when opposedLow i
   assert.ok(stats.includes("    Mood"), "should use variable name as low label fallback");
 });
 
+test("importChoiceScriptArchive maps opposed_pair stat chart entries to opposedLow and desc", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("mygame/startup.txt", [
+      "*title Test",
+      "*author Author",
+      "*scene_list",
+      "  startup",
+      "*create courage 50",
+      "*create name \"Alex\"",
+      "*finish",
+    ].join("\n")),
+    textEntry("mygame/choicescript_stats.txt", [
+      "*stat_chart",
+      "  opposed_pair courage",
+      "    Brave",
+      "    Cowardly",
+      "  text name Player Name",
+    ].join("\n")),
+  ]);
+
+  const courage = project.variables.find((v) => v.name === "courage");
+  const name = project.variables.find((v) => v.name === "name");
+
+  assert.equal(courage?.desc, "Brave", "high label maps to desc");
+  assert.equal(courage?.opposedLow, "Cowardly", "low label maps to opposedLow");
+  assert.equal(courage?.fairmath, false, "opposed_pair clears fairmath");
+  assert.equal(name?.opposedLow, undefined, "text row clears opposedLow");
+  assert.equal(name?.desc, "Player Name", "text row maps label to desc");
+});
+
 test("generateStatsChoiceScript excludes variables with showInStats false", () => {
   const project = {
     ...minimalProject(),

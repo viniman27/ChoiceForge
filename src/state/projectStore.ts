@@ -83,6 +83,7 @@ export interface ProjectActions {
   deleteFlowEdge: (from: string, to: string) => void;
   addScene: () => void;
   updateScene: (id: string, patch: Partial<SceneSummary>) => void;
+  updateSceneMetadata: (id: string, patch: { wordGoal?: number; notes?: string }) => void;
   moveScene: (id: string, direction: "up" | "down") => void;
   moveSceneBefore: (id: string, beforeId: string | null) => void;
   duplicateScene: (id: string) => void;
@@ -532,6 +533,15 @@ export function useProjectStore() {
         }));
       });
     },
+    updateSceneMetadata: (id, patch) => {
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        return commitProject({
+          ...saved,
+          scenes: saved.scenes.map((scene) => (scene.id === id ? { ...scene, ...patch } : scene)),
+        });
+      });
+    },
     moveScene: (id, direction) => {
       setTrackedProjectState((current) => {
         const saved = commitProject(current);
@@ -939,10 +949,14 @@ function applyStatsText(project: ChoiceForgeProject, content: string): ChoiceFor
     variables: project.variables.map((variable) => {
       const row = rows.get(variable.name);
       if (!row) return variable;
+      if (row.chartType === "opposed_pair") {
+        return { ...variable, desc: row.highLabel || variable.desc, opposedLow: row.lowLabel ?? "", fairmath: false };
+      }
       return {
         ...variable,
         desc: row.label || variable.desc,
         fairmath: variable.type === "number" ? row.chartType === "percent" : false,
+        opposedLow: undefined,
       };
     }),
   };
@@ -1014,21 +1028,46 @@ function parseAchievements(lines: string[], currentAchievements: AchievementSumm
   return achievements;
 }
 
-function parseStatChartRows(lines: string[]): Array<{ chartType: "percent" | "text"; name: string; label: string }> {
-  const rows: Array<{ chartType: "percent" | "text"; name: string; label: string }> = [];
+type StatChartRow =
+  | { chartType: "percent" | "text"; name: string; label: string }
+  | { chartType: "opposed_pair"; name: string; highLabel: string; lowLabel: string };
+
+function parseStatChartRows(lines: string[]): StatChartRow[] {
+  const rows: StatChartRow[] = [];
   let inChart = false;
+  let pendingOpposed: { name: string } | null = null;
+  let pendingHigh: string | null = null;
   lines.forEach((line) => {
     const trimmed = line.trim();
     if (commandName(line) === "stat_chart") {
       inChart = true;
+      pendingOpposed = null;
+      pendingHigh = null;
       return;
     }
     if (!inChart || !trimmed) return;
     if (trimmed.startsWith("*")) {
       inChart = false;
+      pendingOpposed = null;
+      pendingHigh = null;
+      return;
+    }
+    if (pendingOpposed) {
+      if (pendingHigh === null) {
+        pendingHigh = trimmed;
+        return;
+      }
+      rows.push({ chartType: "opposed_pair", name: pendingOpposed.name, highLabel: pendingHigh, lowLabel: trimmed });
+      pendingOpposed = null;
+      pendingHigh = null;
       return;
     }
     const [chartType, name, ...labelParts] = trimmed.split(/\s+/);
+    if (chartType === "opposed_pair" && name) {
+      pendingOpposed = { name };
+      pendingHigh = null;
+      return;
+    }
     if ((chartType === "percent" || chartType === "text") && name) {
       rows.push({ chartType, name, label: labelParts.join(" ") });
     }

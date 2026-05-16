@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
 import type { ChoiceForgeProject, I18nLabels, NodeType, StoryNode } from "../domain/types";
 
-export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onNavigateToNode }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void; onUpdateWordGoal: (goal: number | undefined) => void; onNavigateToNode?: (sceneName: string, nodeId: string) => void }) {
+export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onUpdateSceneGoal, onNavigateToNode }: { data: ChoiceForgeProject; labels: I18nLabels; onClose: () => void; onUpdateWordGoal: (goal: number | undefined) => void; onUpdateSceneGoal?: (id: string, goal: number | undefined) => void; onNavigateToNode?: (sceneName: string, nodeId: string) => void }) {
   const currentSceneWords = countSceneWords(data.nodes);
   const sceneRows = data.scenes.filter((scene) => !scene.special).map((scene) => ({
     ...scene,
@@ -104,6 +104,9 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onNavigateT
                   )}
                 </span>
                 <span className="bar-val">{scene.words.toLocaleString()}{goalPct !== null ? ` (${goalPct}%)` : ""}</span>
+                {onUpdateSceneGoal && (
+                  <SceneGoalInput sceneId={scene.id} goal={scene.wordGoal} onUpdate={(goal) => onUpdateSceneGoal(scene.id, goal)} />
+                )}
               </div>
             );
           })}
@@ -200,6 +203,26 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onNavigateT
         </div>
       </div>
     </div>
+  );
+}
+
+function SceneGoalInput({ sceneId, goal, onUpdate }: { sceneId: string; goal: number | undefined; onUpdate: (goal: number | undefined) => void }) {
+  const [value, setValue] = useState(goal !== undefined ? String(goal) : "");
+  return (
+    <input
+      className="scene-goal-input"
+      type="number"
+      min="0"
+      placeholder="goal"
+      title="Word count goal for this scene"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        const n = parseInt(value, 10);
+        onUpdate(isNaN(n) || n <= 0 ? undefined : n);
+      }}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+    />
   );
 }
 
