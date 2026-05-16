@@ -577,7 +577,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 }
 .var-edit.small { min-width: 42px; }
 .var-edit.desc { font-family: var(--ff-ui); min-width: 90px; }
-.var-uses {
+.var-uses-btn {
   display: inline-block;
   min-width: 22px;
   padding: 2px 5px;
@@ -587,11 +587,24 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-family: var(--ff-mono);
   font-size: 11px;
   text-align: center;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s, outline 0.1s;
 }
-.var-uses.is-zero {
-  background: color-mix(in oklch, var(--warn) 20%, var(--paper-2));
-  color: var(--warn);
-}
+.var-uses-btn:not(.is-zero):hover, .var-uses-btn.is-active { background: var(--c-set); color: var(--paper-1); outline: none; }
+.var-uses-btn.is-zero { background: color-mix(in oklch, var(--warn) 20%, var(--paper-2)); color: var(--warn); cursor: default; }
+.var-locs-row td { padding: 0 6px 8px !important; background: var(--paper-2) !important; }
+.var-locs-row:hover td { background: var(--paper-2) !important; }
+.var-locs { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+.var-locs-scene { display: flex; flex-direction: column; gap: 1px; }
+.var-locs-scene-name { font-family: var(--ff-mono); font-size: 10px; color: var(--ink-mute); padding: 2px 6px; text-transform: lowercase; }
+.var-loc-row { display: flex; align-items: center; gap: 6px; padding: 3px 6px; background: none; border: none; text-align: left; cursor: pointer; border-radius: var(--r-1); width: 100%; }
+.var-loc-row:hover { background: var(--paper-3); }
+.var-loc-row:disabled { cursor: default; }
+.var-loc-kind { font-family: var(--ff-mono); font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+.var-loc-kind-write { background: color-mix(in oklch, var(--c-set) 18%, var(--paper-2)); color: var(--c-set); }
+.var-loc-kind-read { background: color-mix(in oklch, var(--c-passage) 18%, var(--paper-2)); color: var(--c-passage); }
+.var-loc-title { font-family: var(--ff-mono); font-size: 11px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .type-pill { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; line-height: 18px; font-family: var(--ff-mono); font-size: 11px; font-weight: 600; }
 .type-pill.type-string { background: var(--c-passage-tint); color: var(--c-passage); }
 .type-pill.type-number { background: var(--c-set-tint); color: var(--c-set); }

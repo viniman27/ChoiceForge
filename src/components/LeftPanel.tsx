@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { computeVariableUses, computeAchievementUses } from "../domain/choicescript";
+import { computeVariableUses, computeAchievementUses, computeVariableLocations } from "../domain/choicescript";
+import type { VarLocation } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
@@ -25,6 +26,7 @@ interface LeftPanelProps {
   onUpdateAsset: (id: string, patch: Partial<AssetSummary>) => void;
   onDeleteAsset: (id: string) => void;
   onSelectNode: (id: string) => void;
+  onNavigateToNode?: (sceneName: string, nodeId: string) => void;
   onReplace: (find: string, replace: string, scope: "scene" | "all") => number;
 }
 
@@ -51,6 +53,7 @@ export function LeftPanel({
   onUpdateAsset,
   onDeleteAsset,
   onSelectNode,
+  onNavigateToNode,
   onReplace,
 }: LeftPanelProps) {
   const [search, setSearch] = useState("");
@@ -194,7 +197,7 @@ export function LeftPanel({
             onDeleteScene={onDeleteScene}
           />
         )}
-        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} onDeleteVariable={onDeleteVariable} />}
+        {!search.trim() && activeTab === "variables" && <VariablesList data={data} labels={labels} onAddVariable={onAddVariable} onUpdateVariable={onUpdateVariable} onDeleteVariable={onDeleteVariable} onNavigateToNode={onNavigateToNode} />}
         {!search.trim() && activeTab === "achievements" && (
           <AchievementsList
             data={data}
@@ -500,14 +503,19 @@ function VariablesList({
   onAddVariable,
   onUpdateVariable,
   onDeleteVariable,
+  onNavigateToNode,
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
   onAddVariable: () => void;
   onUpdateVariable: (name: string, patch: Partial<VariableSummary>) => void;
   onDeleteVariable: (name: string) => void;
+  onNavigateToNode?: (sceneName: string, nodeId: string) => void;
 }) {
   const variableUses = useMemo(() => computeVariableUses(data), [data]);
+  const variableLocations = useMemo(() => computeVariableLocations(data), [data]);
+  const [expandedVar, setExpandedVar] = useState<string | null>(null);
+
   return (
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
@@ -516,40 +524,91 @@ function VariablesList({
         <tbody>
           {data.variables.map((variable) => {
             const uses = variableUses.get(variable.name) ?? 0;
+            const locs = variableLocations.get(variable.name) ?? [];
+            const isExpanded = expandedVar === variable.name;
             return (
-              <tr key={variable.name}>
-                <td>
-                  <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
-                    <option value="number">num</option>
-                    <option value="string">str</option>
-                    <option value="boolean">bool</option>
-                  </select>
-                </td>
-                <td>
-                  <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
-                </td>
-                <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
-                <td>
-                  <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(variable.fairmath)}
-                      disabled={variable.type !== "number"}
-                      onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
-                    />
-                    <span>{variable.fairmath ? "percent" : "text"}</span>
-                  </label>
-                </td>
-                <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
-                <td><span className={`var-uses ${uses === 0 ? "is-zero" : ""}`}>{uses}</span></td>
-                <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
-              </tr>
+              <>
+                <tr key={variable.name}>
+                  <td>
+                    <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
+                      <option value="number">num</option>
+                      <option value="string">str</option>
+                      <option value="boolean">bool</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input className="var-edit" value={variable.name} onChange={(event) => onUpdateVariable(variable.name, { name: normalizeIdentifier(event.target.value) })} />
+                  </td>
+                  <td><input className="var-edit small" value={variable.initial} onChange={(event) => onUpdateVariable(variable.name, { initial: event.target.value })} /></td>
+                  <td>
+                    <label className={`stat-format-toggle ${variable.type !== "number" ? "is-disabled" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(variable.fairmath)}
+                        disabled={variable.type !== "number"}
+                        onChange={(event) => onUpdateVariable(variable.name, { fairmath: event.target.checked })}
+                      />
+                      <span>{variable.fairmath ? "percent" : "text"}</span>
+                    </label>
+                  </td>
+                  <td><input className="var-edit desc" value={variable.desc} onChange={(event) => onUpdateVariable(variable.name, { desc: event.target.value })} /></td>
+                  <td>
+                    <button
+                      className={`var-uses-btn ${uses === 0 ? "is-zero" : ""} ${isExpanded ? "is-active" : ""}`}
+                      title={uses > 0 ? "Show usage locations" : undefined}
+                      onClick={() => uses > 0 && setExpandedVar(isExpanded ? null : variable.name)}
+                    >{uses}</button>
+                  </td>
+                  <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
+                </tr>
+                {isExpanded && locs.length > 0 && (
+                  <tr key={`${variable.name}-locs`} className="var-locs-row">
+                    <td colSpan={7}>
+                      <VarLocationList locs={locs} onNavigate={onNavigateToNode} />
+                    </td>
+                  </tr>
+                )}
+              </>
             );
           })}
         </tbody>
       </table>
     </div>
   );
+}
+
+function VarLocationList({ locs, onNavigate }: { locs: VarLocation[]; onNavigate?: (sceneName: string, nodeId: string) => void }) {
+  const grouped = groupVarLocsByScene(locs);
+  return (
+    <div className="var-locs">
+      {grouped.map(({ sceneName, items }) => (
+        <div key={sceneName} className="var-locs-scene">
+          <span className="var-locs-scene-name">{sceneName}.txt</span>
+          {items.map((loc, i) => (
+            <button
+              key={i}
+              className="var-loc-row"
+              disabled={!onNavigate}
+              onClick={() => onNavigate?.(loc.sceneName, loc.nodeId)}
+            >
+              <span className={`var-loc-kind var-loc-kind-${loc.kind}`}>{loc.kind}</span>
+              <span className="var-loc-title">{loc.nodeTitle || loc.nodeId}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function groupVarLocsByScene(locs: VarLocation[]) {
+  const order: string[] = [];
+  const map = new Map<string, VarLocation[]>();
+  for (const loc of locs) {
+    if (!map.has(loc.sceneName)) { map.set(loc.sceneName, []); order.push(loc.sceneName); }
+    map.get(loc.sceneName)!.push(loc);
+  }
+  return order.map((sceneName) => ({ sceneName, items: map.get(sceneName)! }));
 }
 
 function normalizeIdentifier(value: string): string {
