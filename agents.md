@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 54
+- **Inspector navigation: jump-to-target buttons + incoming connections.**
+  - `RightPanel.tsx / ContentTab`: Added `onSelectNode?: (id: string) => void` prop to `ContentTab` and threaded it from `RightPanel`. In the choice node content tab, each option row now has a `→` button next to the target `<select>` that calls `onSelectNode(option.to)` to select and re-center that node on the canvas.
+  - `RightPanel.tsx / LogicTab`: In the `*if` branch list, each branch row now has a `→` button next to the branch target `<select>` that calls `onSelectNode(branch.to)`.
+  - New `IncomingConnections` component: mirrors the existing `OutgoingEdges` component but shows edges where `edge.to === node.id`. Each incoming edge renders a clickable button (`flow-target`) that navigates to the source node. Added to the bottom of both the `if` node and generic logic tab views. Returns `null` when there are no incoming edges.
+  - No domain model changes, no test changes, no generator changes.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 53
 - **Multi-line choice and fake_choice prompts.**
   - `RightPanel.tsx`: Replaced `<input className="ip-prompt">` with `<NodeBodyEditor>` (wrapped in `.ip-prompt-editor`) for both `choice` and `fake_choice` content tabs. The prompt editor has variable/achievement autocomplete and spellcheck, matching the passage body editor. A word-count badge appears when the prompt is non-empty.
