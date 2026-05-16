@@ -344,6 +344,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 84
+- **Fix visual disconnect of gosub subroutine in sample project.**
+  - GraphCanvas renders only `data.edges` (explicit edges), NOT the derived edges produced by `deriveNodeEdges`. The derived gosub→label edge (n9→n10) was invisible in the canvas, making nodes n10/n11/n12 appear as floating orphans. Functionally the game worked (generated CS contains `*label revisar_diario` and the subroutine executes), but the graph looked broken.
+  - Added explicit `{from: "n9", to: "n10", kind: "goto", label: "*gosub"}` edge to intro.edges. This renders as a dashed goto-colored arrow from the gosub call site to the label entry point, making the subroutine structure visually clear. `mergeGraphEdges` deduplicates it with the derived edge so no double-counting.
+  - 109 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 83
 - **Balance sample project variables so all story branches are reachable.**
   - Traced all three paths from intro (A: sala da lente, B: praia, C: radio) and found two dead branches:
