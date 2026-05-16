@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 58
+- **Achievement cross-reference navigation in the Achievements tab.**
+  - `choicescript.ts`: New exported type `AchievementLocation { sceneName, nodeId, nodeTitle }` and function `computeAchievementLocations(project)` → `Map<string, AchievementLocation[]>`. Scans all `sceneData` graphs for `*achieve <id>` commands in `node.body` using `extractAchievementCommandTargets`. Duplicate (scene+node) entries suppressed.
+  - `LeftPanel.tsx`: Imported `computeAchievementLocations` and `AchievementLocation`. Added `onNavigateToNode?` to `AchievementsList` props. Added `achievementLocations` memo and `expandedAch` state. The use-count in each achievement card's footer is now a `.var-uses-btn` button; clicking it toggles an inline `AchievementLocationList` below the card. New `AchievementLocationList` component reuses `.var-locs` / `.var-loc-row` CSS from the variable cross-reference, labelling each entry with a `*achieve` kind badge.
+  - No CSS additions needed — reuses the `.var-locs-*` rules from session 56.
+  - 89 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 57
 - **Playtest history / back navigation.**
   - `PlaytestView.tsx`: Added `PlaySnapshot` type capturing the full playtest state (`sceneName`, `nodeId`, `stats`, `returnStack`, `pageBlocks`, `playTrail`). Added `historyStack: PlaySnapshot[]` state. Added `pushSnapshot()` helper that appends the current state to the stack. Added `goBack()` helper that pops the last snapshot and restores all state fields at once.

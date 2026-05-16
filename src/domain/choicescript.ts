@@ -1607,6 +1607,41 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
   return result;
 }
 
+export type AchievementLocation = {
+  sceneName: string;
+  nodeId: string;
+  nodeTitle: string;
+};
+
+export function computeAchievementLocations(project: ChoiceForgeProject): Map<string, AchievementLocation[]> {
+  const result = new Map(project.achievements.map((a) => [a.id, [] as AchievementLocation[]]));
+  const ids = new Set(project.achievements.map((a) => a.id));
+
+  const addLoc = (id: string, sceneName: string, nodeId: string, nodeTitle: string) => {
+    if (!ids.has(id)) return;
+    const list = result.get(id)!;
+    if (!list.some((l) => l.sceneName === sceneName && l.nodeId === nodeId)) {
+      list.push({ sceneName, nodeId, nodeTitle });
+    }
+  };
+
+  const scanGraph = (sceneName: string, nodes: StoryNode[]) => {
+    for (const node of nodes) {
+      extractAchievementCommandTargets(node.body ?? "").forEach((id) => addLoc(id, sceneName, node.id, node.title));
+    }
+  };
+
+  if (project.sceneData) {
+    for (const [sceneName, graph] of Object.entries(project.sceneData)) {
+      scanGraph(sceneName, graph.nodes);
+    }
+  } else {
+    scanGraph(project.sceneTitle, project.nodes);
+  }
+
+  return result;
+}
+
 export function computeAchievementUses(project: ChoiceForgeProject): Map<string, number> {
   const counts = new Map(project.achievements.map((a) => [a.id, 0]));
   const ids = new Set(project.achievements.map((a) => a.id));
