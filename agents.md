@@ -343,6 +343,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 73
+- **Playtest arithmetic expression evaluation + copy-to-clipboard in generated file viewer.**
+  - `PlaytestView.tsx / parseValue`: Signature changed to `(value, variable, stats)`. Booleans now delegate to `evaluateExpression`; numbers try `Number()` first, then fall through to `evaluateNumericExpression` for compound expressions like `score + 10`.
+  - `PlaytestView.tsx / applySets`: Passes `next` (the in-progress state snapshot) to `parseValue` so multi-step `*set` sequences within a single node can reference variables set earlier in the same block.
+  - `PlaytestView.tsx / initialStats`: Updated call site to pass `{}` as the third argument (no prior stats during initialisation).
+  - `PlaytestView.tsx / evaluateNumericExpression` (new): Recursive-descent parser (primary → mulDiv → addSub) that substitutes variable values before tokenising; handles `+`, `-`, `*`, `/`, parentheses, and negative literals. Longest-name-first substitution prevents partial substring matches. Division by zero returns 0.
+  - `PlaytestView.tsx / evaluateExpression`: Extended with `parseMulDiv` and `parseAddSub` layers between `parseNot` and `parseComparison`, so boolean expressions can contain arithmetic sub-expressions (e.g. `score + bonus > 50`).
+  - `PlaytestView.tsx / tokenizeExpression`: Updated regex to include `+`, `*`, `/`, `-(?!\d)` (subtraction), and `-?\d+(?:\.\d+)?` (numeric literals including negatives). Negative lookahead `(?!\d)` disambiguates subtraction operator from negative number literal.
+  - `PlaytestView.tsx / parsePrimary` (inside `evaluateExpression`): Paren-closing changed from hard `take()` to `if (peek() === ")") take()` to survive unclosed parens without throwing.
+  - `GeneratedDocumentView.tsx / copy button`: Added a "Copy" button in `generated-doc-actions` that calls `navigator.clipboard.writeText(visibleContent)` and briefly shows "Copied!" (1.8 s) after success. Appears for both editable and read-only views; copies the live draft content when in editable mode.
+  - 103 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 72
 - **Playtest: interactive `*fake_choice` + `*sound` auto-advance. Import tests: `*achievement` and `*selectable_if`/reuse modes.**
   - `PlaytestView.tsx / useEffect`: Added `node.type === "sound"` to the comment/label auto-advance branch. Sound nodes now silently advance to their flow target without showing a Continue button (same as comment nodes — no interactive content in the playtest).

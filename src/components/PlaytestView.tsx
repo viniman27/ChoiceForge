@@ -456,14 +456,14 @@ function nextPlayableScene(project: ChoiceForgeProject, sceneName: string): stri
 }
 
 function initialStats(variables: VariableSummary[]): Record<string, string | number | boolean> {
-  return Object.fromEntries(variables.map((variable) => [variable.name, parseValue(variable.initial, variable)]));
+  return Object.fromEntries(variables.map((variable) => [variable.name, parseValue(variable.initial, variable, {})]));
 }
 
 function applySets(current: Record<string, string | number | boolean>, sets: VariableSet[], variables: VariableSummary[]) {
   const next = { ...current };
   sets.forEach((set) => {
     const variable = variables.find((candidate) => candidate.name === set.var);
-    const value = parseValue(set.val, variable);
+    const value = parseValue(set.val, variable, next);
     const currentValue = Number(next[set.var] ?? 0);
     if (set.op === "=") next[set.var] = value;
     if (set.op === "+") next[set.var] = currentValue + Number(value);
@@ -474,10 +474,43 @@ function applySets(current: Record<string, string | number | boolean>, sets: Var
   return next;
 }
 
-function parseValue(value: string, variable: VariableSummary | undefined): string | number | boolean {
-  if (variable?.type === "boolean") return value === "true";
-  if (variable?.type === "number") return Number(value) || 0;
-  return value.replace(/^"|"$/g, "");
+function parseValue(value: string, variable: VariableSummary | undefined, stats: Record<string, string | number | boolean>): string | number | boolean {
+  const trimmed = value.trim();
+  if (variable?.type === "boolean") return evaluateExpression(trimmed, stats);
+  if (variable?.type === "number") {
+    const simple = Number(trimmed);
+    if (Number.isFinite(simple)) return simple;
+    return evaluateNumericExpression(trimmed, stats);
+  }
+  return trimmed.replace(/^"|"$/g, "");
+}
+
+function evaluateNumericExpression(expr: string, stats: Record<string, string | number | boolean>): number {
+  const names = Object.keys(stats).sort((a, b) => b.length - a.length);
+  const substituted = names.reduce(
+    (acc, name) => acc.replace(new RegExp(`\\b${escapeRegex(name)}\\b`, "g"), String(Number(stats[name]) || 0)),
+    expr.trim(),
+  );
+  const tokens = substituted.match(/\(|\)|\+|-(?!\d)|\*|\/|-?\d+(?:\.\d+)?/g) ?? [];
+  let pos = 0;
+  const peek = () => tokens[pos];
+  const take = () => tokens[pos++];
+  function primary(): number {
+    if (peek() === "(") { take(); const v = addSub(); if (peek() === ")") take(); return v; }
+    if (peek() === "-") { take(); return -primary(); }
+    return Number(take() ?? "0") || 0;
+  }
+  function mulDiv(): number {
+    let l = primary();
+    while (peek() === "*" || peek() === "/") { const op = take(); const r = primary(); l = op === "*" ? l * r : r !== 0 ? l / r : 0; }
+    return l;
+  }
+  function addSub(): number {
+    let l = mulDiv();
+    while (peek() === "+" || peek() === "-") { const op = take(); l = op === "+" ? l + mulDiv() : l - mulDiv(); }
+    return l;
+  }
+  try { return addSub(); } catch { return Number(expr.trim()) || 0; }
 }
 
 function interpolate(text: string, stats: Record<string, string | number | boolean>): string {
@@ -516,7 +549,7 @@ function evaluateExpression(expression: string, stats: Record<string, string | n
       const token = take();
       if (token === "(") {
         const value = parseOr();
-        if (take() !== ")") throw new Error("unclosed expression");
+        if (peek() === ")") take();
         return value;
       }
       if (token === "true") return true;
@@ -534,11 +567,31 @@ function evaluateExpression(expression: string, stats: Record<string, string | n
       return parsePrimary();
     };
 
-    const parseComparison = (): boolean | string | number => {
+    const parseMulDiv = (): string | number | boolean => {
       let left = parseNot();
-      while (["=", "==", "!=", ">", ">=", "<", "<="].includes(peek())) {
+      while (peek() === "*" || peek() === "/") {
         const op = take();
         const right = parseNot();
+        left = op === "*" ? Number(left) * Number(right) : Number(right) !== 0 ? Number(left) / Number(right) : 0;
+      }
+      return left;
+    };
+
+    const parseAddSub = (): string | number | boolean => {
+      let left = parseMulDiv();
+      while (peek() === "+" || peek() === "-") {
+        const op = take();
+        const right = parseMulDiv();
+        left = op === "+" ? Number(left) + Number(right) : Number(left) - Number(right);
+      }
+      return left;
+    };
+
+    const parseComparison = (): boolean | string | number => {
+      let left = parseAddSub();
+      while (["=", "==", "!=", ">", ">=", "<", "<="].includes(peek())) {
+        const op = take();
+        const right = parseAddSub();
         if (op === "=" || op === "==") left = left === right;
         if (op === "!=") left = left !== right;
         if (op === ">") left = Number(left) > Number(right);
@@ -576,7 +629,7 @@ function evaluateExpression(expression: string, stats: Record<string, string | n
 }
 
 function tokenizeExpression(expression: string): string[] {
-  return expression.match(/"[^"]*"|>=|<=|!=|==|&&|\|\||[()!><=]|-?\d+(?:\.\d+)?|true|false/g) ?? [];
+  return expression.match(/"[^"]*"|>=|<=|!=|==|&&|\|\||[()!><=+*\/]|-(?!\d)|-?\d+(?:\.\d+)?|true|false/g) ?? [];
 }
 
 function escapeRegex(value: string): string {

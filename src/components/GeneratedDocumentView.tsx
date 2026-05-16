@@ -17,6 +17,7 @@ interface GeneratedDocumentViewProps {
 export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, onSave, onConvertSource, onClose }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
   const [saveStatus, setSaveStatus] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
   const visibleContent = editable ? draft : content;
   const lines = visibleContent.replace(/\n$/, "").split("\n");
   const dirty = draft !== content;
@@ -72,6 +73,17 @@ export function GeneratedDocumentView({ title, path, description, content, edita
         </div>
         <div className="generated-doc-actions">
           <code>{path}</code>
+          <button
+            className="ghost-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(visibleContent).then(() => {
+                setCopyStatus("Copied!");
+                setTimeout(() => setCopyStatus(""), 1800);
+              });
+            }}
+          >
+            {copyStatus || "Copy"}
+          </button>
           {onClose && (
             <button className="ghost-btn" onClick={closeDocument}>
               Close
