@@ -303,6 +303,7 @@ export default function App() {
         onAddVariable={actions.addVariable}
         onUpdateVariable={actions.updateVariable}
         onDeleteVariable={actions.deleteVariable}
+        onMoveVariable={actions.moveVariable}
         onAddAchievement={actions.addAchievement}
         onUpdateAchievement={actions.updateAchievement}
         onDeleteAchievement={actions.deleteAchievement}

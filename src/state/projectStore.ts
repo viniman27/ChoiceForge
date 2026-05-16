@@ -90,6 +90,7 @@ export interface ProjectActions {
   addVariable: () => void;
   updateVariable: (name: string, patch: Partial<VariableSummary>) => void;
   deleteVariable: (name: string) => void;
+  moveVariable: (name: string, direction: "up" | "down") => void;
   addAchievement: () => void;
   updateAchievement: (id: string, patch: Partial<AchievementSummary>) => void;
   deleteAchievement: (id: string) => void;
@@ -654,6 +655,18 @@ export function useProjectStore() {
           nodes: activeGraph?.nodes ?? saved.nodes.map((node) => removeNodeVariable(node, name, inputFallback)),
           edges: activeGraph?.edges ?? saved.edges,
         })));
+      });
+    },
+    moveVariable: (name, direction) => {
+      setTrackedProjectState((current) => {
+        const saved = commitProject(current);
+        const vars = saved.variables;
+        const idx = vars.findIndex((v) => v.name === name);
+        const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+        if (idx < 0 || targetIdx < 0 || targetIdx >= vars.length) return current;
+        const reordered = [...vars];
+        [reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]];
+        return commitProject(clearStartupSource({ ...saved, variables: reordered }));
       });
     },
     addAchievement: () => {
