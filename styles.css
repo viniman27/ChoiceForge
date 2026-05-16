@@ -2279,3 +2279,35 @@ input, select, textarea { font-family: inherit; color: inherit; }
 
 /* ─── Tweaks panel positioning ─────────────────── */
 .tweaks-shell { z-index: 100; }
+
+/* ─── Official CS runtime play view ─────────────── */
+.official-play {
+  grid-area: canvas;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--paper-1);
+}
+.official-play-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px 12px 28px;
+  border-bottom: 1px solid var(--paper-edge);
+  background: var(--paper-2);
+}
+.official-play-head h1 {
+  margin: 0;
+  font-family: var(--ff-mono);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.official-play-iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+  background: #F7F4F1;
+}

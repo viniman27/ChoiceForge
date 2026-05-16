@@ -27,7 +27,8 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 - Editable generated files for current scene, `startup.txt`, and `choicescript_stats.txt`, using CodeMirror for the full-file ChoiceScript editor
 - Import of ChoiceForge `project.json` / exported zip, plus a pragmatic ChoiceScript archive importer for simple scenes, playable `startup.txt` content, basic `choicescript_stats.txt` stat chart rows, normalized external identifiers/condition identifiers, and common inline `*choice` / `*if` branch bodies
 - Canvas panning, zooming, fit view, minimap, resizable side panels, resizable node toolbar, and keyboard deletion
-- Internal playtest view for graph-level smoke testing, including `*finish` scene advancement; it is not the official ChoiceScript runtime
+- Internal playtest view for graph-level smoke testing (`PlaytestView.tsx`); still available in the codebase but not exposed via the main UI (replaced by official runtime)
+- Official ChoiceScript runtime playtest (`OfficialPlayView.tsx`): embeds the real CS engine in an `<iframe srcdoc>` panel; Play button now runs the actual game
 - Global search/navigation via Ctrl/Cmd+Shift+F across scenes, nodes, variables, achievements, assets, and preserved imported source; source matches can open the text editor at the matched line
 - Find & Replace (Ctrl H) in the left panel: replace text in node body/prompt/options across the current scene or all scenes at once; returns count of replacements and shows a transient status message
 - Copy/paste nodes (Ctrl+C / Ctrl+V): clipboard persists across scene switches; paste places nodes centered on the viewport, remaps internal edges, and selects all pasted nodes
@@ -53,7 +54,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 
 ### Not Yet Implemented
 - Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
-- Play-test with the official ChoiceScript runtime
+- Assets served to the CS runtime (images in scene body won't load without a serving mechanism)
 - Git integration, version history, snapshots
 - Desktop packaging (Tauri/Electron)
 
@@ -342,6 +343,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 79
+- **Official ChoiceScript runtime embedded in the editor as a side panel (replaces artisanal graph playtest as the main Play button).**
+  - Downloaded all CS engine files to `public/play/`: `scene.js`, `navigator.js`, `ui.js`, `util.js`, `persist.js`, `alertify.min.js`, `style.css`, `alertify.css`.
+  - `src/components/OfficialPlayView.tsx` (new): renders the official CS engine in an `<iframe srcdoc="...">`. Key details:
+    - `compileScene(text)` pre-compiles each scene's raw ChoiceScript text into the format `allScenes` expects: `{ crc: 0, lines: string[], labels: Record<string,number> }`. The CS engine's `execute()` checks `typeof allScenes != 'undefined'` and uses `loadSceneFast()` which requires compiled scene data, NOT raw text.
+    - `buildInitJs(project)` generates the init script setting `window.nav`, `window.stats`, `window.allScenes`, `window.achievements`, etc. Startup text uses `*goto_scene firstPlayableScene` override (unless startup.txt is imported). Stats scene (`choicescript_stats`) included in `allScenes` so Show Stats button works.
+    - `buildSrcdoc(project)` wraps all CS engine scripts (loaded from absolute `/play/*.js` paths) + inline init.js into a full HTML document. Uses `safeJson()` to escape `</` in JSON (prevents HTML parser from closing script tags prematurely).
+    - No service worker needed — `srcdoc` iframes inherit parent origin and can load same-origin scripts.
+    - `key` prop on `<iframe>` forces full reload when project structure changes.
+  - `src/App.tsx`: replaced `PlaytestView` import/usage with `OfficialPlayView`. Play button now shows the real CS game engine.
+  - `styles.css`: added `.official-play`, `.official-play-head`, `.official-play-iframe` CSS rules.
+  - 109 tests, all passing. Clean build.
 
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 78
 - **Playtest: interpolate option text. Use-tracker: count set.val reads. Linter: warn on never-read variables.**
