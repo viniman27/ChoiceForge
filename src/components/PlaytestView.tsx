@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { extractAchievementCommandTargets, stripAchieveCommands } from "../domain/choicescript";
 import type { ChoiceForgeProject, SceneGraph, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 
 interface PlaytestViewProps {
@@ -17,6 +18,7 @@ type PlaySnapshot = {
   returnStack: ReturnEntry[];
   pageBlocks: PageBlock[];
   playTrail: TrailEntry[];
+  earnedAchievements: string[];
 };
 
 export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestViewProps) {
@@ -28,6 +30,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
   const [pageBlocks, setPageBlocks] = useState<PageBlock[]>([]);
   const [playTrail, setPlayTrail] = useState<TrailEntry[]>(() => [{ kind: "scene", name: project.sceneTitle }]);
   const [changedVars, setChangedVars] = useState<Set<string>>(new Set());
+  const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
   const [historyStack, setHistoryStack] = useState<PlaySnapshot[]>([]);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const graph = getSceneGraph(project, sceneName);
@@ -49,6 +52,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
     setChangedVars(new Set());
+    setEarnedAchievements([]);
     setHistoryStack([]);
   }, [project]);
 
@@ -58,12 +62,15 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     if (!node) return;
     if (node.type === "passage") {
       const passageFlowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      const achieved = extractAchievementCommandTargets(node.body ?? "");
+      if (achieved.length) setEarnedAchievements((prev) => [...prev, ...achieved.filter((id) => !prev.includes(id))]);
       if (passageFlowTarget) {
         if (node.sets?.length) {
           flashVars(node.sets.map((s) => s.var));
           setStats((current) => applySets(current, node.sets!, project.variables));
         }
-        setPageBlocks((prev) => [...prev, { id: node.id, body: node.body, note: node.note }]);
+        const displayBody = node.body ? stripAchieveCommands(node.body) : node.body;
+        setPageBlocks((prev) => [...prev, { id: node.id, body: displayBody || undefined, note: node.note }]);
         setNodeId(passageFlowTarget);
       }
     }
@@ -135,6 +142,8 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
         flashVars(node.sets.map((s) => s.var));
         setStats((current) => applySets(current, node.sets!, project.variables));
       }
+      const achieved = extractAchievementCommandTargets(node.body ?? "");
+      if (achieved.length) setEarnedAchievements((prev) => [...prev, ...achieved.filter((id) => !prev.includes(id))]);
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
@@ -177,11 +186,12 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setPageBlocks([]);
     setPlayTrail([{ kind: "scene", name: project.sceneTitle }]);
     setChangedVars(new Set());
+    setEarnedAchievements([]);
     setHistoryStack([]);
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
 
-  const pushSnapshot = () => setHistoryStack((h) => [...h, { sceneName, nodeId, stats, returnStack, pageBlocks, playTrail }]);
+  const pushSnapshot = () => setHistoryStack((h) => [...h, { sceneName, nodeId, stats, returnStack, pageBlocks, playTrail, earnedAchievements }]);
 
   const goBack = () => {
     const prev = historyStack.at(-1);
@@ -193,6 +203,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     setReturnStack(prev.returnStack);
     setPageBlocks(prev.pageBlocks);
     setPlayTrail(prev.playTrail);
+    setEarnedAchievements(prev.earnedAchievements);
     setChangedVars(new Set());
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
   };
@@ -247,6 +258,22 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               <code>{String(stats[variable.name] ?? variable.initial)}</code>
             </div>
           ))}
+          {earnedAchievements.length > 0 && (
+            <div className="pt-trail pt-achievements">
+              <div className="pt-trail-head">achievements</div>
+              <div className="pt-trail-list">
+                {earnedAchievements.map((id) => {
+                  const ach = project.achievements.find((a) => a.id === id);
+                  return (
+                    <div key={id} className="pt-achievement-row" title={ach?.title}>
+                      <span className="pt-ach-points">{ach?.points ?? "?"}</span>
+                      <span>{ach?.title ?? id}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="pt-trail">
             <div className="pt-trail-head">history</div>
             <div className="pt-trail-list">
@@ -295,11 +322,11 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               )}
 
               {node.body && node.type !== "image" && node.type !== "passage" && (
-                <p className="playtest-text">{interpolate(node.body, stats)}</p>
+                <p className="playtest-text">{interpolate(stripAchieveCommands(node.body), stats)}</p>
               )}
 
               {node.type === "passage" && !graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow") && node.body && (
-                <p className="playtest-text">{interpolate(node.body, stats)}</p>
+                <p className="playtest-text">{interpolate(stripAchieveCommands(node.body), stats)}</p>
               )}
 
               {node.type === "checkpoint" && (

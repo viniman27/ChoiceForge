@@ -1449,8 +1449,12 @@ function extractVariableReferences(text: string): string[] {
   return [...dollar, ...at];
 }
 
-function extractAchievementCommandTargets(text: string): string[] {
+export function extractAchievementCommandTargets(text: string): string[] {
   return [...text.matchAll(/^\s*\*achieve(?:\s+(.+?))?\s*$/gim)].map((match) => match[1]?.trim() ?? "");
+}
+
+export function stripAchieveCommands(text: string): string {
+  return text.replace(/^\s*\*achieve(?:\s+.+?)?\s*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function extractExpressionNames(expression: string): string[] {
