@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 68
+- **`opposed_pair` import round-trip fix + per-scene word count goals.**
+  - `projectStore.ts / parseStatChartRows`: Replaced the simple per/text-only parser with a state-machine identical to `choicescriptImport.ts`. Added `StatChartRow` union type (`percent | text | opposed_pair`). The new `applyStatsText` branches on `chartType === "opposed_pair"` to set `opposedLow` and `fairmath: false`; `text`/`percent` rows now also clear `opposedLow`. This fixes `opposed_pair` variables losing their configuration when editing the generated `choicescript_stats.txt` and saving back.
+  - `domain.test.ts`: Added test `importChoiceScriptArchive maps opposed_pair stat chart entries to opposedLow and desc` covering both the high label → `desc` and low label → `opposedLow` mappings, and verifying that `text` rows clear `opposedLow`. 95 tests, all passing.
+  - `projectStore.ts / ProjectActions`: Added `updateSceneMetadata(id, patch: { wordGoal?, notes? }) => void` — a lightweight action that patches metadata-only fields without clearing `startupSource` (unlike `updateScene`, which resets it to force regeneration after renames). Used for word goal updates from the Dashboard.
+  - `Dashboard.tsx`: Added optional `onUpdateSceneGoal` prop. Each scene row in the "words by scene" card now renders a compact `<SceneGoalInput>` — an inline number input (same style as the existing `.scene-goal-input`) that commits on blur or Enter. Already-set goals appear pre-filled; the goal marker and percentage remain on the bar when a goal is set.
+  - `directions.css / .bar-row`: Widened grid from `140px 1fr 60px` to `140px 1fr 60px auto` so the new 4th goal-input column appears only where needed (auto collapses to 0 for rows without a 4th element).
+  - `App.tsx`: Wired `onUpdateSceneGoal={(id, goal) => actions.updateSceneMetadata(id, { wordGoal: goal })}` into `<Dashboard>`.
+  - Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 67
 - **Lint console level+scene filters + `opposed_pair` linter fix + duplicate shortcut cleanup.**
   - `choicescript.ts / lintPreservedStatsSource`: Fixed linter incorrectly flagging `opposed_pair` label sub-lines as invalid row types. Added `opposedPairLabelsLeft` counter: after parsing an `opposed_pair varname` row, the next two indented lines are skipped as expected label lines. Added test asserting no errors for a valid `opposed_pair` block.
