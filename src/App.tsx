@@ -9,7 +9,7 @@ import { SnapshotPanel } from "./components/SnapshotPanel";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
-import { PlaytestView } from "./components/PlaytestView";
+import { OfficialPlayView } from "./components/OfficialPlayView";
 import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
@@ -329,7 +329,7 @@ export default function App() {
         }}
       />
       {playOpen ? (
-        <PlaytestView project={lintedProject} onClose={() => setPlayOpen(false)} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setPlayOpen(false); }} />
+        <OfficialPlayView project={lintedProject} onClose={() => setPlayOpen(false)} />
       ) : generatedDocument ? (
         <Suspense fallback={<section className="generated-doc generated-doc-loading">Loading editor...</section>}>
           <GeneratedDocumentView
