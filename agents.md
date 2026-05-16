@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 74
+- **Dashboard project-wide KPIs + `*temp` variable visibility in playtest.**
+  - `Dashboard.tsx`: Replaced single-scene `choiceCount`/`optionCount`/`endingCount` computations with `allProjectNodes` — a flat list built from `data.nodes` (active scene) plus all nodes from non-special `sceneData` entries. `choiceCount` now includes both `*choice` and `*fake_choice`; `optionCount` sums `options` and `fakeOptions`. KPI label changed from "endings in this scene" to "endings" to reflect the new project-wide scope.
+  - `PlaytestView.tsx / clearTempVars` (new helper): Strips keys from the stats map that are not in `project.variables`, isolating temp vars for removal on scene transitions.
+  - `PlaytestView.tsx / goto_scene handler`: Added `setStats(current => clearTempVars(current, project.variables))` so temp vars are dropped when the author navigates to a new scene (matching ChoiceScript's scene-local temp semantics).
+  - `PlaytestView.tsx / finish handler`: Same clearTempVars call when the runtime advances to the next scene in the list.
+  - `PlaytestView.tsx / sidebar`: Added `tempVarEntries` computation (stats keys not in `project.variables`) and a `pt-temp-section` block rendered below global vars when any temp vars are live. Temp var rows use `.is-temp` class (muted opacity, `--c-set` accent) to visually distinguish them from global vars. Flash animation still applies on `changedVars`.
+  - `styles.css`: Added `.playtest-stat.is-temp`, `.playtest-stat.is-temp code`, and `.pt-temp-section` rules.
+  - 103 tests, all passing. Clean build.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 73
 - **Playtest arithmetic expression evaluation + copy-to-clipboard in generated file viewer.**
   - `PlaytestView.tsx / parseValue`: Signature changed to `(value, variable, stats)`. Booleans now delegate to `evaluateExpression`; numbers try `Number()` first, then fall through to `evaluateNumericExpression` for compound expressions like `score + 10`.

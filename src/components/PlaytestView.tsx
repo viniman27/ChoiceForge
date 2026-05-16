@@ -86,6 +86,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       setPlayTrail((prev) => [...prev, { kind: "scene", name: node.target! }]);
       setSceneName(node.target);
       setNodeId("n1");
+      setStats((current) => clearTempVars(current, project.variables));
     }
     if (node.type === "finish") {
       const nextScene = nextPlayableScene(project, sceneName);
@@ -93,6 +94,7 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
         setPlayTrail((prev) => [...prev, { kind: "scene", name: nextScene }]);
         setSceneName(nextScene);
         setNodeId("n1");
+        setStats((current) => clearTempVars(current, project.variables));
       }
     }
     if (node.type === "goto") {
@@ -226,6 +228,9 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
     if (flowTarget) setNodeId(flowTarget);
   };
 
+  const globalVarNames = new Set(project.variables.map((v) => v.name));
+  const tempVarEntries = Object.entries(stats).filter(([name]) => !globalVarNames.has(name));
+
   const isInputNode = node?.type === "input_text" || node?.type === "input_number";
   const showContinue = Boolean(flowTarget)
     && node?.type !== "passage"
@@ -259,6 +264,17 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
               <code>{String(stats[variable.name] ?? variable.initial)}</code>
             </div>
           ))}
+          {tempVarEntries.length > 0 && (
+            <div className="pt-temp-section">
+              <div className="pt-trail-head">temp vars</div>
+              {tempVarEntries.map(([name, value]) => (
+                <div className={`playtest-stat is-temp${changedVars.has(name) ? " is-changed" : ""}`} key={name}>
+                  <span>{name}</span>
+                  <code>{String(value)}</code>
+                </div>
+              ))}
+            </div>
+          )}
           {earnedAchievements.length > 0 && (
             <div className="pt-trail pt-achievements">
               <div className="pt-trail-head">achievements</div>
@@ -634,4 +650,12 @@ function tokenizeExpression(expression: string): string[] {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function clearTempVars(
+  stats: Record<string, string | number | boolean>,
+  variables: VariableSummary[],
+): Record<string, string | number | boolean> {
+  const globalNames = new Set(variables.map((v) => v.name));
+  return Object.fromEntries(Object.entries(stats).filter(([k]) => globalNames.has(k)));
 }
