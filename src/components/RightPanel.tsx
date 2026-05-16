@@ -362,7 +362,9 @@ function ContentTab({
   }
 
   if (node.type === "image") {
-    const imageAsset = (project.assets ?? []).find((a) => a.fileName === node.target);
+    const assets = project.assets ?? [];
+    const imageAssets = assets.filter((a) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(a.fileName ?? ""));
+    const imageAsset = assets.find((a) => a.fileName === node.target);
     return (
       <div className="ip-content">
         {imageAsset?.dataUrl ? (
@@ -374,7 +376,21 @@ function ContentTab({
           <div className="ip-image-missing">image not found in assets: {node.target}</div>
         ) : null}
         <label className="ip-label">filename</label>
-        <input className="command-input" value={node.target ?? ""} placeholder="image.jpg" onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })} />
+        {imageAssets.length > 0 ? (
+          <select
+            className="command-input"
+            value={node.target ?? ""}
+            onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })}
+          >
+            <option value="">— choose asset —</option>
+            {node.target && !imageAssets.find((a) => a.fileName === node.target) && (
+              <option value={node.target}>{node.target} (missing)</option>
+            )}
+            {imageAssets.map((a) => <option key={a.id} value={a.fileName}>{a.fileName}</option>)}
+          </select>
+        ) : (
+          <input className="command-input" value={node.target ?? ""} placeholder="image.jpg" onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })} />
+        )}
         <label className="ip-label">alignment</label>
         <select className="command-input" value={node.inputMin ?? "none"} onChange={(event) => onUpdateNode(node.id, { inputMin: event.target.value })}>
           <option value="none">none</option>
@@ -492,6 +508,15 @@ function CommandNodeFields({
     const currentScene = node.target ?? "";
     const currentLabel = node.body?.trim() ?? "";
     const targetSceneObj = project.scenes.find((s) => s.name === currentScene);
+    const targetGraph = currentScene
+      ? (currentScene === project.sceneTitle
+        ? { nodes: project.nodes, edges: project.edges }
+        : project.sceneData?.[currentScene])
+      : null;
+    const targetLabels = (targetGraph?.nodes ?? [])
+      .filter((n) => n.type === "label")
+      .map((n) => stripCommandPrefix(n.title, "*label"))
+      .filter(Boolean);
     return (
       <div className="ip-content">
         <label className="ip-label">target scene</label>
@@ -499,7 +524,7 @@ function CommandNodeFields({
           <select
             className="command-input"
             value={currentScene}
-            onChange={(event) => onUpdateNode(node.id, { title: `*gosub_scene ${event.target.value}`, target: event.target.value })}
+            onChange={(event) => onUpdateNode(node.id, { title: `*gosub_scene ${event.target.value}`, target: event.target.value, body: "" })}
           >
             {project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => <option key={scene.id} value={scene.name}>{scene.name}.txt</option>)}
           </select>
@@ -508,7 +533,21 @@ function CommandNodeFields({
           )}
         </div>
         <label className="ip-label">entry label (optional)</label>
-        <input className="command-input" value={currentLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
+        {targetLabels.length > 0 ? (
+          <select
+            className="command-input"
+            value={currentLabel}
+            onChange={(event) => onUpdateNode(node.id, { body: event.target.value })}
+          >
+            <option value="">— none —</option>
+            {currentLabel && !targetLabels.includes(currentLabel) && (
+              <option value={currentLabel}>{currentLabel}</option>
+            )}
+            {targetLabels.map((lbl) => <option key={lbl} value={lbl}>{lbl}</option>)}
+          </select>
+        ) : (
+          <input className="command-input" value={currentLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
+        )}
       </div>
     );
   }
