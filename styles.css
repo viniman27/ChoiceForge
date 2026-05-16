@@ -968,7 +968,9 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .playtest-actions {
   display: flex;
   gap: 6px;
+  align-items: center;
 }
+.playtest-back-btn { color: var(--accent-1) !important; }
 .playtest-body {
   display: grid;
   grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);

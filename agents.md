@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 57
+- **Playtest history / back navigation.**
+  - `PlaytestView.tsx`: Added `PlaySnapshot` type capturing the full playtest state (`sceneName`, `nodeId`, `stats`, `returnStack`, `pageBlocks`, `playTrail`). Added `historyStack: PlaySnapshot[]` state. Added `pushSnapshot()` helper that appends the current state to the stack. Added `goBack()` helper that pops the last snapshot and restores all state fields at once.
+  - Snapshot is pushed before every user-driven state transition: `advance()` (Continue button), `submitInput()` (input_text/input_number form submit), and choice option click handler. Automatic `useEffect` advances (passage auto-flow, `set`/`temp`/`rand`/`goto` auto-advance) do NOT push snapshots, so back always returns to the last deliberate decision point.
+  - `restart()` clears `historyStack` alongside the other state.
+  - A "← back" button appears in the playtest header whenever `historyStack.length > 0`, coloured in `accent-1`. Its title tooltip shows how many steps are available.
+  - `styles.css`: Added `align-items: center` to `.playtest-actions` and a `.playtest-back-btn` colour rule.
+  - No domain model or test changes.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 56
 - **Variable cross-reference navigation in the Variables tab.**
   - `choicescript.ts`: New exported function `computeVariableLocations(project)` returns `Map<string, VarLocation[]>`. `VarLocation` carries `{ sceneName, nodeId, nodeTitle, kind: "write" | "read" }`. The function scans all `sceneData` graphs (not just the active scene): `*set` nodes and `inputVar` fields produce `"write"` entries; variable references in `body`, `prompt`, `option.cond.expr`, `branch.expr` produce `"read"` entries. Duplicate (scene+node+kind) entries are suppressed so the list stays concise.
