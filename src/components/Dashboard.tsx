@@ -91,13 +91,22 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onNavigateT
 
         <div className="dash-card wide">
           <div className="dash-card-head"><span className="dash-card-title">words by scene</span></div>
-          {sceneRows.map((scene) => (
-            <div className="bar-row" key={scene.id}>
-              <span className="bar-name">{scene.name}.txt</span>
-              <span className="bar-track"><span className="bar-fill" style={{ width: `${(scene.words / maxWords) * 100}%`, background: scene.warning ? "var(--warn)" : "var(--accent-1)" }} /></span>
-              <span className="bar-val">{scene.words.toLocaleString()}</span>
-            </div>
-          ))}
+          {sceneRows.map((scene) => {
+            const goalPct = scene.wordGoal ? Math.min(100, Math.round((scene.words / scene.wordGoal) * 100)) : null;
+            const goalMarkerPct = scene.wordGoal ? Math.min(100, (scene.wordGoal / maxWords) * 100) : null;
+            return (
+              <div className="bar-row" key={scene.id}>
+                <span className="bar-name">{scene.name}.txt</span>
+                <span className="bar-track" style={{ position: "relative" }}>
+                  <span className="bar-fill" style={{ width: `${(scene.words / maxWords) * 100}%`, background: scene.warning ? "var(--warn)" : goalPct !== null && goalPct >= 100 ? "var(--accent-2)" : "var(--accent-1)" }} />
+                  {goalMarkerPct !== null && (
+                    <span className="bar-goal-marker" style={{ left: `${goalMarkerPct}%` }} title={`Goal: ${scene.wordGoal!.toLocaleString()} words`} />
+                  )}
+                </span>
+                <span className="bar-val">{scene.words.toLocaleString()}{goalPct !== null ? ` (${goalPct}%)` : ""}</span>
+              </div>
+            );
+          })}
         </div>
 
         <div className="dash-card">

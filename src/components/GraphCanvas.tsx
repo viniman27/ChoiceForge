@@ -115,6 +115,7 @@ export function GraphCanvas({
   };
 
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
+  const warnNodeIds = new Set(data.lints.filter((lint) => lint.level === "warning" && lint.node).map((lint) => lint.node));
 
   useEffect(() => {
     const element = canvasRef.current;
@@ -513,6 +514,7 @@ export function GraphCanvas({
             labels={labels}
             selected={selectedIds.has(node.id)}
             hasError={errorNodeIds.has(node.id)}
+            hasWarning={!errorNodeIds.has(node.id) && warnNodeIds.has(node.id)}
             isDimmed={
               (activeFilter ? !nodeMatchesFilter(node, activeFilter) : false) ||
               (activeColorTags.size > 0 ? !node.colorTag || !activeColorTags.has(node.colorTag) : false)

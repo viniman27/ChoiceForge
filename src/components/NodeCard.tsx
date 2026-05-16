@@ -105,6 +105,7 @@ interface NodeCardProps {
   labels: I18nLabels;
   selected: boolean;
   hasError: boolean;
+  hasWarning?: boolean;
   isDimmed?: boolean;
   onSelect: (id: string, addToSelection: boolean) => void;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
@@ -113,7 +114,7 @@ interface NodeCardProps {
   onUpdateTitle?: (id: string, title: string) => void;
 }
 
-export function NodeCard({ node, density, labels, selected, hasError, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, hasWarning, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -134,7 +135,7 @@ export function NodeCard({ node, density, labels, selected, hasError, isDimmed, 
 
   return (
     <div
-      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${node.warning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""}`}
+      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${hasWarning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""}`}
       style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;
@@ -175,6 +176,7 @@ export function NodeCard({ node, density, labels, selected, hasError, isDimmed, 
         {node.status && <span className={`node-status node-status-${node.status}`}>{node.status}</span>}
         {node.note && <span className="node-note-dot" title={node.note}>✎</span>}
         {hasError && <span className="node-flag" title="error">!</span>}
+        {!hasError && hasWarning && <span className="node-flag node-flag-warn" title="warning">⚠</span>}
       </div>
 
       {!isMinimal && node.body && <div className="node-body"><p className="narrative">{highlightInline(node.body)}</p></div>}
