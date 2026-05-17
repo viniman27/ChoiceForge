@@ -1927,11 +1927,13 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
     node.options?.forEach((option) => {
       option.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
       extractVariableReferences(option.text).forEach(tally);
+      extractVariableReferences(option.body ?? "").forEach(tally);
       if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
     });
     node.fakeOptions?.forEach((option) => {
       option.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
       extractVariableReferences(option.text).forEach(tally);
+      extractVariableReferences(option.body ?? "").forEach(tally);
       if (option.cond?.expr) extractExpressionNames(option.cond.expr).forEach(tally);
     });
     node.branches?.forEach((branch) => {
@@ -2004,6 +2006,7 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
           extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         });
         extractVariableReferences(opt.text).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+        extractVariableReferences(opt.body ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
       node.fakeOptions?.forEach((opt) => {
@@ -2012,6 +2015,7 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
           extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         });
         extractVariableReferences(opt.text).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
+        extractVariableReferences(opt.body ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
         if (opt.cond?.expr) extractExpressionNames(opt.cond.expr).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
       node.branches?.forEach((branch) => {

@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 130
+- **Fix `computeVariableUses` and `computeVariableLocations` to scan choice option bodies.**
+  - **Problem**: Both functions scanned `option.text` and `option.sets` but skipped `option.body` (the inline prose shown after a choice is selected). Variables referenced as `${score}` in an option body were not counted as "used" and not tracked as read locations. This caused misleading variable-use counts in the UI and could cause false "variable never read" warnings for variables that appear only in option bodies.
+  - **Fix**: Added `extractVariableReferences(opt.body ?? "").forEach(tally)` in `computeVariableUses` and `addLoc(...)` equivalent in `computeVariableLocations` for both `options` and `fakeOptions` forEach loops.
+  - **Files changed**: `choicescript.ts` (4 lines added — 2 in computeVariableUses, 2 in computeVariableLocations), `domain.test.ts` (1 new test).
+  - **Tests**: 223 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 129
 - **Support `@!{name}` and `@!!{name}` capitalization interpolation patterns throughout.**
   - **Problem**: ChoiceScript supports three `@` interpolation variants: `@{name}` (raw), `@!{name}` (capitalize first letter), `@!!{name}` (all caps). `extractVariableReferences` only matched `@{name}`, missing the `!` and `!!` variants. Any variable referenced exclusively via `@!{hero}` or `@!!{hero}` would be falsely flagged as "never read" by unused-variable detection, and undeclared variables used this way would not trigger an "undeclared variable" warning. `countBodyWords` had the same gap — `@!{…}` and `@!!{…}` were counted as word tokens rather than replaced by a space placeholder.
