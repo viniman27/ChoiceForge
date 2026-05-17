@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 134
+- **Extend `*gosub_scene` entry label check to cover preserved-source scenes; fix `computeVariableLocations` to scan source text.**
+  - **`*gosub_scene` label check**: The existing check only looked at `targetGraph.nodes` for label nodes, missing labels in preserved-source scenes (where `sourceText` holds the actual ChoiceScript). Added extraction of `*label` lines from `targetGraph.sourceText` via regex and merged with visual label names. Now correctly validates entry labels for both visual-graph and preserved-source target scenes.
+  - **`computeVariableLocations` source scan**: Added a `scanSource` function (mirroring `computeVariableUses`'s approach) that processes preserved source text line-by-line, tracking reads from prose references, conditions, and writes from `*set`/`*input_*`/`*rand`. Called for each scene's `sourceText`, plus `startupSource` and `statsSource`. Preserved-source variables now appear in variable location tracking used by the UI.
+  - **Files changed**: `choicescript.ts` (~30 lines added).
+  - **Tests**: 226 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 133
 - **Validate `*image` alignment value; fix false-positives from ChoiceScript built-in functions in expressions; reserved-word parity in `*create`; undeclared-variable scan in `*set` RHS for preserved source.**
   - **`*image` alignment lint**: Added check that `node.inputMin` (used as alignment) must be one of `none`, `left`, `right`. If not, emits a `warning`. The generator defaults to `"none"` so the generated ChoiceScript is valid even without a lint error, but the author should be aware of invalid alignment values.
