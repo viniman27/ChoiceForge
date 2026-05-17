@@ -2098,16 +2098,29 @@ export function computeAchievementLocations(project: ChoiceForgeProject): Map<st
   const scanGraph = (sceneName: string, nodes: StoryNode[]) => {
     for (const node of nodes) {
       extractAchievementCommandTargets(node.body ?? "").forEach((id) => addLoc(id, sceneName, node.id, node.title));
+      node.options?.forEach((opt) => extractAchievementCommandTargets(opt.body ?? "").forEach((id) => addLoc(id, sceneName, node.id, node.title)));
+      node.fakeOptions?.forEach((opt) => extractAchievementCommandTargets(opt.body ?? "").forEach((id) => addLoc(id, sceneName, node.id, node.title)));
     }
+  };
+
+  const scanSource = (text: string, sceneName: string) => {
+    text.split(/\r?\n/).forEach((line) => {
+      if (sourceCommand(line.trim()) === "achieve") {
+        const id = normalizeSourceIdentifier(sourceCommandValue(line.trim(), "*achieve").trim());
+        if (id) addLoc(id, sceneName, "source", "preserved source");
+      }
+    });
   };
 
   if (project.sceneData) {
     for (const [sceneName, graph] of Object.entries(project.sceneData)) {
       scanGraph(sceneName, graph.nodes);
+      if (graph.sourceText) scanSource(graph.sourceText, sceneName);
     }
   } else {
     scanGraph(project.sceneTitle, project.nodes);
   }
+  if (project.startupSource) scanSource(project.startupSource, "startup");
 
   return result;
 }
@@ -2119,7 +2132,11 @@ export function computeAchievementUses(project: ChoiceForgeProject): Map<string,
     if (ids.has(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
   };
   const scanText = (text: string) => extractAchievementCommandTargets(text).forEach(tally);
-  const scanNode = (node: StoryNode) => scanText(node.body ?? "");
+  const scanNode = (node: StoryNode) => {
+    scanText(node.body ?? "");
+    node.options?.forEach((opt) => scanText(opt.body ?? ""));
+    node.fakeOptions?.forEach((opt) => scanText(opt.body ?? ""));
+  };
   const scanSource = (text: string) => {
     text.split(/\r?\n/).forEach((line) => {
       const cmd = sourceCommand(line.trim());
