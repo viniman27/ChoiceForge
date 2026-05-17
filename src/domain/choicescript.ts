@@ -932,12 +932,17 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const lines = sourceText.split(/\r?\n/);
 
   const allDeclaredVars = new Set(variableNames);
-  lines.forEach((line) => {
+  const tempVarLines = new Map<string, number>();
+  lines.forEach((line, index) => {
     const t = line.trim();
     const cmd = sourceCommand(t);
     if (cmd === "temp") {
       const rawName = t.split(/\s+/)[1] ?? "";
-      if (rawName && isValidChoiceScriptIdentifier(rawName)) allDeclaredVars.add(normalizeSourceIdentifier(rawName));
+      if (rawName && isValidChoiceScriptIdentifier(rawName)) {
+        const name = normalizeSourceIdentifier(rawName);
+        allDeclaredVars.add(name);
+        tempVarLines.set(name, index + 1);
+      }
     }
     if (cmd === "params") {
       sourceCommandValue(t, "*params").split(/\s+/).filter(Boolean).forEach((rawName) => {
@@ -945,6 +950,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       });
     }
   });
+  const tempReadVars = new Set<string>();
 
   issues.push({ level: "info", msg: infoMessage, scene: sceneName, line: 1 });
 
@@ -1066,12 +1072,32 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     }
     if (!command) {
       extractVariableReferences(trimmed).forEach((name) => {
+        if (tempVarLines.has(name)) tempReadVars.add(name);
         if (!allDeclaredVars.has(name)) {
           issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, line: lineNumber });
         }
       });
     }
+    if (command === "if" || command === "elseif" || command === "selectable_if") {
+      extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, command))).forEach((name) => {
+        if (tempVarLines.has(name)) tempReadVars.add(name);
+      });
+    }
+    if (command === "set") {
+      const [, maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
+      const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+      const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+      extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((name) => {
+        if (tempVarLines.has(name)) tempReadVars.add(name);
+      });
+    }
   });
+
+  for (const [name, line] of tempVarLines) {
+    if (!tempReadVars.has(name)) {
+      issues.push({ level: "info", msg: `*temp "${name}" is declared but never read in this scene`, key: "unused_temp", params: { name }, scene: sceneName, line });
+    }
+  }
 
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });

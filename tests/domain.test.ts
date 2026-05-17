@@ -4726,6 +4726,61 @@ test("lints *params that shadows a global variable in preserved source", () => {
   assert.ok(issues.some((i) => i.key === "temp_shadows" && i.msg.includes("score") && i.scene === "sub"));
 });
 
+test("lints *temp declared but never read in preserved source as info", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*temp hero Billy",
+      "You explore.",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "unused_temp" && i.msg.includes("hero") && i.scene === "intro"));
+});
+
+test("does not flag *temp as unused when read in prose in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*temp hero Billy",
+      "Hello, ${hero}!",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp" && i.msg.includes("hero")));
+});
+
+test("does not flag *temp as unused when read in *if condition in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*temp shield false",
+      "*if (shield)",
+      "  Protected!",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp" && i.msg.includes("shield")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

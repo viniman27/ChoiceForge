@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 140
+- **Parity: detect unused `*temp` variables in preserved source.**
+  - **Problem**: `lintUnusedTempVars` (graph linter) flags `*temp` variables that are declared but never read within a scene. This check only ran for visual-graph scenes; preserved-source scenes completely skipped it.
+  - **Implementation**: Added `tempVarLines` map (temp name → declaration line) in the pre-pass of `lintPreservedScriptSource`. Added `tempReadVars` set populated during the main loop: prose lines add via `extractVariableReferences`; `*if`/`*elseif`/`*selectable_if` conditions add via `extractExpressionNames`; `*set` value expressions add the same way. After the loop, any temp in `tempVarLines` that's not in `tempReadVars` emits `unused_temp` info with the same key and params as the graph-node version.
+  - **Files changed**: `choicescript.ts` (~25 lines added), `domain.test.ts` (3 new tests).
+  - **Tests**: 240 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 139
 - **Parity: `*temp` and `*params` shadow-global checks in preserved source.**
   - **Problem**: `lintPreservedTempLine` and `lintPreservedParamsLine` checked for reserved-word clashes and local-variable duplicates, but not for shadowing a global variable. `lintSceneGraph` already emits `temp_shadows` for `*temp` and `*params` nodes that shadow globals. Preserved-source scenes using `*temp` or `*params` would silently skip this check.
