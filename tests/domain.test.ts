@@ -4670,6 +4670,24 @@ test("does not warn on *image with valid alignment in preserved source", () => {
   assert.ok(!issues.some((i) => i.scene === "intro" && i.msg.includes("invalid alignment")));
 });
 
+test("lints *rand with same min and max as warning in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create roll 0",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*rand roll 5 5",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "rand_same_bounds" && i.scene === "intro"));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

@@ -1270,6 +1270,9 @@ function lintPreservedInputCommand(
   if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
     issues.push({ level: "error", msg: `*${command} min bound (${rawMin}) exceeds max bound (${rawMax})`, scene: sceneName, line: lineNumber });
   }
+  if (command === "rand" && !minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min === max) {
+    issues.push({ level: "warning", msg: `*rand always produces the same value (min = max = ${min})`, key: "rand_same_bounds", params: { val: String(min) }, scene: sceneName, line: lineNumber });
+  }
 }
 
 function lintPreservedConditionLine(
