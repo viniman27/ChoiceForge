@@ -847,6 +847,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     }
   });
 
+  if (hasGosub && !graph.nodes.some((n) => n.type === "return")) {
+    issues.push({ level: "warning", msg: `scene "${sceneName}" has *gosub nodes but no *return node`, scene: sceneName });
+  }
+
   lintUnusedTempVars(graph, issues, sceneName);
 }
 
