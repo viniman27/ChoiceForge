@@ -4826,6 +4826,93 @@ test("does not flag uppercase ChoiceScript reserved words as undeclared variable
   assert.ok(!issues.some((i) => i.msg.includes("MODULO") || i.msg.includes("AND") || i.msg.includes("NOT")));
 });
 
+test("*params shadow in graph linter emits temp_shadows key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "params", x: 0, y: 0, w: 300, title: "*params", body: "score" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const shadow = issues.find((i) => i.key === "temp_shadows" && i.params?.name === "score");
+  assert.ok(shadow, "expected temp_shadows key on *params shadow");
+});
+
+test("*achieve in preserved source emits undef_ach key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*achieve mystery_award" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "undef_ach" && i.params?.name === "mystery_award");
+  assert.ok(issue, "expected undef_ach key on *achieve for unknown id in preserved source");
+});
+
+test("*goto_scene in preserved source emits goto_scene_missing key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*goto_scene ghost_scene" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "goto_scene_missing" && i.params?.name === "ghost_scene");
+  assert.ok(issue, "expected goto_scene_missing key on *goto_scene for unknown scene in preserved source");
+});
+
+test("duplicate *label in preserved source emits duplicate_label key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*label loop\n*goto loop\n*label loop" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "duplicate_label" && i.params?.name === "loop");
+  assert.ok(issue, "expected duplicate_label key on repeated *label in preserved source");
+});
+
+test("*goto missing label in preserved source emits goto_missing_label key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*goto nowhere" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "goto_missing_label" && i.params?.name === "nowhere");
+  assert.ok(issue, "expected goto_missing_label key on *goto to undefined label in preserved source");
+});
+
+test("*gosub missing label in preserved source emits gosub_missing_label key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*gosub nowhere" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_missing_label" && i.params?.name === "nowhere");
+  assert.ok(issue, "expected gosub_missing_label key on *gosub to undefined label in preserved source");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

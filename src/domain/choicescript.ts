@@ -825,7 +825,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         } else if (isChoiceScriptReserved(param)) {
           issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${param}`, scene: sceneName, node: node.id });
         } else if (project.variables.some((variable) => variable.name === param)) {
-          issues.push({ level: "warning", msg: `*params shadows a global variable: ${param}`, scene: sceneName, node: node.id });
+          issues.push({ level: "warning", msg: `*params shadows a global variable: ${param}`, key: "temp_shadows", params: { name: param }, scene: sceneName, node: node.id });
         }
       });
       const duplicateParams = findDuplicates(rawParams);
@@ -926,7 +926,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const localVariables = new Map<string, number>();
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const labels = new Map<string, number>();
-  const referencedLabels: Array<{ label: string; line: number }> = [];
+  const referencedLabels: Array<{ label: string; line: number; command: "*goto" | "*gosub" }> = [];
   const returnLines: number[] = [];
   let hasGosub = false;
   const lines = sourceText.split(/\r?\n/);
@@ -979,7 +979,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const target = normalizeSourceIdentifier(rawTarget);
       if (!rawTarget) issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, line: lineNumber });
       else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
-      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
+      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, key: "goto_scene_missing", params: { name: target }, scene: sceneName, line: lineNumber });
     }
     if (command === "gosub_scene") {
       const rawTarget = sourceCommandValue(trimmed, "*gosub_scene").split(/\s+/)[0] ?? "";
@@ -1067,7 +1067,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       } else if (!isValidChoiceScriptIdentifier(rawAchievement)) {
         issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${rawAchievement}`, scene: sceneName, line: lineNumber });
       } else if (!achievements.has(achievement)) {
-        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achievement}`, scene: sceneName, line: lineNumber });
+        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achievement}`, key: "undef_ach", params: { name: achievement }, scene: sceneName, line: lineNumber });
       }
     }
     if (!command) {
@@ -1099,8 +1099,11 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     }
   }
 
-  referencedLabels.forEach(({ label, line }) => {
-    if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
+  referencedLabels.forEach(({ label, line, command }) => {
+    if (!labels.has(label)) {
+      const key = command === "*goto" ? "goto_missing_label" : "gosub_missing_label";
+      issues.push({ level: "error", msg: `${command} points to a missing label: ${label}`, key, params: { name: label }, scene: sceneName, line });
+    }
   });
   const referencedLabelSet = new Set(referencedLabels.map(({ label }) => label));
   labels.forEach((lineNumber, label) => {
@@ -1125,14 +1128,14 @@ function lintPreservedLabelLine(labels: Map<string, number>, label: string, scen
     return;
   }
   if (labels.has(label)) {
-    issues.push({ level: "error", msg: `duplicate *label in source: ${label}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `duplicate *label in source: ${label}`, key: "duplicate_label", params: { name: label }, scene: sceneName, line: lineNumber });
     return;
   }
   labels.set(label, lineNumber);
 }
 
 function lintPreservedJumpLine(
-  referencedLabels: Array<{ label: string; line: number }>,
+  referencedLabels: Array<{ label: string; line: number; command: "*goto" | "*gosub" }>,
   command: "*goto" | "*gosub",
   label: string,
   sceneName: string,
@@ -1147,7 +1150,7 @@ function lintPreservedJumpLine(
     issues.push({ level: "error", msg: `${command} has an invalid label identifier: ${label}`, scene: sceneName, line: lineNumber });
     return;
   }
-  referencedLabels.push({ label, line: lineNumber });
+  referencedLabels.push({ label, line: lineNumber, command });
 }
 
 function lintPreservedTempLine(
