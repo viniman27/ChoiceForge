@@ -1496,10 +1496,10 @@ function isChoiceOptionHeaderLine(line: string): boolean {
 }
 
 function parseIfHeader(trimmed: string): Pick<ImportedConditionalBranch, "kind" | "expr"> | null {
-  const conditional = trimmed.match(/^\*if\s+\(?(.+?)\)?$/i);
+  const conditional = trimmed.match(/^\*if\s+(.+)$/i);
   if (conditional) return { kind: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(conditional[1].trim())) };
 
-  const elseif = trimmed.match(/^\*elseif\s+\(?(.+?)\)?$/i);
+  const elseif = trimmed.match(/^\*elseif\s+(.+)$/i);
   if (elseif) return { kind: "elseif", expr: normalizeExpressionIdentifiers(stripOuterParens(elseif[1].trim())) };
 
   if (/^\*else$/i.test(trimmed)) return { kind: "else" };
@@ -1617,8 +1617,13 @@ function labelMap(nodes: StoryNode[]): Map<string, string> {
 
 function stripOuterParens(value: string): string {
   const trimmed = value.trim();
-  if (trimmed.startsWith("(") && trimmed.endsWith(")")) return trimmed.slice(1, -1).trim();
-  return trimmed;
+  if (!trimmed.startsWith("(") || !trimmed.endsWith(")")) return trimmed;
+  let depth = 0;
+  for (let i = 0; i < trimmed.length - 1; i++) {
+    if (trimmed[i] === "(") depth++;
+    else if (trimmed[i] === ")") { depth--; if (depth === 0) return trimmed; }
+  }
+  return trimmed.slice(1, -1).trim();
 }
 
 function normalizeExpressionIdentifiers(expression: string): string {
