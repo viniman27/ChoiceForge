@@ -3002,6 +3002,91 @@ test("imports nested *if inside *choice option body — prose continues after if
   assert.ok(graph.edges.some((e) => e.from === afterPassage!.id && e.to === finishNode!.id), "prose → finish edge");
 });
 
+test("imports *achieve in scene body as achieve node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "You have defeated the dragon.",
+    "*achieve dragon_slayer",
+    "*finish",
+  ].join("\n"));
+
+  const achieveNode = graph.nodes.find((n) => n.type === "achieve");
+  assert.ok(achieveNode, "achieve node exists");
+  assert.equal(achieveNode!.target, "dragon_slayer");
+  assert.ok(graph.edges.some((e) => e.kind === "flow" && e.to === achieveNode!.id), "prose → achieve edge");
+  assert.ok(graph.nodes.some((n) => n.type === "finish"), "finish node exists");
+});
+
+test("imports *achieve in *if branch body as achieve node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if won_battle",
+    "  *achieve battle_won",
+    "  *finish",
+    "*else",
+    "  *ending",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+
+  const achieveNode = graph.nodes.find((n) => n.type === "achieve");
+  assert.ok(achieveNode, "achieve node inside if branch exists");
+  assert.equal(achieveNode!.target, "battle_won");
+  assert.equal(ifNode!.branches![0].to, achieveNode!.id, "if branch points to achieve node");
+});
+
+test("imports *achieve in *choice option body as achieve node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Help the villager",
+    "    *achieve good_deed",
+    "    *finish",
+    "  #Ignore them",
+    "    *ending",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+
+  const achieveNode = graph.nodes.find((n) => n.type === "achieve");
+  assert.ok(achieveNode, "achieve node inside option exists");
+  assert.equal(achieveNode!.target, "good_deed");
+  assert.equal(choiceNode!.options![0].to, achieveNode!.id, "option points to achieve node");
+});
+
+test("lints achieve node with undeclared achievement as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "achieve", x: 0, y: 0, w: 240, title: "*achieve missing_ach", target: "missing_ach" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "error" && i.msg.includes("undeclared achievement") && i.msg.includes("missing_ach")));
+});
+
+test("lints achieve node with valid achievement as no error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "You are a hero.", preDesc: "", postDesc: "", points: 10, hidden: false }],
+    nodes: [
+      { id: "n1", type: "achieve", x: 0, y: 0, w: 240, title: "*achieve hero", target: "hero" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("achieve") && i.level === "error"));
+});
+
+test("generates *achieve command in code output", () => {
+  const node: StoryNode = { id: "n1", type: "achieve", x: 0, y: 0, w: 240, title: "*achieve hero", target: "hero" };
+  const output = generateNodeChoiceScript(node);
+  assert.ok(output.includes("*achieve hero"));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

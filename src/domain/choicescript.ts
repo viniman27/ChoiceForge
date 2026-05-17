@@ -93,6 +93,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     const params = (node.body?.trim() ?? "").split(/\s+/).filter(Boolean);
     if (params.length) lines.push(`*params ${params.join(" ")}`);
   }
+  if (node.type === "achieve" && node.target?.trim()) lines.push(`*achieve ${node.target.trim()}`);
 
   const flowTarget = edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
   if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
@@ -718,6 +719,17 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       duplicateParams.forEach((param) => {
         issues.push({ level: "error", msg: `*params has a duplicate parameter name: ${param}`, scene: sceneName, node: node.id });
       });
+    }
+
+    if (node.type === "achieve") {
+      const achId = node.target?.trim() ?? "";
+      if (!achId) {
+        issues.push({ level: "error", msg: "*achieve needs an achievement id", scene: sceneName, node: node.id });
+      } else if (!isValidChoiceScriptIdentifier(achId)) {
+        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${achId}`, scene: sceneName, node: node.id });
+      } else if (!achievements.has(achId)) {
+        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achId}`, scene: sceneName, node: node.id });
+      }
     }
   });
 
