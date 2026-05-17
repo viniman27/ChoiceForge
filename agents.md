@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 136
+- **Fix `*set` value-expression reads missing in three source scanners; add `*gosub_scene` checks to preserved-source linter.**
+  - **`*set` value reads in source**: `lintUnusedVariables`, `computeVariableUses`, and `computeVariableLocations` all had `scanSource` functions that tallied the `*set` write target but never scanned the value expression. So `*set result score + 5` in preserved source counted `result` as written but silently skipped `score` as a read. Variables exclusively read through `*set` RHS expressions in imported scenes were falsely flagged as "declared but never read". Fixed all three functions by adding the same value-expression extraction logic (using `maybeOp`/`rest` parsing with explicit-operator detection) already present in `lintPreservedSetLine`.
+  - **`*gosub_scene` in `lintPreservedScriptSource`**: The preserved-source scene linter checked that `*gosub_scene` pointed to an existing scene but did not check (a) whether the target scene has a `*return`, or (b) whether the entry label (if any) exists in the target. Added parity checks matching the graph-node `gosub_scene` linter: inspects `targetGraph.sourceText` for `*return`, and scans both visual label nodes and source `*label` lines for the entry label.
+  - **Files changed**: `choicescript.ts` (~35 lines added), `domain.test.ts` (4 new tests).
+  - **Tests**: 230 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 135
 - **Parity: `computeAchievementLocations` and `computeAchievementUses` scan option bodies and preserved source.**
   - **Problem**: Both functions only called `extractAchievementCommandTargets` on `node.body`. Option bodies (`option.body`, `fakeOption.body`) and preserved source text (`graph.sourceText`, `startupSource`) were silently skipped. A `*achieve` command inside a choice option body or imported source would not appear in the location map or use count shown in the UI.

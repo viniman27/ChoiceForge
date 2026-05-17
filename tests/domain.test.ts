@@ -4521,6 +4521,89 @@ test("does not lint set node with assignments", () => {
   assert.ok(!issues.some((i) => i.node === "n1" && i.msg.includes("no assignments")));
 });
 
+test("computeVariableUses counts variable read in *set value expression in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create score 0",
+      "*create result 0",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*set result score + 5",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const uses = computeVariableUses(project);
+  assert.ok((uses.get("score") ?? 0) > 0, "score should be counted as read in *set value expression");
+});
+
+test("lintUnusedVariables does not flag variable only read in *set value expression in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create score 0",
+      "*create result 0",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*set result score + 5",
+      "*finish",
+    ].join("\n")),
+  ]);
+  project.variables.forEach((v) => { v.showInStats = false; });
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("never read") && i.msg.includes("score")));
+});
+
+test("lints *gosub_scene in preserved source calling a scene with no *return", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "  sub",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*gosub_scene sub",
+      "*finish",
+    ].join("\n")),
+    textEntry("sub.txt", [
+      "Sub content.",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.scene === "intro" && i.msg.includes("no *return")));
+});
+
+test("does not warn on *gosub_scene in preserved source when target has *return", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "  sub",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*gosub_scene sub",
+      "*finish",
+    ].join("\n")),
+    textEntry("sub.txt", [
+      "Sub content.",
+      "*return",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.scene === "intro" && i.msg.includes("no *return")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
