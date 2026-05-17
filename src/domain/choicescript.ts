@@ -315,8 +315,8 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
     scanText(node.body ?? "");
     scanText(node.prompt ?? "");
     node.sets?.forEach((s) => scanExpr(s.val));
-    if (node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) recordRead(node.inputMin);
-    if (node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) recordRead(node.inputMax);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) recordRead(node.inputMin);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) recordRead(node.inputMax);
     node.options?.forEach((opt) => {
       scanText(opt.text);
       scanText(opt.body ?? "");
@@ -883,8 +883,8 @@ function lintUnusedTempVars(graph: SceneGraph, issues: LintIssue[], sceneName: s
     scanText(node.body ?? "");
     scanText(node.prompt ?? "");
     node.sets?.forEach((s) => scanExpr(s.val));
-    if (node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) recordRead(node.inputMin);
-    if (node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) recordRead(node.inputMax);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) recordRead(node.inputMin);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) recordRead(node.inputMax);
     node.options?.forEach((opt) => {
       scanText(opt.text);
       scanText(opt.body ?? "");
@@ -2031,8 +2031,8 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
   const scanNode = (node: StoryNode) => {
     node.sets?.forEach((set) => { tally(set.var); extractExpressionNames(set.val).forEach(tally); });
     if (node.inputVar) tally(node.inputVar);
-    if (node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) tally(node.inputMin);
-    if (node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) tally(node.inputMax);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) tally(node.inputMin);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) tally(node.inputMax);
     extractVariableReferences(node.body ?? "").forEach(tally);
     extractVariableReferences(node.prompt ?? "").forEach(tally);
     node.options?.forEach((option) => {
@@ -2113,8 +2113,8 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
         extractExpressionNames(s.val).forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       });
       if (node.inputVar) addLoc(node.inputVar, sceneName, node.id, node.title, "write");
-      if (node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) addLoc(node.inputMin, sceneName, node.id, node.title, "read");
-      if (node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) addLoc(node.inputMax, sceneName, node.id, node.title, "read");
+      if ((node.type === "rand" || node.type === "input_number") && node.inputMin && isValidChoiceScriptIdentifier(node.inputMin)) addLoc(node.inputMin, sceneName, node.id, node.title, "read");
+      if ((node.type === "rand" || node.type === "input_number") && node.inputMax && isValidChoiceScriptIdentifier(node.inputMax)) addLoc(node.inputMax, sceneName, node.id, node.title, "read");
       extractVariableReferences(node.body ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       extractVariableReferences(node.prompt ?? "").forEach((n) => addLoc(n, sceneName, node.id, node.title, "read"));
       node.options?.forEach((opt) => {
