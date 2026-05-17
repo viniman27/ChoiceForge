@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 156
+- **Fix `RangeError: Invalid array length` crash when importing large scenes.**
+  - **Root cause**: `graphLayout.ts` line 60 used `Math.max(0, ...depth.values())` and line 85 used `Math.max(...sortedNodes.map(n => n.w), 260)`. Both spread large arrays/iterators as function arguments. JavaScript's call stack limit (~65K arguments) causes `RangeError` when a scene has thousands of nodes — which occurs when importing many/large ChoiceScript files or editing a large scene in text mode (which re-runs layout on save).
+  - **Fix**: Replaced spread-based `Math.max` with safe iterative alternatives: `forEach`-based loop for `maxDepth` and `reduce` for `maxWidth`. Neither has argument-count limits.
+  - **Files changed**: `graphLayout.ts` (2 lines).
+- **Clarify color-tag filter buttons in the canvas toolbar.**
+  - **Problem**: Six 12px colored dots at 35% opacity near the bottom-left toolbar. When clicked, they dim all nodes that don't match the tag. The `title` said "Filter by red tag" — not clear that they HIDE other nodes or how to turn the filter off.
+  - **Fix**: Updated tooltip text to "Show only [color]-tagged nodes (dims others)" / "Filtering by [color] tag — click to remove this filter". Added a `×` clear button (`.zoom-color-clear`) that appears only when any tag filter is active, giving an obvious dismiss target. Updated `is-active` CSS to include a colored box-shadow glow so active dots are clearly distinct from inactive.
+  - **Files changed**: `GraphCanvas.tsx` (title + clear button), `styles.css` (active glow + new `.zoom-color-clear`).
+- **Tests**: 269 passing, no regressions. Build clean.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 155
 - **Add i18n keys to 5 high-visibility lint messages (both graph and preserved-source linters).**
   - `unused_var`: `variable "${name}" is declared but never read` (line 366 — hidden global variable warning).
