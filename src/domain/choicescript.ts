@@ -1852,7 +1852,7 @@ function lintSourceExpression(expression: string, variables: Set<string>, issues
 
 function extractVariableReferences(text: string): string[] {
   const dollar = [...text.matchAll(/\$\{([a-zA-Z_][\w]*)\}/g)].map((m) => m[1]);
-  const at = [...text.matchAll(/@\{([a-zA-Z_][\w]*)\b/g)].map((m) => m[1]);
+  const at = [...text.matchAll(/@!{0,2}\{([a-zA-Z_][\w]*)\b/g)].map((m) => m[1]);
   return [...dollar, ...at];
 }
 
@@ -1874,7 +1874,7 @@ function extractExpressionNames(expression: string): string[] {
 function countBodyWords(text: string): number {
   return text
     .replace(/\$\{[^}]+\}/g, " ")
-    .replace(/@\{[^}]+\}/g, " ")
+    .replace(/@!{0,2}\{[^}]+\}/g, " ")
     .split(/\s+/)
     .filter(Boolean).length;
 }

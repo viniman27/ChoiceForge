@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 129
+- **Support `@!{name}` and `@!!{name}` capitalization interpolation patterns throughout.**
+  - **Problem**: ChoiceScript supports three `@` interpolation variants: `@{name}` (raw), `@!{name}` (capitalize first letter), `@!!{name}` (all caps). `extractVariableReferences` only matched `@{name}`, missing the `!` and `!!` variants. Any variable referenced exclusively via `@!{hero}` or `@!!{hero}` would be falsely flagged as "never read" by unused-variable detection, and undeclared variables used this way would not trigger an "undeclared variable" warning. `countBodyWords` had the same gap — `@!{…}` and `@!!{…}` were counted as word tokens rather than replaced by a space placeholder.
+  - **Fix**: Changed the `at` regex in `extractVariableReferences` to `@!{0,2}\{([a-zA-Z_][\w]*)\b` (matches 0, 1, or 2 `!` before the `{`). Changed `countBodyWords` pattern from `@\{[^}]+\}` to `@!{0,2}\{[^}]+\}`.
+  - **Files changed**: `choicescript.ts` (2 regex changes), `domain.test.ts` (2 new tests).
+  - **Tests**: 222 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 128
 - **Fix incorrect `error` for `*stat_chart text` with a number variable; add reserved-word checks to preserved source temp/params.**
   - **Problem 1**: `lintPreservedStatsSource` raised an `error` for `*stat_chart text varname` when `varname` is a number variable. ChoiceScript actually accepts `text` for any variable type — it just renders the raw value. The restriction was wrong and would flag valid ChoiceScript.

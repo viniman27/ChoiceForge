@@ -4163,6 +4163,48 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("detects undeclared variable in @!{name} capitalized interpolation", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello, @!{hero_name}!" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "undef_var" && i.msg.includes("hero_name")));
+});
+
+test("does not flag @!{name} variable as unused when declared", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "hero_name", type: "string", initial: "Bilbo", desc: "", showInStats: false }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello, @!{hero_name}!" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("hero_name") && i.msg.includes("never read")));
+});
+
 test("lints *gosub scene with no *return node as warning", () => {
   const labelId = "n_label";
   const project: ChoiceForgeProject = {
