@@ -2558,6 +2558,115 @@ test("lints *achieve in fake_choice option body", () => {
   assert.ok(issues.some((i) => i.msg.includes("ghost_achieve") && i.msg.includes("undeclared achievement")));
 });
 
+test("warns when all *choice options lead to the same node", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose", prompt: "Pick:",
+        options: [
+          { text: "Option A", to: "n2" },
+          { text: "Option B", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("all options") && i.msg.includes("choose")));
+});
+
+test("warns when all *if branches lead to the same node (with *else)", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 360, title: "*if",
+        branches: [
+          { kind: "if", expr: "courage > 50", to: "n2" },
+          { kind: "else", expr: "", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("all branches")));
+});
+
+test("does not warn when *if branches lead to different nodes", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 360, title: "*if",
+        branches: [
+          { kind: "if", expr: "courage > 50", to: "n2" },
+          { kind: "else", expr: "", to: "n3" },
+        ] },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "brave", body: "You stand firm." },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.level === "warning" && i.msg.includes("all branches")));
+});
+
+test("does not warn about all-same-target *if without *else", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 360, title: "*if",
+        branches: [
+          { kind: "if", expr: "courage > 50", to: "n2" },
+          { kind: "elseif", expr: "courage > 25", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.level === "warning" && i.msg.includes("all branches")));
+});
+
+test("reports unreferenced *label as info", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label orphan" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+    ],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "info" && i.msg.includes('"orphan"') && i.msg.includes("never referenced")));
+});
+
+test("does not report referenced *label as unreferenced", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label checkpoint" },
+      { id: "n3", type: "goto", x: 0, y: 320, w: 240, title: "*goto checkpoint" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n3", to: "n2", kind: "goto" },
+    ],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("never referenced")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
