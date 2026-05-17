@@ -4862,6 +4862,28 @@ test("computeVariableUses counts variable used in *selectable_if condition in pr
   assert.ok((uses.get("score") ?? 0) > 0, "score should have a use count from *selectable_if condition");
 });
 
+test("lintSet does not flag *set on a temp variable as undeclared", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 300, title: "*temp counter", inputVar: "counter", body: "0" },
+          { id: "n2", type: "set", x: 0, y: 160, w: 300, title: "*set", sets: [{ var: "counter", op: "+", val: "1" }] },
+          { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("undeclared") && i.msg.includes("counter")), "counter is a temp variable and must not be flagged as undeclared");
+});
+
 test("*params shadow in graph linter emits temp_shadows key and name param", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

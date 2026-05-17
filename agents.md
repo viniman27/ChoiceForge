@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 146
+- **Fix `lintSet` falsely flagging `*set` on temp variables as undeclared.**
+  - **Problem**: `lintSet` (graph linter) fetched `variable = variableTypes.get(set.var)` where `variableTypes` only holds global project variables. The guard `!variables.has(set.var) || !variable` triggered on any temp variable (which is in `variables` but not in `variableTypes`), producing a false "undeclared" error and skipping type/operator checks.
+  - **Fix**: Restructured the check to return early only on `!variables.has(set.var)`. Type/operator checks now guard on `variable &&` or `variable?.type` so they silently skip when the target is a temp (type unknown). This matches the behavior of `lintPreservedSetLine` which already handles this correctly.
+  - **Files changed**: `choicescript.ts` (5-line restructure in `lintSet`), `domain.test.ts` (1 new test).
+  - **Tests**: 251 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 145
 - **Scan `*selectable_if` conditions in all three preserved-source scanners.**
   - **Problem**: `lintUnusedVariables.scanSource`, `computeVariableUses.scanSource`, and `computeVariableLocations.scanSource` checked for `*if` and `*elseif` conditions but skipped `*selectable_if`. Variables read only in `*selectable_if` conditions in preserved-source scenes would be falsely flagged as unused and under-counted in usage stats.
