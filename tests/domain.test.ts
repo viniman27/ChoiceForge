@@ -4163,6 +4163,63 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("lints *gosub scene with no *return node as warning", () => {
+  const labelId = "n_label";
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
+          { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label subroutine" },
+          { id: "n3", type: "passage", x: 0, y: 320, w: 300, title: "sub body", body: "In subroutine." },
+          { id: "n4", type: "gosub", x: 0, y: 480, w: 240, title: "*gosub subroutine" },
+          { id: "n5", type: "finish", x: 0, y: 640, w: 240, title: "*finish" },
+        ],
+        edges: [
+          { from: "n1", to: "n2", kind: "flow" },
+          { from: "n2", to: "n3", kind: "flow" },
+          { from: "n4", to: "n5", kind: "flow" },
+        ],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("*gosub") && i.msg.includes("no *return")));
+});
+
+test("does not warn on *gosub scene that has a *return node", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
+          { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label subroutine" },
+          { id: "n3", type: "passage", x: 0, y: 320, w: 300, title: "sub body", body: "In subroutine." },
+          { id: "n4", type: "return", x: 0, y: 480, w: 240, title: "*return" },
+          { id: "n5", type: "gosub", x: 0, y: 640, w: 240, title: "*gosub subroutine" },
+          { id: "n6", type: "finish", x: 0, y: 800, w: 240, title: "*finish" },
+        ],
+        edges: [
+          { from: "n1", to: "n2", kind: "flow" },
+          { from: "n2", to: "n3", kind: "flow" },
+          { from: "n3", to: "n4", kind: "flow" },
+          { from: "n5", to: "n6", kind: "flow" },
+        ],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("*gosub") && i.msg.includes("no *return")));
+});
+
 test("lints *image node with unsupported extension as warning", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

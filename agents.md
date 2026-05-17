@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 127
+- **Lint scene with `*gosub` but no `*return` node.**
+  - **Problem**: The existing check at `node.type === "return" && !hasGosub` warned when a `*return` appeared in a scene with no `*gosub`. The symmetric case — a `*gosub` in a scene with no `*return` — was missing. Without a `*return`, the gosub'd subroutine can never return to the caller, leaving the player stuck in a dead flow.
+  - **Fix**: After the main node loop in `lintSceneGraph`, added `if (hasGosub && !graph.nodes.some((n) => n.type === "return"))` and emit a `warning` at scene scope.
+  - **Files changed**: `choicescript.ts` (+4 lines after humanLabels loop), `domain.test.ts` (2 new tests).
+  - **Tests**: 220 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 126
 - **Lint `*image` and `*sound` nodes with unsupported file extensions.**
   - **Problem**: ChoiceScript only supports specific image formats (jpg, jpeg, png, gif, webp) and audio formats (mp3, ogg, wav, aac, m4a, mp4). An author referencing `hero.svg` or `theme.flac` would produce a game that silently fails to load the asset in the browser. The existing asset linting only checked whether the file was registered in `project.assets`, not whether the extension was supported.
