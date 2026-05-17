@@ -5011,6 +5011,20 @@ test("lintSet does not flag *set on a temp variable as undeclared", () => {
   assert.ok(!issues.some((i) => i.msg.includes("undeclared") && i.msg.includes("counter")), "counter is a temp variable and must not be flagged as undeclared");
 });
 
+test("*temp with no initial value in preserved source emits a warning not an error", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*temp counter\n*finish" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.msg.includes("counter") && i.msg.includes("initial value"));
+  assert.ok(issue, "expected a lint about counter missing initial value");
+  assert.equal(issue!.level, "warning", "*temp with no initial value should be warning not error");
+});
+
 test("*params shadow in graph linter emits temp_shadows key and name param", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
