@@ -1849,15 +1849,15 @@ function lintSet(
     issues.push({ level: "error", msg: `*set ${set.var} has an empty value`, scene, node });
     return;
   }
-  const variable = variableTypes.get(set.var);
-  if (!variables.has(set.var) || !variable) {
+  if (!variables.has(set.var)) {
     issues.push({ level: "error", msg: `*set uses an undeclared variable: ${set.var}`, key: "undef_var", params: { name: set.var }, scene, node });
     return;
   }
-  if (variable.type !== "number" && set.op !== "=") {
+  const variable = variableTypes.get(set.var);
+  if (variable && variable.type !== "number" && set.op !== "=") {
     issues.push({ level: "error", msg: `*set ${set.var} uses an invalid operator for ${variable.type}: ${set.op}`, scene, node });
   }
-  if (variable.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
+  if (variable?.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
     issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, scene, node });
   }
   extractExpressionNames(set.val).forEach((name) => {
