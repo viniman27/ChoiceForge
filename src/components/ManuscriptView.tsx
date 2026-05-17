@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { COLOR_TAG_VALUES } from "./NodeCard";
-import type { ChoiceForgeProject, StoryEdge, StoryNode } from "../domain/types";
+import type { AssetSummary, ChoiceForgeProject, StoryEdge, StoryNode } from "../domain/types";
 
 interface ManuscriptViewProps {
   data: ChoiceForgeProject;
@@ -122,7 +122,7 @@ export function ManuscriptView({ data, onClose, onNavigateToNode }: ManuscriptVi
                   </div>
                 )}
                 {section.nodes.map((node) => (
-                  <NodeBlock key={`${section.name}-${node.id}`} node={node} sceneName={section.name} onNavigate={onNavigateToNode} />
+                  <NodeBlock key={`${section.name}-${node.id}`} node={node} sceneName={section.name} onNavigate={onNavigateToNode} assets={data.assets} />
                 ))}
                 {scope === "project" && si < sections.length - 1 && (
                   <div className="ms-scene-end" />
@@ -136,7 +136,7 @@ export function ManuscriptView({ data, onClose, onNavigateToNode }: ManuscriptVi
   );
 }
 
-function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName: string; onNavigate?: (sceneName: string, nodeId: string) => void }) {
+function NodeBlock({ node, sceneName, onNavigate, assets }: { node: StoryNode; sceneName: string; onNavigate?: (sceneName: string, nodeId: string) => void; assets?: AssetSummary[] }) {
   const titleEl = (
     <h2
       className={`ms-node-title${onNavigate ? " ms-node-title-link" : ""}`}
@@ -239,8 +239,40 @@ function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName
     );
   }
 
+  if (node.type === "image") {
+    const asset = assets?.find((a) => a.fileName === node.target || a.path === node.target);
+    return (
+      <div className="ms-media">
+        {asset?.dataUrl ? (
+          <img className="ms-image" src={asset.dataUrl} alt={node.prompt || node.target || "image"} />
+        ) : (
+          <div className="ms-structural">
+            <span className="ms-cmd">*image</span>
+            {node.target && <span className="ms-target">{node.target}</span>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (node.type === "sound") {
+    const asset = assets?.find((a) => a.fileName === node.target || a.path === node.target);
+    return (
+      <div className="ms-media">
+        {asset?.dataUrl ? (
+          <audio className="ms-audio" src={asset.dataUrl} controls />
+        ) : (
+          <div className="ms-structural">
+            <span className="ms-cmd">*sound</span>
+            {node.target && <span className="ms-target">{node.target}</span>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (["goto", "label", "gosub", "return", "finish", "ending", "checkpoint", "restore_checkpoint",
-    "image", "sound", "rand", "input_text", "input_number", "temp", "params"].includes(node.type)) {
+    "rand", "input_text", "input_number", "temp", "params"].includes(node.type)) {
     return (
       <div className="ms-structural">
         <span className="ms-cmd">*{node.type}</span>

@@ -716,6 +716,9 @@
 .ms-cmd { color: var(--c-goto); font-weight: 600; }
 .ms-branch-label { color: var(--c-if); }
 .ms-target { color: var(--ink-mute); }
+.ms-media { padding: 8px 0; }
+.ms-image { max-width: 100%; height: auto; display: block; border-radius: 6px; }
+.ms-audio { width: 100%; display: block; }
 
 /* ─── Dashboard todo list ─────────────────────────────────────── */
 .dash-todo-empty {

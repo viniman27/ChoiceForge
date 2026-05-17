@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 105
+- **Manuscript view: inline image and audio rendering.**
+  - `*image` and `*sound` nodes previously showed as monochrome structural chips (`*image filename`). Now, if the node's `target` filename matches a project asset with a `dataUrl`, the actual media is rendered inline in the manuscript.
+  - `*image` with a matching asset: renders `<img class="ms-image">` with the dataUrl as `src` and the node's `prompt` (or target filename) as `alt`. Falls back to the structural chip when no matching asset is found (e.g., referencing an external file not imported as an asset).
+  - `*sound` with a matching asset: renders `<audio class="ms-audio" controls>` so authors can play the track while proofreading. Falls back similarly.
+  - Asset matching checks both `asset.fileName` and `asset.path` against `node.target` to handle import variations.
+  - `NodeBlock` accepts a new `assets?: AssetSummary[]` prop; `ManuscriptView` passes `data.assets` to every `NodeBlock`.
+  - CSS (`directions.css`): `.ms-media`, `.ms-image` (max-width: 100%, rounded corners), `.ms-audio` (full-width).
+  - 155 tests, all passing. Clean build.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 104
 - **Import: fix `*goto_scene` optional label + `*line_break` paragraph handling.**
   - **`*goto_scene` target bug** (`choicescriptImport.ts`, `simpleCommandNode`): `*goto_scene scene_name starting_label` was calling `normalizeIdentifier(value)` on the full remaining text, converting `"scene_name starting_label"` to `"scene_name_starting_label"`. Fixed to split on whitespace and take only the first token as the scene name.
