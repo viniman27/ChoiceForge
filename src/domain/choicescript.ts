@@ -1253,7 +1253,7 @@ function lintPreservedSetLine(
   const valueExpr = isExplicitOperator ? rest.join(" ") : [maybeOp, ...rest].join(" ");
   extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((name) => {
     if (!variables.has(name)) {
-      issues.push({ level: "warning", msg: `*set ${variable} value references an undeclared variable: ${name}`, scene: sceneName, line: lineNumber });
+      issues.push({ level: "warning", msg: `*set ${variable} value references an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, line: lineNumber });
     }
   });
 }
@@ -1862,7 +1862,7 @@ function lintSet(
   }
   extractExpressionNames(set.val).forEach((name) => {
     if (!variables.has(name)) {
-      issues.push({ level: "warning", msg: `*set ${set.var} value references an undeclared variable: ${name}`, scene, node });
+      issues.push({ level: "warning", msg: `*set ${set.var} value references an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene, node });
     }
   });
 }
@@ -1938,13 +1938,13 @@ function lintAchievementCommands(text: string, achievements: Set<string>, issues
 function lintExpression(expression: string | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!expression) return;
   extractExpressionNames(expression).forEach((name) => {
-    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, scene, node });
+    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene, node });
   });
 }
 
 function lintSourceExpression(expression: string, variables: Set<string>, issues: LintIssue[], scene: string, line: number) {
   extractExpressionNames(normalizeSourceExpressionIdentifiers(expression)).forEach((name) => {
-    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, scene, line });
+    if (!variables.has(name)) issues.push({ level: "warning", msg: `condition uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene, line });
   });
 }
 
