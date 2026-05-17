@@ -57,7 +57,8 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
     });
   }
 
-  const maxDepth = Math.max(0, ...depth.values());
+  let maxDepth = 0;
+  depth.forEach((v) => { if (v > maxDepth) maxDepth = v; });
   nodes.forEach((node) => {
     if (!depth.has(node.id)) depth.set(node.id, maxDepth + 1);
   });
@@ -82,7 +83,7 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
       positions.set(node.id, { x: columnX, y: nodeY });
       nodeY += estimateLayoutNodeHeight(node) + verticalGap;
     });
-    const maxWidth = Math.max(...sortedNodes.map((node) => node.w), 260);
+    const maxWidth = sortedNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
     columnX += maxWidth + horizontalGap;
   });
 

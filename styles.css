@@ -1344,7 +1344,13 @@ input, select, textarea { font-family: inherit; color: inherit; }
   opacity: 0.35; transition: opacity 0.12s, border-color 0.12s;
 }
 .zoom-color-dot:hover { opacity: 0.75; }
-.zoom-color-dot.is-active { opacity: 1; border-color: var(--ink); }
+.zoom-color-dot.is-active { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px color-mix(in oklch, var(--ct) 45%, transparent); }
+.zoom-color-clear {
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-mute); font-size: 13px; line-height: 1; padding: 0 3px;
+  flex-shrink: 0; border-radius: var(--r-1);
+}
+.zoom-color-clear:hover { color: var(--ink); background: var(--paper-3); }
 
 .minimap {
   position: absolute; bottom: 16px; right: 16px;

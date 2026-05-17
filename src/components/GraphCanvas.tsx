@@ -590,9 +590,18 @@ export function GraphCanvas({
             className={`zoom-color-dot${activeColorTags.has(tag) ? " is-active" : ""}`}
             style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
             onClick={() => setActiveColorTags((cur) => { const next = new Set(cur); next.has(tag) ? next.delete(tag) : next.add(tag); return next; })}
-            title={`Filter by ${tag} tag${activeColorTags.has(tag) ? " (active)" : ""}`}
+            title={activeColorTags.has(tag)
+              ? `Filtering by ${tag} tag — click to remove this filter`
+              : `Show only ${tag}-tagged nodes (dims others)`}
           />
         ))}
+        {activeColorTags.size > 0 && (
+          <button
+            className="zoom-color-clear"
+            onClick={() => setActiveColorTags(new Set())}
+            title="Clear tag filter"
+          >×</button>
+        )}
       </div>
       {filterOpen && (
         <div className="canvas-filter-bar">
