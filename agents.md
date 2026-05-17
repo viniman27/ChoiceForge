@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 97
+- **Import: `*gosub` and `*page_break` in branch/option bodies become structured nodes.**
+  - **Problem**: `addInlineBranchNodes` and `addInlineOptionNodes` previously created a single passage node for ALL body lines before the terminal, so `*gosub subroutine` or `*page_break Label` inside a branch body ended up as literal raw text inside the passage body — incorrect and invisible to the graph.
+  - **Solution — `buildBodyNodeChain`** (`choicescriptImport.ts`): New shared helper that segments body lines left-to-right into prose runs, structured intermediate commands (`*gosub`, `*page_break`), and a terminal. Creates a chain of nodes for each segment, linked by flow edges. Returns `{ firstId, lastId, hasTerminal }`.
+  - **`addInlineBranchNodes` rewritten**: Now delegates entirely to `buildBodyNodeChain`. Falls back to a single empty passage node only if the chain produces nothing.
+  - **`addInlineOptionNodes` rewritten**: Preserves the existing "pure prose → store as `option.body`" fast path (no intermediate commands, no terminal). For all other cases (any `*gosub`, `*page_break`, or terminal in the body lines), delegates to `buildBodyNodeChain`.
+  - **Removed**: `extractTerminalCommand` and `commandNodeFromTerminal` — no longer needed.
+  - **`BODY_TERMINAL_COMMANDS`** / **`BODY_STRUCTURED_COMMANDS`**: Module-level `Set`s used by both the chain builder and the pure-prose guard.
+  - **Tests**: 3 new tests — `*gosub` in `*if` branch body becomes a gosub node (chained to finish); `*page_break` in `*if` branch body becomes a page_break node (chained passage → page_break → goto); `*gosub` in `*choice` option body becomes a gosub node (chained to goto). Total: **131 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 96
 - **Three new lint rules for structural redundancy and dead labels.**
   - **All-same-target `*choice` warning** (`lintChoiceNode`): When all options in a `*choice` node point to the same target node (and all targets are valid), emits a `warning` — the choice is structurally inert and can be simplified. Only fires when there are 2+ valid options (skips nodes already flagged for missing targets to avoid double-warning).

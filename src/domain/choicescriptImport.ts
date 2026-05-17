@@ -1172,33 +1172,70 @@ function parseInlineIfBlock(block: string[], index: number): { node: ImportedNod
   };
 }
 
+const BODY_TERMINAL_COMMANDS = new Set(["goto", "goto_scene", "return", "restore_checkpoint", "finish", "ending"]);
+const BODY_STRUCTURED_COMMANDS = new Set(["gosub", "page_break"]);
+
+function buildBodyNodeChain(
+  bodyLines: string[],
+  titlePrefix: string,
+  addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
+  edges: StoryEdge[],
+): { firstId: string | null; lastId: string | null; hasTerminal: boolean } {
+  let proseBuf: string[] = [];
+  let prevId: string | null = null;
+  let firstId: string | null = null;
+  let hasTerminal = false;
+
+  const link = (newId: string) => {
+    if (prevId) edges.push({ from: prevId, to: newId, kind: "flow" });
+    if (!firstId) firstId = newId;
+    prevId = newId;
+  };
+
+  const flushProse = () => {
+    const text = proseBuf.join("\n").trim();
+    proseBuf = [];
+    if (!text) return;
+    const n = addNode({ type: "passage", title: `${titlePrefix}_body`, body: text, w: 420 }, false);
+    link(n.id);
+  };
+
+  for (const line of bodyLines) {
+    const trimmed = line.trim();
+    if (!trimmed) { proseBuf.push(""); continue; }
+    const command = commandName(trimmed);
+    if (command === "comment") continue;
+    if (command && BODY_TERMINAL_COMMANDS.has(command)) {
+      flushProse();
+      const termNode = simpleCommandNode(command, trimmed, 1);
+      if (termNode) { const n = addNode(termNode, false); link(n.id); }
+      hasTerminal = true;
+      break;
+    }
+    if (command && BODY_STRUCTURED_COMMANDS.has(command)) {
+      flushProse();
+      const cmdNode = simpleCommandNode(command, trimmed, 1);
+      if (cmdNode) { const n = addNode(cmdNode, false); link(n.id); }
+      continue;
+    }
+    proseBuf.push(line);
+  }
+
+  flushProse();
+  return { firstId, lastId: prevId, hasTerminal };
+}
+
 function addInlineBranchNodes(
   branch: InlineConditionalBranch,
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
 ): { targetId: string; continuationId: string | null } {
-  const terminal = extractTerminalCommand(branch.bodyLines);
-  const body = terminal ? branch.bodyLines.slice(0, terminal.index) : branch.bodyLines;
-  const bodyText = body.join("\n").trim();
-  const terminalNode = terminal ? commandNodeFromTerminal(terminal.line) : null;
-
-  if (bodyText) {
-    const bodyNode = addNode({
-      type: "passage",
-      title: `if_${branch.kind}_body`,
-      body: bodyText,
-      w: 420,
-    }, false);
-    if (terminalNode) {
-      const nextNode = addNode(terminalNode, false);
-      edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
-    }
-    return { targetId: bodyNode.id, continuationId: terminalNode ? null : bodyNode.id };
+  const { firstId, lastId, hasTerminal } = buildBodyNodeChain(branch.bodyLines, `if_${branch.kind}`, addNode, edges);
+  if (!firstId) {
+    const emptyNode = addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false);
+    return { targetId: emptyNode.id, continuationId: emptyNode.id };
   }
-
-  if (terminalNode) return { targetId: addNode(terminalNode, false).id, continuationId: null };
-  const emptyNode = addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false);
-  return { targetId: emptyNode.id, continuationId: emptyNode.id };
+  return { targetId: firstId, continuationId: hasTerminal ? null : lastId };
 }
 
 function addInlineOptionNodes(
@@ -1206,50 +1243,25 @@ function addInlineOptionNodes(
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
 ): { targetId: string; continuationId: string | null; body?: string } {
-  const terminal = extractTerminalCommand(option.bodyLines);
-  const body = terminal ? option.bodyLines.slice(0, terminal.index) : option.bodyLines;
-  const bodyText = body.join("\n").trim();
-  const terminalNode = terminal ? commandNodeFromTerminal(terminal.line) : null;
+  const isPureProse = option.bodyLines.every((line) => {
+    const cmd = commandName(line.trim());
+    return !cmd || (!BODY_TERMINAL_COMMANDS.has(cmd) && !BODY_STRUCTURED_COMMANDS.has(cmd) && cmd !== "comment");
+  });
 
-  if (bodyText && !terminal && body.every((line) => !line.trim().startsWith("*"))) {
-    const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
-    return { targetId: emptyNode.id, continuationId: emptyNode.id, body: bodyText };
-  }
-
-  if (bodyText) {
-    const bodyNode = addNode({
-      type: "passage",
-      title: "choice_option_body",
-      body: bodyText,
-      w: 420,
-    }, false);
-    if (terminalNode) {
-      const nextNode = addNode(terminalNode, false);
-      edges.push({ from: bodyNode.id, to: nextNode.id, kind: "flow" });
+  if (isPureProse) {
+    const bodyText = option.bodyLines.join("\n").trim();
+    if (bodyText) {
+      const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
+      return { targetId: emptyNode.id, continuationId: emptyNode.id, body: bodyText };
     }
-    return { targetId: bodyNode.id, continuationId: terminalNode ? null : bodyNode.id };
   }
 
-  if (terminalNode) return { targetId: addNode(terminalNode, false).id, continuationId: null };
-  const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
-  return { targetId: emptyNode.id, continuationId: emptyNode.id };
-}
-
-function extractTerminalCommand(lines: string[]): { index: number; line: string } | null {
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    const line = lines[index].trim();
-    if (!line) continue;
-    const command = commandName(line);
-    if (command && ["goto", "goto_scene", "return", "restore_checkpoint", "finish", "ending"].includes(command)) return { index, line };
-    return null;
+  const { firstId, lastId, hasTerminal } = buildBodyNodeChain(option.bodyLines, "choice_option", addNode, edges);
+  if (!firstId) {
+    const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
+    return { targetId: emptyNode.id, continuationId: emptyNode.id };
   }
-  return null;
-}
-
-function commandNodeFromTerminal(line: string): ImportedNodeDraft | null {
-  const command = commandName(line);
-  if (!command) return null;
-  return simpleCommandNode(command, line, 1);
+  return { targetId: firstId, continuationId: hasTerminal ? null : lastId };
 }
 
 function cleanInlineBranch(branch: InlineConditionalBranch): InlineConditionalBranch {
