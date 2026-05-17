@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 143
+- **Fix `extractExpressionNames` to match EXPRESSION_RESERVED case-insensitively.**
+  - **Problem**: `EXPRESSION_RESERVED` holds lowercase tokens (`"and"`, `"or"`, `"not"`, `"modulo"`, etc.), but `extractExpressionNames` compared the raw matched token directly, so uppercase forms like `MODULO`, `AND`, `NOT` would not be filtered and could be reported as undeclared variables.
+  - **Fix**: Changed the filter from `!EXPRESSION_RESERVED.has(name)` to `!EXPRESSION_RESERVED.has(name.toLowerCase())`.
+  - **Files changed**: `choicescript.ts` (1 character change), `domain.test.ts` (1 new test).
+  - **Tests**: 242 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 142
 - **Lint empty `*set` value expression as an error.**
   - **Problem**: `lintSet` (graph linter for all `sets` assignments) checked that the variable exists and the operator is valid, but never checked whether `set.val` is non-empty. A `VariableSet { var: "score", op: "=", val: "" }` would pass through silently. The generator produces `*set score =` (with no value) which is invalid ChoiceScript.
