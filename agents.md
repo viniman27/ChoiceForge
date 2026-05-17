@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 87
+- **`*finish` flow connections in SceneMapView.**
+  - The scene map previously only showed explicit `goto_scene` / `gosub_scene` arrows, leaving the implicit sequential flow of `*finish` invisible. A scene with `*finish` nodes proceeds to the next playable scene in the `startup.txt` list, but that link couldn't be seen in the map.
+  - `Connection.kind` extended to `"goto" | "gosub" | "finish"`.
+  - Detection: for each non-startup, non-special scene, if it contains any `*finish` nodes AND has a next playable sibling in the ordered list, a `finish` connection is added (deduplicated with `seen` set).
+  - Render: `*finish` arrows use `var(--c-finish)` (teal-green, `oklch(54% 0.12 155)`) with a tight dot-dash pattern (`2 4`) that visually reads as "implicit flow" vs. the solid line of `goto` and long-dash of `gosub`.
+  - New CSS variables: `--c-finish` and `--c-finish-tint` added to both light and dark themes.
+  - Legend updated with the new connection type.
+  - 109 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 86
 - **Double-click `goto_scene`/`gosub_scene` nodes to navigate to target scene.**
   - Added `onNavigateToScene?: (sceneName: string) => void` prop to `NodeCard` and `GraphCanvas`.

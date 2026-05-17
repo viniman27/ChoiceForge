@@ -27,6 +27,7 @@
   --c-goto:    oklch(64% 0.18 60);   --c-goto-tint:    oklch(95% 0.05 65);
   --c-gosub:   oklch(60% 0.18 35);   --c-gosub-tint:   oklch(94% 0.05 35);
   --c-ending:  oklch(40% 0.04 0);    --c-ending-tint:  oklch(92% 0.02 0);
+  --c-finish:  oklch(54% 0.12 155);  --c-finish-tint:  oklch(94% 0.04 155);
   --c-check:   oklch(62% 0.13 200);  --c-check-tint:   oklch(94% 0.04 200);
 
   /* Semantic */
@@ -68,6 +69,7 @@
   --c-goto-tint:    oklch(30% 0.06 65);
   --c-gosub-tint:   oklch(28% 0.06 35);
   --c-ending-tint:  oklch(24% 0.022 0);
+  --c-finish-tint:  oklch(26% 0.06 155);
   --c-check-tint:   oklch(28% 0.05 200);
 
   --shadow-1: 0 1px 2px black, 0 0 0 1px oklch(0% 0 0 / 0.4);
