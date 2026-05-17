@@ -156,6 +156,8 @@ export interface SceneGraph {
 export interface LintIssue {
   level: "error" | "warning" | "info";
   msg: string;
+  key?: string;
+  params?: Record<string, string>;
   scene?: string | null;
   node?: string;
   line?: number;
@@ -220,4 +222,9 @@ export interface I18nLabels {
   projectAuthorLabel: string;
   startBlank: string;
   loadExample: string;
+  lintAllLevels: string;
+  lintErrorsOnly: string;
+  lintWarningsOnly: string;
+  lintAllScenes: string;
+  lintNoMatch: string;
 }
