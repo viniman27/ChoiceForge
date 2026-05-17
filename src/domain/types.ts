@@ -99,6 +99,7 @@ export interface ChoiceOption {
 
 export interface FakeChoiceOption {
   text: string;
+  body?: string;
   cond?: ChoiceCondition | null;
   reuse?: ChoiceReuse;
   hideReuse?: boolean;

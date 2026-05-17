@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 90
+- **`FakeChoiceOption.body` + complete option body integration.**
+  - **`FakeChoiceOption.body`** (`types.ts`): Mirror of `ChoiceOption.body` — prose shown after the player selects a `*fake_choice` option. Generator emits body lines between header and the next option (no `*goto`, since `*fake_choice` resumes automatically). RightPanel now shows a resizable textarea for both choice and fake_choice option bodies.
+  - **Word count** (`projectStore.ts`, `ManuscriptView.tsx`): `countSceneWords` and the manuscript `countWords` both now include `option.body` and `fakeOption.body` in the text they measure, so the scene subtitle, Dashboard, and manuscript stats are accurate.
+  - **Linting** (`choicescript.ts`): `lintUnusedVariables` scans `option.body` / `fakeOption.body` for variable references. `lintChoiceNode` and `lintFakeChoiceNode` also flag `@{}`/`${}` references to undeclared variables inside option bodies.
+  - **Manuscript view** (`ManuscriptView.tsx`): Choice options now render their body text below the option header, indented and italicised (`.ms-option-body .ms-para`). The text export (`nodeListToLines`) includes option body paragraphs too.
+  - **CSS** (`directions.css`): `.ms-option` changed from `flex/align-items:baseline` to `flex-direction:column`; added `.ms-option-head`, `.ms-option-body`, `.ms-option-body .ms-para`.
+  - **Tests**: 3 new tests — fake_choice body generation, undeclared variable in option body, unused variable exemption via option body. Total: 114 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 89
 - **`ChoiceOption.body` — inline option body text for `*choice` nodes.**
   - **Types**: Added `body?: string` to `ChoiceOption` in `types.ts`. Body text is narrative prose displayed after the player selects an option, before the flow jumps to `option.to`.

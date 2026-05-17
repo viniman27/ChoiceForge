@@ -699,10 +699,13 @@
 }
 .ms-choice { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--paper-2); border-radius: var(--r-2); border: 1px solid var(--paper-edge); }
 .ms-prompt { margin: 0; font-family: var(--ff-narr); font-size: 15px; color: var(--ink); font-style: italic; }
-.ms-options { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.ms-option { display: flex; gap: 8px; align-items: baseline; }
+.ms-options { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.ms-option { display: flex; flex-direction: column; gap: 4px; }
+.ms-option-head { display: flex; gap: 8px; align-items: baseline; }
 .ms-option-num { font-family: var(--ff-mono); font-size: 10px; color: var(--c-choice); font-weight: 600; }
 .ms-option-text { font-family: var(--ff-narr); font-size: 14px; color: var(--ink-2); }
+.ms-option-body { padding-left: 20px; }
+.ms-option-body .ms-para { margin: 0; font-family: var(--ff-narr); font-size: 13px; color: var(--ink-3); font-style: italic; }
 .ms-note { margin: 0; font-size: 12px; color: var(--ink-mute); font-style: italic; border-left: 2px solid var(--ink-faint); padding-left: 8px; }
 .ms-break { border: none; border-top: 2px dashed var(--paper-edge); margin: 0; }
 .ms-structural {

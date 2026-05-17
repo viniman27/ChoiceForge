@@ -43,6 +43,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     lines.push("*fake_choice");
     node.fakeOptions?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
+      option.body?.split("\n").filter(Boolean).forEach((line) => lines.push(`    ${line}`));
       option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
     });
   }
@@ -311,11 +312,13 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
     node.sets?.forEach((s) => scanExpr(s.val));
     node.options?.forEach((opt) => {
       scanText(opt.text);
+      scanText(opt.body ?? "");
       if (opt.cond?.expr) scanExpr(opt.cond.expr);
       opt.sets?.forEach((s) => scanExpr(s.val));
     });
     node.fakeOptions?.forEach((opt) => {
       scanText(opt.text);
+      scanText(opt.body ?? "");
       if (opt.cond?.expr) scanExpr(opt.cond.expr);
       opt.sets?.forEach((s) => scanExpr(s.val));
     });
@@ -1272,6 +1275,9 @@ function lintChoiceNode(
     if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    extractVariableReferences(option.body ?? "").forEach((name) => {
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+    });
     const key = option.text.trim().toLowerCase();
     if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
     seenOptionText.add(key);
@@ -1295,6 +1301,9 @@ function lintFakeChoiceNode(
     if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    extractVariableReferences(option.body ?? "").forEach((name) => {
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+    });
     const key = option.text.trim().toLowerCase();
     if (key && seenFakeText.has(key)) issues.push({ level: "warning", msg: `duplicate fake_choice option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
     seenFakeText.add(key);

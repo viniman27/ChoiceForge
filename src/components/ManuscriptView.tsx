@@ -169,8 +169,13 @@ function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName
         <ul className="ms-options">
           {(node.options ?? node.fakeOptions ?? []).map((opt, i) => (
             <li key={i} className="ms-option">
-              <span className="ms-option-num">{i + 1}.</span>
-              <span className="ms-option-text">{"text" in opt ? opt.text : ""}</span>
+              <div className="ms-option-head">
+                <span className="ms-option-num">{i + 1}.</span>
+                <span className="ms-option-text">{"text" in opt ? opt.text : ""}</span>
+              </div>
+              {"body" in opt && opt.body && (
+                <div className="ms-option-body">{renderBody(opt.body)}</div>
+              )}
             </li>
           ))}
         </ul>
@@ -232,7 +237,12 @@ function hasNarrativeContent(node: StoryNode): boolean {
 }
 
 function countWords(nodes: StoryNode[]): number {
-  const text = nodes.flatMap((n) => [n.body ?? "", n.prompt ?? "", ...(n.options?.map((o) => o.text) ?? [])]).join(" ");
+  const text = nodes.flatMap((n) => [
+    n.body ?? "",
+    n.prompt ?? "",
+    ...(n.options?.flatMap((o) => [o.text, o.body ?? ""]) ?? []),
+    ...(n.fakeOptions?.flatMap((o) => [o.text, o.body ?? ""]) ?? []),
+  ]).join(" ");
   return text.split(/\s+/).filter(Boolean).length;
 }
 
@@ -288,7 +298,12 @@ function nodeListToLines(nodes: StoryNode[]): string[] {
     } else if (node.type === "choice" || node.type === "fake_choice") {
       if (node.prompt) { node.prompt.split("\n").filter(Boolean).forEach((line) => lines.push(`> ${line}`)); lines.push(""); }
       const opts = node.options ?? node.fakeOptions ?? [];
-      opts.forEach((opt, i) => lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`));
+      opts.forEach((opt, i) => {
+        lines.push(`  ${i + 1}. ${"text" in opt ? opt.text : ""}`);
+        if ("body" in opt && opt.body) {
+          opt.body.split("\n\n").forEach((p) => lines.push(`     ${p.replace(/\n/g, " ")}`));
+        }
+      });
       if (opts.length) lines.push("");
       if (node.note) lines.push(`[Note: ${node.note}]`, "");
     } else if (node.type === "page_break") {
