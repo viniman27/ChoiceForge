@@ -338,8 +338,8 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
       const trimmed = line.trim();
       scanText(trimmed);
       const command = sourceCommand(trimmed);
-      if (command === "if" || command === "elseif") {
-        scanExpr(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`)));
+      if (command === "if" || command === "elseif" || command === "selectable_if") {
+        scanExpr(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, command)));
       }
       if (command === "set") {
         const [, maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
@@ -2054,8 +2054,8 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
         const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
         if (valueExpr.trim()) extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach(tally);
       }
-      if (command === "if" || command === "elseif") {
-        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach(tally);
+      if (command === "if" || command === "elseif" || command === "selectable_if") {
+        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, command))).forEach(tally);
       }
       if (command === "input_text" || command === "input_number" || command === "rand") {
         const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
@@ -2144,8 +2144,8 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
         const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
         if (valueExpr.trim()) extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
       }
-      if (command === "if" || command === "elseif") {
-        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
+      if (command === "if" || command === "elseif" || command === "selectable_if") {
+        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, command))).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
       }
       if (command === "input_text" || command === "input_number" || command === "rand") {
         const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");

@@ -4826,6 +4826,42 @@ test("does not flag uppercase ChoiceScript reserved words as undeclared variable
   assert.ok(!issues.some((i) => i.msg.includes("MODULO") || i.msg.includes("AND") || i.msg.includes("NOT")));
 });
 
+test("variable read only in *selectable_if condition in preserved source is not flagged as unused", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0, showInStats: false }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [], edges: [],
+        sourceText: "*choice\n  *selectable_if (score > 5) #Try harder\n    You try.\n    *finish",
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes('"score"') && i.msg.includes("never read")), "score should not be flagged as unused when read in *selectable_if condition");
+});
+
+test("computeVariableUses counts variable used in *selectable_if condition in preserved source", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [], edges: [],
+        sourceText: "*choice\n  *selectable_if (score > 5) #Try harder\n    You try.\n    *finish",
+      },
+    },
+    lints: [],
+  };
+  const uses = computeVariableUses(project);
+  assert.ok((uses.get("score") ?? 0) > 0, "score should have a use count from *selectable_if condition");
+});
+
 test("*params shadow in graph linter emits temp_shadows key and name param", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
