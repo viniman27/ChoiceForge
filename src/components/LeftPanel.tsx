@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { computeVariableUses, computeAchievementUses, computeVariableLocations, computeAchievementLocations } from "../domain/choicescript";
 import type { VarLocation, AchievementLocation } from "../domain/choicescript";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
@@ -177,6 +177,7 @@ export function LeftPanel({
           <SearchResults
             results={searchResults}
             labels={labels}
+            query={search}
             onOpenResult={(result) => {
               if (result.sceneId) onSelectScene(result.sceneId, result.line);
               if (result.nodeId) onSelectNode(result.nodeId);
@@ -230,7 +231,7 @@ interface SearchResult {
   sceneId?: string;
 }
 
-function SearchResults({ results, labels, onOpenResult }: { results: SearchResult[]; labels: I18nLabels; onOpenResult: (result: SearchResult) => void }) {
+function SearchResults({ results, labels, query, onOpenResult }: { results: SearchResult[]; labels: I18nLabels; query: string; onOpenResult: (result: SearchResult) => void }) {
   return (
     <div className="search-results">
       <div className="section-title"><span>{labels.words === "words" ? "results" : "resultados"}</span><span>{results.length}</span></div>
@@ -247,7 +248,7 @@ function SearchResults({ results, labels, onOpenResult }: { results: SearchResul
                 <span className={`result-kind result-${result.kind}`}>{result.kind}</span>
                 <span className="result-main">
                   <span className="result-title">{result.title}</span>
-                  <span className="result-detail">{result.detail}</span>
+                  <span className="result-detail">{highlightMatch(result.detail, query)}</span>
                 </span>
               </button>
             </li>
@@ -255,6 +256,20 @@ function SearchResults({ results, labels, onOpenResult }: { results: SearchResul
         </ul>
       )}
     </div>
+  );
+}
+
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim() || !text) return text;
+  const q = query.trim().toLowerCase();
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="search-highlight">{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </>
   );
 }
 
@@ -309,7 +324,8 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
           id: `node-${sceneName}-${node.id}-${index}`,
           kind: "node",
           title: `${sceneName}.txt / ${node.id} - ${node.title}`,
-          detail: target,
+          detail: snippetAround(target, normalized),
+          searchText: target,
           nodeId: node.id,
           sceneId: scene?.id,
         });
@@ -322,6 +338,16 @@ function searchProject(data: ChoiceForgeProject, query: string): SearchResult[] 
 
 function addResult(results: SearchResult[], query: string, result: SearchResult) {
   if (`${result.title} ${result.detail} ${result.searchText ?? ""}`.toLowerCase().includes(query)) results.push(result);
+}
+
+function snippetAround(text: string, query: string, maxLen = 90): string {
+  if (!text) return "";
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text.slice(0, maxLen) + (text.length > maxLen ? "…" : "");
+  const half = Math.floor((maxLen - query.length) / 2);
+  const start = Math.max(0, idx - half);
+  const end = Math.min(text.length, start + maxLen);
+  return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
 function lineForQuery(text: string, normalizedQuery: string): number | undefined {
