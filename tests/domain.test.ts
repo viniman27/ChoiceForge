@@ -1670,6 +1670,66 @@ test("warns about sound nodes with missing filename", () => {
   assert.ok(warnings.some((message) => message.includes("*sound needs a filename")));
 });
 
+test("warns when image node references unknown asset when project has assets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 280, title: "*image ghost.png", target: "ghost.png", inputMin: "none" },
+    ],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    assets: [{ id: "hero", path: "images/hero.png", kind: "image", desc: "hero", fileName: "hero.png" }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("unknown asset")).map((i) => i.msg);
+  assert.ok(warnings.some((m) => m.includes("ghost.png")));
+});
+
+test("does not warn when image node references a known asset by filename", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 280, title: "*image hero.png", target: "hero.png", inputMin: "none" },
+    ],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    assets: [{ id: "hero", path: "images/hero.png", kind: "image", desc: "hero", fileName: "hero.png" }],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("unknown asset")).map((i) => i.msg);
+  assert.equal(warnings.length, 0);
+});
+
+test("does not warn when project has no assets (image_unknown only fires when assets are registered)", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 280, title: "*image external.png", target: "external.png", inputMin: "none" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), assets: [], nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("unknown asset")).map((i) => i.msg);
+  assert.equal(warnings.length, 0);
+});
+
+test("warns when preserved source *image references unknown asset", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    assets: [{ id: "hero", path: "images/hero.png", kind: "image", desc: "hero", fileName: "hero.png" }],
+    sceneData: {
+      intro: { nodes: [], edges: [], sourceText: "*image ghost.png\nSome text." },
+    },
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("unknown asset")).map((i) => i.msg);
+  assert.ok(warnings.some((m) => m.includes("ghost.png")));
+});
+
 test("imports *sound lines as sound nodes", () => {
   const graph = importChoiceScriptSceneText("intro", [
     "*label cf_n1",

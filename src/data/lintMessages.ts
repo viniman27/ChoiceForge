@@ -67,6 +67,10 @@ export const lintMessages: LintTranslations = {
     pt: "*image referencia arquivo desconhecido: {name}",
     es: "*image referencia archivo desconocido: {name}",
   },
+  sound_unknown: {
+    pt: "*sound referencia arquivo desconhecido: {name}",
+    es: "*sound referencia archivo desconocido: {name}",
+  },
   stat_undef_var: {
     pt: "*stat_chart usa variavel nao declarada: {name}",
     es: "*stat_chart usa variable no declarada: {name}",
