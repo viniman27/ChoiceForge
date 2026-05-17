@@ -1489,6 +1489,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .cond-key { font-family: var(--ff-mono); font-weight: 600; }
 .cond-badge code { font-family: var(--ff-mono); font-size: 10px; }
 .opt-tag { grid-column: 2; font-family: var(--ff-mono); font-size: 9px; color: var(--ink-mute); margin-top: 2px; }
+.opt-body { grid-column: 2; margin: 3px 0 0; font-family: var(--ff-narr); font-size: 11px; color: var(--ink-3); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .branches { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
 .branch {

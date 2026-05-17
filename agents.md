@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 91
+- **Canvas card polish + inline `*fake_choice` body import.**
+  - **Passage body clipping** (`NodeCard.tsx`): Added `narrative-clip` class to passage body `<p>` in non-minimal density. The `.narrative-clip` CSS rule (already present) applies `-webkit-line-clamp: 2`, so long passages no longer make extremely tall canvas cards — just a clean 2-line preview.
+  - **Option body preview on canvas** (`NodeCard.tsx`): In `rich` density, both `choice` and `fake_choice` option rows now show a single-line italic preview of `option.body` / `fakeOption.body` when set. Truncated at 70 chars with `…`. CSS: `.opt-body` uses `text-overflow: ellipsis` and inherits the grid column layout.
+  - **Inline `*fake_choice` body import** (`choicescriptImport.ts`): Added `parseInlineFakeChoiceBlock` to parse `*fake_choice` blocks where options have body text (prose after the `#option` header, before the next option). Cleans leading/trailing blank lines. Drops through to raw passage fallback only when all options have no body. Wired as `parseFakeChoiceBlock(...) ?? parseInlineFakeChoiceBlock(...)` — simple fallback chain.
+  - **Test**: "imports inline fake_choice option bodies onto fakeOptions" — verifies both option bodies are captured and no `choice_option_body` passage nodes are created. Total: 115 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 90
 - **`FakeChoiceOption.body` + complete option body integration.**
   - **`FakeChoiceOption.body`** (`types.ts`): Mirror of `ChoiceOption.body` — prose shown after the player selects a `*fake_choice` option. Generator emits body lines between header and the next option (no `*goto`, since `*fake_choice` resumes automatically). RightPanel now shows a resizable textarea for both choice and fake_choice option bodies.

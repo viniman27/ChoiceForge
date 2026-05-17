@@ -2297,6 +2297,23 @@ test("does not warn about unused variable when it is shown in the stats screen",
   assert.ok(!lintProject(project).some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("imports inline fake_choice option bodies onto fakeOptions", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*fake_choice",
+    "  #You look at the painting",
+    "    A swirling landscape in dark oils.",
+    "  #You look at the statue",
+    "    Cold marble, a warrior mid-stride.",
+    "After the gallery.",
+  ].join("\n"));
+  const fc = graph.nodes.find((node) => node.type === "fake_choice");
+  assert.ok(fc, "fake_choice node should be created");
+  assert.equal(fc?.fakeOptions?.length, 2);
+  assert.equal(fc?.fakeOptions?.[0]?.body, "A swirling landscape in dark oils.");
+  assert.equal(fc?.fakeOptions?.[1]?.body, "Cold marble, a warrior mid-stride.");
+  assert.ok(!graph.nodes.some((node) => node.title === "choice_option_body"));
+});
+
 test("inlines pure prose body text directly onto choice options", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*choice",
