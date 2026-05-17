@@ -362,22 +362,27 @@ function lintCheckpoints(project: ChoiceForgeProject, sceneNames: string[], issu
   sceneNames.forEach((sceneName) => {
     const graph = getSceneGraph(project, sceneName);
     graph.nodes.forEach((node) => {
-      if (node.type === "checkpoint") {
-        const slot = checkpointSlot(node.title, "*save_checkpoint");
-        savedSlots.add(slot);
-      }
+      if (node.type === "checkpoint") savedSlots.add(checkpointSlot(node.title, "*save_checkpoint"));
     });
     if (graph.sourceText) {
       graph.sourceText.split(/\r?\n/).forEach((line) => {
-        if (sourceCommand(line.trim()) === "save_checkpoint") {
-          savedSlots.add(sourceCommandValue(line.trim(), "*save_checkpoint").trim());
-        }
+        if (sourceCommand(line.trim()) === "save_checkpoint") savedSlots.add(sourceCommandValue(line.trim(), "*save_checkpoint").trim());
       });
     }
   });
   sceneNames.forEach((sceneName) => {
     const graph = getSceneGraph(project, sceneName);
-    if (graph.sourceText) return;
+    if (graph.sourceText) {
+      graph.sourceText.split(/\r?\n/).forEach((line, index) => {
+        if (sourceCommand(line.trim()) !== "restore_checkpoint") return;
+        const slot = sourceCommandValue(line.trim(), "*restore_checkpoint").trim();
+        if (!savedSlots.has(slot)) {
+          const label = slot ? ` "${slot}"` : "";
+          issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in the project`, key: "restore_no_save", params: { name: slot }, scene: sceneName, line: index + 1 });
+        }
+      });
+      return;
+    }
     graph.nodes.forEach((node) => {
       if (node.type !== "restore_checkpoint") return;
       const slot = checkpointSlot(node.title, "*restore_checkpoint");
@@ -838,8 +843,6 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const labels = new Map<string, number>();
   const referencedLabels: Array<{ label: string; line: number }> = [];
-  const savedCheckpoints = new Set<string>();
-  const restoredCheckpoints: Array<{ slot: string; line: number }> = [];
   const returnLines: number[] = [];
   let hasGosub = false;
   const lines = sourceText.split(/\r?\n/);
@@ -889,12 +892,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, line: lineNumber });
     }
     if (command === "save_checkpoint") {
-      const slot = sourceCommandValue(trimmed, "*save_checkpoint");
-      if (!slot) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });
-      savedCheckpoints.add(slot);
-    }
-    if (command === "restore_checkpoint") {
-      restoredCheckpoints.push({ slot: sourceCommandValue(trimmed, "*restore_checkpoint"), line: lineNumber });
+      if (!sourceCommandValue(trimmed, "*save_checkpoint")) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });
     }
     if (command === "page_break" && !sourceCommandValue(trimmed, "*page_break")) {
       issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, line: lineNumber });
@@ -930,12 +928,6 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
 
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
-  });
-  restoredCheckpoints.forEach(({ slot, line }) => {
-    if (!savedCheckpoints.has(slot)) {
-      const label = slot ? ` "${slot}"` : "";
-      issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in this scene`, scene: sceneName, line });
-    }
   });
   if (!hasGosub) {
     returnLines.forEach((line) => {
