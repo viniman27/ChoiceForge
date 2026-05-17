@@ -4163,6 +4163,25 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("lints undeclared variable in *set RHS in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create score 0",
+      "*goto_scene intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*set score score + bonus",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.scene === "intro" && i.msg.includes("undeclared variable") && i.msg.includes("bonus")));
+});
+
 test("computeVariableUses counts reads in choice option bodies", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

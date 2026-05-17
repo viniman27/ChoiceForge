@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 131
+- **Parity improvements: reserved-word checks in `*create`; undeclared-variable scan in preserved `*set` RHS.**
+  - **Problem 1**: `lintPreservedCreateLine` (startup.txt linting) didn't check for reserved words in variable names, unlike `lintProjectMetadata`, `lintPreservedTempLine`, and `lintPreservedParamsLine` which all gained that check in session 125/128.
+  - **Fix 1**: Added `isChoiceScriptReserved` call in `lintPreservedCreateLine` after the identifier-validity check.
+  - **Problem 2**: `lintPreservedSetLine` checked the *target* variable of a `*set` but not the value expression. `lintSet` (the graph-node version) already checks the RHS for undeclared variable references. So `*set score score + bonus` in preserved source would silently skip the `bonus` check.
+  - **Fix 2**: After the existing fairmath check, reconstruct the value expression from the parsed parts and run `extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr))` against the known variables set, emitting a `warning` for each undeclared name found.
+  - **Files changed**: `choicescript.ts` (3+5 lines added), `domain.test.ts` (1 new test).
+  - **Tests**: 224 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 130
 - **Fix `computeVariableUses` and `computeVariableLocations` to scan choice option bodies.**
   - **Problem**: Both functions scanned `option.text` and `option.sets` but skipped `option.body` (the inline prose shown after a choice is selected). Variables referenced as `${score}` in an option body were not counted as "used" and not tracked as read locations. This caused misleading variable-use counts in the UI and could cause false "variable never read" warnings for variables that appear only in option bodies.
