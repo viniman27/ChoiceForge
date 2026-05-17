@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 120
+- **Implement `image_unknown` lint and add `sound_unknown` lint; check asset references.**
+  - **Problem**: The `image_unknown` key already existed in `lintMessages.ts` (translated to PT/ES) but the corresponding lint check was never implemented — `*image` and `*sound` nodes referencing files not in `project.assets` passed validation silently. If an author writes `*image ghost.png` but that file isn't registered as an asset, the exported zip will be broken.
+  - **Fix**: Added `isKnownAsset(assets, target)` helper (matches by exact path, by fileName, or by basename). In `lintSceneGraph`, for `image` and `sound` nodes with a non-empty target, if the project has any assets registered, check against the asset registry and warn if not found. Same check added to `lintPreservedScriptSource` for `*image` and `*sound` command lines. Only fires when `project.assets.length > 0` to avoid false positives for projects managing assets externally. Also added `sound_unknown` translation to `lintMessages.ts`.
+  - **Files changed**: `choicescript.ts` (+isKnownAsset helper, +4 lint calls in lintSceneGraph, +4 lint lines in lintPreservedScriptSource), `lintMessages.ts` (+sound_unknown entry, kept existing image_unknown), `domain.test.ts` (4 new tests).
+  - **Tests**: 205 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 119
 - **Warn when `*gosub_scene` calls a scene with no `*return`.**
   - **Problem**: `*gosub_scene` calls a subroutine scene and expects to resume after it via a `*return`. If the called scene has no `*return` node, the game will either crash or hang. We already warned when the calling scene had no flow-continuation edge, but we didn't check the target scene itself.

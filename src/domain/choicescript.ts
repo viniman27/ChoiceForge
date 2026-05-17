@@ -698,8 +698,14 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "image" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
     }
+    if (node.type === "image" && node.target?.trim() && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], node.target.trim())) {
+      issues.push({ level: "warning", msg: `*image references an unknown asset file: ${node.target.trim()}`, key: "image_unknown", params: { name: node.target.trim() }, scene: sceneName, node: node.id });
+    }
     if (node.type === "sound" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, node: node.id });
+    }
+    if (node.type === "sound" && node.target?.trim() && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], node.target.trim())) {
+      issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${node.target.trim()}`, key: "sound_unknown", params: { name: node.target.trim() }, scene: sceneName, node: node.id });
     }
 
     if (node.type === "goto") {
@@ -921,10 +927,16 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "image") {
       const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
+      if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
+        issues.push({ level: "warning", msg: `*image references an unknown asset file: ${filename}`, key: "image_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
+      }
     }
     if (command === "sound") {
       const filename = sourceCommandValue(trimmed, "*sound").split(/\s+/)[0] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, line: lineNumber });
+      if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
+        issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${filename}`, key: "sound_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
+      }
     }
     if (command === "save_checkpoint") {
       if (!sourceCommandValue(trimmed, "*save_checkpoint")) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });
@@ -1533,6 +1545,15 @@ function generateSet(set: VariableSet): string {
 
 function generatedNodeLabel(id: string): string {
   return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+}
+
+function isKnownAsset(assets: ChoiceForgeProject["assets"], target: string): boolean {
+  const baseName = target.split("/").pop() ?? target;
+  return assets.some((asset) => {
+    if (asset.path === target) return true;
+    const assetBase = (asset.fileName ?? asset.path.split("/").pop()) ?? "";
+    return assetBase === baseName;
+  });
 }
 
 function mergeGraphEdges(...edgeGroups: StoryEdge[][]): StoryEdge[] {
