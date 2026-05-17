@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 106
+- **Import: collapse preceding prose into `*choice`/`*fake_choice` prompt field.**
+  - **Problem**: Prose immediately before a `*choice` or `*fake_choice` (e.g., "What will you do?") was always flushed as a separate passage node, then connected via a flow edge to the choice. This produced an extra node for what is semantically just the choice's prompt — making imported graphs noisier than necessary.
+  - **Fix** (`choicescriptImport.ts`, `createImportedSceneGraph`): For both `choice` and `fake_choice` commands, instead of calling `flushPassage()` (which creates the passage node), the pending buffer is captured as `promptText` and set directly on the choice node's `prompt` field. The code generator already emits `prompt` lines before `*choice`, so the roundtrip is clean. Fallback: if neither choice parser recognizes the block, `promptText` is flushed as a passage node (same as before), followed by the raw block.
+  - **Tests**: 3 new tests — inline choice with preceding prose (prompt absorbed, no separate passage for that text); fake_choice with preceding prose (same); choice with no preceding prose (default prompt preserved). Total: **158 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 105
 - **Manuscript view: inline image and audio rendering.**
   - `*image` and `*sound` nodes previously showed as monochrome structural chips (`*image filename`). Now, if the node's `target` filename matches a project asset with a `dataUrl`, the actual media is rendered inline in the manuscript.
