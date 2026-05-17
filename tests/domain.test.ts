@@ -3230,6 +3230,35 @@ test("does not warn about all-same-target *if without *else", () => {
   assert.ok(!issues.some((i) => i.level === "warning" && i.msg.includes("all branches")));
 });
 
+test("warns when *if without *else has all branches leading to same node as false path (no-op condition)", () => {
+  const n1: StoryNode = { id: "n1", type: "if", x: 0, y: 0, w: 300, title: "*if",
+    branches: [{ kind: "if", expr: "courage > 50", to: "n2" }] };
+  const n2: StoryNode = { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [n1, n2],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: { intro: { nodes: [n1, n2], edges: [{ from: "n1", to: "n2", kind: "flow" }] } },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("no-op")));
+});
+
+test("does not flag *if without *else when branch and false path lead to different nodes", () => {
+  const n1: StoryNode = { id: "n1", type: "if", x: 0, y: 0, w: 300, title: "*if",
+    branches: [{ kind: "if", expr: "courage > 50", to: "n2" }] };
+  const n2: StoryNode = { id: "n2", type: "passage", x: 0, y: 0, w: 300, title: "brave", body: "Brave!" };
+  const n3: StoryNode = { id: "n3", type: "finish", x: 0, y: 160, w: 240, title: "*finish" };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [n1, n2, n3],
+    edges: [{ from: "n1", to: "n3", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+    sceneData: { intro: { nodes: [n1, n2, n3], edges: [{ from: "n1", to: "n3", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }] } },
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("no-op")));
+});
+
 test("reports unreferenced *label as info", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
