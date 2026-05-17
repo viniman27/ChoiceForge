@@ -344,6 +344,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 85
+- **Asset injection into OfficialPlayView iframe.**
+  - Project assets (images, audio) are stored as data URLs in `project.assets`, but the CS runtime iframe requested them as file paths (e.g., `*image farol_bruma.svg` → runtime sets `<img src="...farol_bruma.svg">`). These requests silently failed.
+  - Added `buildAssetPatcherJs(project)` to `OfficialPlayView.tsx`: builds a `{fileName → dataUrl}` map for all image/audio assets, then generates an IIFE that installs a `MutationObserver` on `document.documentElement`. The observer intercepts new/modified `src` attributes on `IMG`, `AUDIO`, and `SOURCE` elements, extracts the basename, and replaces with the matching data URL. Also calls the patch function immediately on the existing DOM for assets already present at script-load time.
+  - Injected as an inline `<script>` in `buildSrcdoc`, after the CS engine scripts, only when the asset map is non-empty.
+  - Added image node `n15` (`*image farol_bruma.svg`) to the intro scene in `sampleProject.ts` between `n1` (chegada_ao_farol) and `n9` (gosub), demonstrating the asset injection in the sample game. Adjusted x-positions for n9, n10, n11, n12, and n2 rightward to keep the canvas readable.
+  - 109 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 84
 - **Fix visual disconnect of gosub subroutine in sample project.**
   - GraphCanvas renders only `data.edges` (explicit edges), NOT the derived edges produced by `deriveNodeEdges`. The derived gosub→label edge (n9→n10) was invisible in the canvas, making nodes n10/n11/n12 appear as floating orphans. Functionally the game worked (generated CS contains `*label revisar_diario` and the subroutine executes), but the graph looked broken.

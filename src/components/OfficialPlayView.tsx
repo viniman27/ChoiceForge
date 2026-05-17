@@ -86,10 +86,22 @@ window.allScenes=${safeJson(allScenes)};
 })();`;
 }
 
+function buildAssetPatcherJs(project: ChoiceForgeProject): string {
+  const map: Record<string, string> = {};
+  for (const a of project.assets) {
+    if (a.fileName && a.dataUrl && (a.kind === "image" || a.kind === "audio")) {
+      map[a.fileName] = a.dataUrl;
+    }
+  }
+  if (!Object.keys(map).length) return "";
+  return `(function(){var m=${safeJson(map)};function p(n){if(!n||n.nodeType!==1)return;var t=n.tagName;if(t==='IMG'||t==='AUDIO'||t==='SOURCE'){var s=n.getAttribute('src')||'';var k=s.split('/').pop()||s;if(m[k])n.src=m[k];}n.childNodes.forEach(p);}new MutationObserver(function(ms){ms.forEach(function(mu){mu.addedNodes.forEach(p);if(mu.type==='attributes'&&mu.target)p(mu.target);});}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});p(document.documentElement);})();`;
+}
+
 function buildSrcdoc(project: ChoiceForgeProject, forcedScene: string): string {
   const base = window.location.origin;
   const play = `${base}/play`;
   const initJs = buildInitJs(project, forcedScene);
+  const patcherJs = buildAssetPatcherJs(project);
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -104,7 +116,7 @@ function buildSrcdoc(project: ChoiceForgeProject, forcedScene: string): string {
 <script src="${play}/ui.js"></script>
 <script src="${play}/scene.js"></script>
 <script src="${play}/navigator.js"></script>
-<script>${initJs}</script>
+<script>${initJs}</script>${patcherJs ? `\n<script>${patcherJs}</script>` : ""}
 <link rel="stylesheet" href="${play}/alertify.css">
 <script>window.storeName=null;var rootDir="${base}/";</script>
 </head>
