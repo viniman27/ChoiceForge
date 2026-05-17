@@ -1407,8 +1407,8 @@ function countSceneWords(nodes: StoryNode[]): number {
       node.title,
       node.body ?? "",
       node.prompt ?? "",
-      ...(node.options?.map((option) => option.text) ?? []),
-      ...(node.fakeOptions?.map((option) => option.text) ?? []),
+      ...(node.options?.flatMap((option) => [option.text, option.body ?? ""]) ?? []),
+      ...(node.fakeOptions?.flatMap((option) => [option.text, option.body ?? ""]) ?? []),
     ])
     .join(" ")
     .replace(/\$\{[^}]+\}/g, " ")

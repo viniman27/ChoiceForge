@@ -313,6 +313,7 @@ function ContentTab({
               </div>
               {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateFakeOptionReuse(node, index, reuse, onUpdateNode)} />
+              <textarea className="ip-opt-body" placeholder="option body text (optional)" value={option.body ?? ""} onChange={(event) => updateFakeOption(node, index, { body: event.target.value || undefined }, onUpdateNode)} rows={2} />
               <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}

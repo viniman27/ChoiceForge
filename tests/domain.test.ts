@@ -2328,6 +2328,52 @@ test("generates option body text inline between header and goto", () => {
   assert.ok(cs.includes("  #Leave\n    *goto"));
 });
 
+test("generates fake_choice option body text inline between header and next option", () => {
+  const node: StoryNode = {
+    id: "n1", type: "fake_choice", x: 0, y: 0, w: 360, title: "fake_choice",
+    prompt: "What do you see?",
+    fakeOptions: [
+      { text: "The door", body: "A heavy oak door." },
+      { text: "The window" },
+    ],
+  };
+  const cs = generateNodeChoiceScript(node);
+  assert.ok(cs.includes("  #The door\n    A heavy oak door."));
+  assert.ok(cs.includes("  #The window"));
+  assert.ok(!cs.includes("*goto"));
+});
+
+test("lints undeclared variable in choice option body", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        options: [{ text: "Go", to: "n2", body: "Your strength is ${undeclared_var}." }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.msg.includes("undeclared variable") && i.msg.includes("undeclared_var")));
+});
+
+test("does not flag unused variable that is only used in option body", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "strength", type: "number", initial: "50", desc: "", fairmath: false }],
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        options: [{ text: "Go", to: "n2", body: "Your strength is ${strength}." }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
