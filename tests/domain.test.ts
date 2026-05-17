@@ -5063,6 +5063,27 @@ test("computeVariableUses counts variables used as rand bounds", () => {
   assert.ok((uses.get("hi") ?? 0) > 0, "hi used as rand max bound should have a use count");
 });
 
+test("image alignment in inputMin does not trigger false unused-variable warning for variable named left", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "left", type: "string", initial: "\"x\"", desc: "", uses: 0, showInStats: false }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "image", x: 0, y: 0, w: 300, title: "*image", target: "hero.jpg", inputMin: "left" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.msg.includes('"left"') && i.msg.includes("never read")), "variable named left should still be flagged as unused when it is not a rand/input_number bound");
+});
+
 test("subtraction expression in preserved source does not falsely flag operand as undeclared", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

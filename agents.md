@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 154
+- **Guard `inputMin`/`inputMax` variable scanning to rand/input_number node types only.**
+  - **Problem**: Session 153 added `inputMin`/`inputMax` scanning to four variable-tracking functions. However, `image` nodes reuse `inputMin` for alignment text (`"left"`, `"right"`, `"none"`). Since `"left"` passes `isValidChoiceScriptIdentifier`, a variable named `left` would be falsely counted as used via the image alignment field.
+  - **Fix**: Added `node.type === "rand" || node.type === "input_number"` type guard to all four `inputMin`/`inputMax` scanning sites, so alignment text from `image` nodes is never scanned as a variable reference.
+  - **Files changed**: `choicescript.ts` (4 guard additions), `domain.test.ts` (1 new test).
+  - **Tests**: 262 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 153
 - **Track `inputMin`/`inputMax` variable references in all four variable scanners.**
   - **Problem**: When a `rand` or `input_number` graph node uses variable names for its min/max bounds (e.g., `inputMin: "lo"`, `inputMax: "hi"`), those variable references were not counted or tracked by `lintUnusedVariables.scanNode`, `lintUnusedTempVars.scanNode`, `computeVariableUses.scanNode`, or `computeVariableLocations.scanGraph`. Variables used only as rand bounds would be falsely flagged as unused and show zero uses in the inspector.
