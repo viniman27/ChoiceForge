@@ -2199,6 +2199,33 @@ test("generateStatsChoiceScript omits stat_chart block when all variables are hi
   assert.ok(!stats.includes("*stat_chart"), "stat_chart block should be absent when all variables are hidden");
 });
 
+test("generates *goto for false path of *if node without *else when flow edge exists", () => {
+  const node: StoryNode = {
+    id: "n2", type: "if", x: 0, y: 160, w: 280, title: "*if courage > 50",
+    branches: [{ kind: "if", expr: "courage > 50", to: "n3" }],
+  };
+  const edges: StoryEdge[] = [{ from: "n2", to: "n4", kind: "flow" }];
+  const cs = generateNodeChoiceScript(node, edges);
+  assert.ok(cs.includes("*if (courage > 50)"), "should include the if condition");
+  assert.ok(cs.includes("*goto cf_n3"), "should goto true branch");
+  assert.ok(cs.includes("*goto cf_n4"), "should goto false-path continuation via flow edge");
+});
+
+test("does not generate extra *goto for *if node with *else branch", () => {
+  const node: StoryNode = {
+    id: "n2", type: "if", x: 0, y: 160, w: 280, title: "*if courage > 50",
+    branches: [
+      { kind: "if", expr: "courage > 50", to: "n3" },
+      { kind: "else", to: "n4" },
+    ],
+  };
+  const edges: StoryEdge[] = [{ from: "n2", to: "n5", kind: "flow" }];
+  const cs = generateNodeChoiceScript(node, edges);
+  assert.ok(cs.includes("*if (courage > 50)"), "should include the if condition");
+  assert.ok(cs.includes("*else"), "should include else branch");
+  assert.ok(!cs.includes("cf_n5"), "should NOT generate goto for flow edge when else exists");
+});
+
 test("lints *set value that references an undeclared variable", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),

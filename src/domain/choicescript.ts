@@ -99,6 +99,10 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
   if (flowTarget && !TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if") {
     lines.push(`*goto ${generatedNodeLabel(flowTarget)}`);
   }
+  if (node.type === "if" && flowTarget) {
+    const hasElse = node.branches?.some((b) => b.kind === "else") ?? false;
+    if (!hasElse) lines.push(`*goto ${generatedNodeLabel(flowTarget)}`);
+  }
 
   return lines.join("\n") || "# empty";
 }

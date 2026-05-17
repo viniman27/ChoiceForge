@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 115
+- **Fix code generation bug: `*if` without `*else` missing false-path `*goto`.**
+  - **Problem**: The code generator excluded `*if` nodes from the auto-flow `*goto` emission. When an `*if` node had no `*else` branch but a flow edge (the continuation node), the generated ChoiceScript had no `*goto` after the `*if` block. The false path silently fell through to whatever was next in the sorted node array — typically the TRUE branch target node. This caused the false path to execute the true branch content.
+  - **Fix**: After the `*if` block content is emitted, check for a `kind: "flow"` edge on the node. If present AND the node has no `*else` branch, emit `*goto cf_<flowTarget>`. If an `*else` branch exists, all false cases are handled by the `*else` branch, so no extra goto is needed.
+  - **Files changed**: `choicescript.ts` (`generateNodeChoiceScript` — 4 new lines after flowTarget check), `domain.test.ts` (2 new tests: false-path goto is emitted; else branch suppresses spurious goto).
+  - **Tests**: 185 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 114
 - **Import: `*label` in body nodes; lintCheckpoints extended to cover preserved source.**
   - **`*label` in body nodes**: `"label"` was missing from `BODY_STRUCTURED_COMMANDS`. When `*label` appeared inside an `*if` branch or `*choice` option body, it fell through to the prose buffer and was emitted as literal text. Adding `"label"` to `BODY_STRUCTURED_COMMANDS` causes `buildBodyNodeChain` to create a proper `label` type node and wire it into the chain. Added 2 tests.
