@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 139
+- **Parity: `*temp` and `*params` shadow-global checks in preserved source.**
+  - **Problem**: `lintPreservedTempLine` and `lintPreservedParamsLine` checked for reserved-word clashes and local-variable duplicates, but not for shadowing a global variable. `lintSceneGraph` already emits `temp_shadows` for `*temp` and `*params` nodes that shadow globals. Preserved-source scenes using `*temp` or `*params` would silently skip this check.
+  - **Fix**: The `variables` parameter in both functions starts as the global variable set and gets mutated to add locals. Before adding the new name, check if it's already in `variables` AND not already in `localVariables` (i.e., it's a global, not a previously-declared local). If so, emit `temp_shadows` warning with the same key and params as the graph-node version.
+  - **Files changed**: `choicescript.ts` (6 lines added), `domain.test.ts` (2 new tests).
+  - **Tests**: 237 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 138
 - **Parity: `*rand` same-bounds warning in preserved source; fairmath range check in `*create`; `*image` alignment in preserved source.**
   - **`*rand` same-bounds in preserved source**: `lintInputNode` (graph linter) warns when a `*rand` has `min === max` (always produces one value). `lintPreservedInputCommand` (preserved-source linter) handled `min > max` (error) but missed `min === max` (warning). Added parity check at end of `lintPreservedInputCommand` for `command === "rand" && min === max`.

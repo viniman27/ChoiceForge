@@ -4688,6 +4688,44 @@ test("lints *rand with same min and max as warning in preserved source", () => {
   assert.ok(issues.some((i) => i.key === "rand_same_bounds" && i.scene === "intro"));
 });
 
+test("lints *temp that shadows a global variable in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create score 0",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*temp score 5",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "temp_shadows" && i.msg.includes("score") && i.scene === "intro"));
+});
+
+test("lints *params that shadows a global variable in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "  sub",
+      "*create score 0",
+    ].join("\n")),
+    textEntry("intro.txt", "*gosub_scene sub\n*finish"),
+    textEntry("sub.txt", [
+      "*params score",
+      "*return",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "temp_shadows" && i.msg.includes("score") && i.scene === "sub"));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
