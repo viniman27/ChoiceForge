@@ -638,7 +638,19 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     if (node.type === "choice") lintChoiceNode(node, nodeIds, variables, variableTypes, issues, sceneName, achievements);
     if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName, achievements);
-    if (node.type === "if") lintIfNode(node, nodeIds, variables, variableTypes, issues, sceneName);
+    if (node.type === "if") {
+      lintIfNode(node, nodeIds, variables, variableTypes, issues, sceneName);
+      const ifFlowTarget = edges.find((e) => e.from === node.id && e.kind === "flow")?.to;
+      if (ifFlowTarget) {
+        const hasElse = node.branches?.some((b) => b.kind === "else") ?? false;
+        if (!hasElse) {
+          const branchTargets = node.branches?.filter((b) => nodeIds.has(b.to)).map((b) => b.to) ?? [];
+          if (branchTargets.length > 0 && branchTargets.every((t) => t === ifFlowTarget)) {
+            issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node as the false path — condition is a no-op`, scene: sceneName, node: node.id });
+          }
+        }
+      }
+    }
 
     if (node.type === "goto_scene") {
       const target = node.target?.trim() ?? "";

@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 123
+- **Warn when `*if` without `*else` has all branches leading to the same node as the false path (no-op condition).**
+  - **Problem**: An `*if` node with no `*else` where all branch targets equal the false-path (flow edge) continuation is logically a no-op — the game reaches the same node regardless of whether the condition is true or false. The existing check in `lintIfNode` only caught the "all branches same with `*else`" case.
+  - **Fix**: After calling `lintIfNode`, in `lintSceneGraph`, find the `flow` edge for the `*if` node (`ifFlowTarget`). If no `*else` branch and all branch targets equal `ifFlowTarget`, emit a `warning` level issue with "no-op condition" message.
+  - **Files changed**: `choicescript.ts` (~11 lines added in lintSceneGraph's if-node block), `domain.test.ts` (2 new tests: no-op detected; different targets not flagged).
+  - **Tests**: 210 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 122
 - **Report unreferenced `*label` declarations in preserved source (info level).**
   - **Problem**: The preserved source linter checked that `*goto`/`*gosub` targets exist (`jump points to a missing label`) but not the reverse — `*label` declarations that are never referenced. The visual graph linter already had this symmetric check (info level, "is never referenced by any *goto or *gosub"). Preserved source lacked parity.
