@@ -1009,10 +1009,26 @@ function lintPreservedInputCommand(
     issues.push({ level: "error", msg: `*${command} requires a number variable: ${variable}`, scene: sceneName, line: lineNumber });
   }
   if (command !== "input_number" && command !== "rand") return;
-  const min = Number(rawMin);
-  const max = Number(rawMax);
-  if (!rawMin || !rawMax || !Number.isFinite(min) || !Number.isFinite(max) || min > max) {
-    issues.push({ level: "error", msg: `*${command} has invalid bounds: ${rawMin || "(empty)"} ${rawMax || "(empty)"}`, scene: sceneName, line: lineNumber });
+  if (!rawMin) { issues.push({ level: "error", msg: `*${command} has an empty min bound`, scene: sceneName, line: lineNumber }); return; }
+  if (!rawMax) { issues.push({ level: "error", msg: `*${command} has an empty max bound`, scene: sceneName, line: lineNumber }); return; }
+  const minNormalized = normalizeSourceIdentifier(rawMin);
+  const maxNormalized = normalizeSourceIdentifier(rawMax);
+  const minIsVar = isValidChoiceScriptIdentifier(rawMin);
+  const maxIsVar = isValidChoiceScriptIdentifier(rawMax);
+  const min = minIsVar ? NaN : Number(rawMin);
+  const max = maxIsVar ? NaN : Number(rawMax);
+  if (minIsVar && !variables.has(minNormalized)) {
+    issues.push({ level: "warning", msg: `*${command} min bound uses undeclared variable: ${rawMin}`, scene: sceneName, line: lineNumber });
+  } else if (!minIsVar && !Number.isFinite(min)) {
+    issues.push({ level: "error", msg: `*${command} has an invalid min bound: ${rawMin}`, scene: sceneName, line: lineNumber });
+  }
+  if (maxIsVar && !variables.has(maxNormalized)) {
+    issues.push({ level: "warning", msg: `*${command} max bound uses undeclared variable: ${rawMax}`, scene: sceneName, line: lineNumber });
+  } else if (!maxIsVar && !Number.isFinite(max)) {
+    issues.push({ level: "error", msg: `*${command} has an invalid max bound: ${rawMax}`, scene: sceneName, line: lineNumber });
+  }
+  if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
+    issues.push({ level: "error", msg: `*${command} min bound (${rawMin}) exceeds max bound (${rawMax})`, scene: sceneName, line: lineNumber });
   }
 }
 
@@ -1565,10 +1581,24 @@ function lintInputNode(
   }
   if (node.type === "input_number" || node.type === "rand") {
     if (variable.type !== "number") issues.push({ level: "error", msg: `${command} requires a number variable: ${variableName}`, scene, node: node.id });
-    const min = Number(node.inputMin ?? (node.type === "rand" ? "1" : "0"));
-    const max = Number(node.inputMax ?? "100");
-    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) {
-      issues.push({ level: "error", msg: `${command} has invalid bounds: ${node.inputMin ?? (node.type === "rand" ? "1" : "0")} ${node.inputMax ?? "100"}`, scene, node: node.id });
+    const minStr = node.inputMin ?? (node.type === "rand" ? "1" : "0");
+    const maxStr = node.inputMax ?? "100";
+    const minIsVar = isValidChoiceScriptIdentifier(minStr);
+    const maxIsVar = isValidChoiceScriptIdentifier(maxStr);
+    const min = minIsVar ? NaN : Number(minStr);
+    const max = maxIsVar ? NaN : Number(maxStr);
+    if (minIsVar && !variables.has(minStr)) {
+      issues.push({ level: "warning", msg: `${command} min bound uses undeclared variable: ${minStr}`, scene, node: node.id });
+    } else if (!minIsVar && !Number.isFinite(min)) {
+      issues.push({ level: "error", msg: `${command} has an invalid min bound: ${minStr}`, scene, node: node.id });
+    }
+    if (maxIsVar && !variables.has(maxStr)) {
+      issues.push({ level: "warning", msg: `${command} max bound uses undeclared variable: ${maxStr}`, scene, node: node.id });
+    } else if (!maxIsVar && !Number.isFinite(max)) {
+      issues.push({ level: "error", msg: `${command} has an invalid max bound: ${maxStr}`, scene, node: node.id });
+    }
+    if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
+      issues.push({ level: "error", msg: `${command} min bound (${minStr}) exceeds max bound (${maxStr})`, scene, node: node.id });
     }
   }
 }

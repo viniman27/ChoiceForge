@@ -405,7 +405,7 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 22 && issue.msg.includes("*input_number requires a number variable: name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 23 && issue.msg.includes("*rand requires a number variable: name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("undeclared variable: missing_input")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("invalid bounds: 10 1")));
+  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 24 && issue.msg.includes("min bound") && issue.msg.includes("exceeds")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 25 && issue.msg.includes("invalid variable identifier")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 27 && issue.msg.includes("duplicate *label in source: helper")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 28 && issue.msg.includes("*label has an invalid identifier: bad-name")));
@@ -3000,6 +3000,55 @@ test("imports nested *if inside *choice option body — prose continues after if
   const finishNode = graph.nodes.find((n) => n.type === "finish");
   assert.ok(finishNode, "finish node exists");
   assert.ok(graph.edges.some((e) => e.from === afterPassage!.id && e.to === finishNode!.id), "prose → finish edge");
+});
+
+test("does not lint *rand with variable bounds as invalid", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [
+      { name: "result", type: "number", initial: "0", showInStats: false },
+      { name: "low", type: "number", initial: "1", showInStats: false },
+      { name: "high", type: "number", initial: "10", showInStats: false },
+    ],
+    nodes: [
+      { id: "n1", type: "rand", x: 0, y: 0, w: 280, title: "*rand result", inputVar: "result", inputMin: "low", inputMax: "high" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.level === "error" && i.msg.includes("bound")), "no bounds error for variable bounds");
+});
+
+test("lints *rand with numeric min exceeding max as error", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "roll", type: "number", initial: "0", showInStats: false }],
+    nodes: [
+      { id: "n1", type: "rand", x: 0, y: 0, w: 280, title: "*rand roll", inputVar: "roll", inputMin: "10", inputMax: "1" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "error" && i.msg.includes("min bound") && i.msg.includes("exceeds")));
+});
+
+test("warns *rand with undeclared variable bounds", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "roll", type: "number", initial: "0", showInStats: false }],
+    nodes: [
+      { id: "n1", type: "rand", x: 0, y: 0, w: 280, title: "*rand roll", inputVar: "roll", inputMin: "1", inputMax: "max_val" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("max bound uses undeclared variable: max_val")));
 });
 
 test("imports *achieve in scene body as achieve node", () => {

@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 102
+- **Manuscript view: all node types now rendered and exported.**
+  - `ManuscriptView.tsx` previously returned `null` for `achieve`, `set`, `comment`, `image`, `sound`, `rand`, `input_text`, `input_number`, `temp`, `params` nodes, making them invisible in the prose reading mode and absent from the downloaded/copied text.
+  - Added explicit rendering for `achieve` (shows `*achieve id` + note), `set` (shows each `var op val`), `comment` (shows comment body), and extended the catch-all structural renderer to cover `image`, `sound`, `rand`, `input_text`, `input_number`, `temp`, `params`.
+  - `nodeListToLines` (download/copy) likewise gains cases for `achieve` (`[Achievement: id]`), `set` (`[Set: var op val]`), `comment` (`[Comment: text]`), `image` (`[Image: filename]`), and `if` (`[Condition: …]`).
+- **Lint fix: `*rand`/`*input_number` variable bounds no longer false-positive.**
+  - `lintInputNode` (graph linter) and `lintPreservedInputCommand` (source linter) previously treated any non-numeric `inputMin`/`inputMax` as an invalid bound error — so `*rand result 1 perception` (where `perception` is a variable) wrongly produced an error.
+  - Both functions now distinguish numeric literals from identifier bounds: if a bound is a valid identifier, it validates that the variable is declared (warning if not) but does NOT require it to be a number literal. The `min > max` check only fires when both bounds are numeric. Error messages are now more specific (`has an invalid min bound: X` / `min bound (X) exceeds max bound (Y)` instead of `invalid bounds: X Y`).
+  - **Tests**: 3 new tests — variable bounds no error, numeric min > max error, undeclared variable bound warning. Also updated the existing preserved-source rand bounds test to match the new message format. Total: **149 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 101
 - **New node type: `*achieve`** — adds first-class graph support for the ChoiceScript achievement-unlock command.
   - **`types.ts`**: Added `"achieve"` to the `NodeType` union. Stores achievement ID in `node.target`.

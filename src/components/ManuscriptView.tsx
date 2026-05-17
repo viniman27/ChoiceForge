@@ -209,12 +209,44 @@ function NodeBlock({ node, sceneName, onNavigate }: { node: StoryNode; sceneName
     );
   }
 
-  if (["goto", "label", "gosub", "return", "finish", "ending", "checkpoint", "restore_checkpoint"].includes(node.type)) {
+  if (node.type === "comment") {
+    return (
+      <div className="ms-structural">
+        <span className="ms-cmd">*comment</span>
+        {node.body?.trim() && <span className="ms-target">{node.body.trim()}</span>}
+      </div>
+    );
+  }
+
+  if (node.type === "set") {
+    return (
+      <div className="ms-structural">
+        <span className="ms-cmd">*set</span>
+        {node.sets?.map((s, i) => (
+          <span key={i} className="ms-target">{s.var} {s.op} {s.val}</span>
+        ))}
+      </div>
+    );
+  }
+
+  if (node.type === "achieve") {
+    return (
+      <div className="ms-structural">
+        <span className="ms-cmd">*achieve</span>
+        {node.target && <span className="ms-target">{node.target}</span>}
+        {node.note && <aside className="ms-note">✎ {node.note}</aside>}
+      </div>
+    );
+  }
+
+  if (["goto", "label", "gosub", "return", "finish", "ending", "checkpoint", "restore_checkpoint",
+    "image", "sound", "rand", "input_text", "input_number", "temp", "params"].includes(node.type)) {
     return (
       <div className="ms-structural">
         <span className="ms-cmd">*{node.type}</span>
         {node.target && <span className="ms-target">{node.target}</span>}
-        {node.title && node.title !== `*${node.type}` && <span className="ms-target">{node.title}</span>}
+        {node.inputVar && !node.target && <span className="ms-target">{node.inputVar}</span>}
+        {node.title && node.title !== `*${node.type}` && !node.target && !node.inputVar && <span className="ms-target">{node.title}</span>}
       </div>
     );
   }
@@ -308,6 +340,16 @@ function nodeListToLines(nodes: StoryNode[]): string[] {
       if (node.note) lines.push(`[Note: ${node.note}]`, "");
     } else if (node.type === "page_break") {
       lines.push("* * *", "");
+    } else if (node.type === "achieve" && node.target) {
+      lines.push(`[Achievement: ${node.target}]`);
+    } else if (node.type === "set" && node.sets?.length) {
+      node.sets.forEach((s) => lines.push(`[Set: ${s.var} ${s.op} ${s.val}]`));
+    } else if (node.type === "comment" && node.body?.trim()) {
+      lines.push(`[Comment: ${node.body.trim()}]`);
+    } else if (node.type === "image" && node.target) {
+      lines.push(`[Image: ${node.target}]`);
+    } else if (node.type === "if") {
+      lines.push(`[Condition: ${node.branches?.map((b) => `*${b.kind}${b.expr ? ` (${b.expr})` : ""}`).join(" / ") ?? ""}]`);
     }
   }
   return lines;
