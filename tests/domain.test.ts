@@ -3525,6 +3525,115 @@ test("*if group guard on choice block without parentheses applies to options", (
   assert.equal(hideOption!.cond, null);
 });
 
+test("warns when *rand min equals max", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "roll", type: "number", initial: "0", showInStats: false }],
+    nodes: [
+      { id: "n1", type: "rand", x: 0, y: 0, w: 280, title: "*rand roll", inputVar: "roll", inputMin: "5", inputMax: "5" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.key === "rand_same_bounds"), "should warn about same bounds");
+});
+
+test("does not warn when *rand min equals max and min equals max but they differ", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "roll", type: "number", initial: "0", showInStats: false }],
+    nodes: [
+      { id: "n1", type: "rand", x: 0, y: 0, w: 280, title: "*rand roll", inputVar: "roll", inputMin: "1", inputMax: "10" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "rand_same_bounds"), "should not warn when bounds differ");
+});
+
+test("lints passage with no body text as info", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "empty" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "info" && i.key === "empty_passage_body"), "should flag empty passage");
+});
+
+test("does not flag passage with body text as empty", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "intro", body: "Once upon a time." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "empty_passage_body"), "should not flag passage with content");
+});
+
+test("lints write-only *temp variable as info", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp counter", inputVar: "counter", body: "0" },
+      { id: "n2", type: "set", x: 0, y: 160, w: 280, title: "*set counter", sets: [{ var: "counter", op: "=", val: "5" }] },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "info" && i.key === "unused_temp" && i.msg.includes("counter")), "should flag write-only temp");
+});
+
+test("does not flag *temp variable read in a condition as unused", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp counter", inputVar: "counter", body: "0" },
+      {
+        id: "n2", type: "if", x: 0, y: 160, w: 280, title: "*if counter > 0",
+        branches: [
+          { kind: "if", expr: "counter > 0", to: "n3" },
+          { kind: "else", to: "n3" },
+        ],
+      },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in condition");
+});
+
+test("does not flag *temp variable interpolated in passage body as unused", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "temp", x: 0, y: 0, w: 280, title: "*temp hero", inputVar: "hero", body: "Bilbo" },
+      { id: "n2", type: "passage", x: 0, y: 160, w: 300, title: "intro", body: "Hello, ${hero}!" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
