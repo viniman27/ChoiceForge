@@ -59,6 +59,10 @@ export const lintMessages: LintTranslations = {
     pt: "*goto_scene aponta para cena inexistente: {name}",
     es: "*goto_scene apunta a escena inexistente: {name}",
   },
+  gosub_scene_missing: {
+    pt: "*gosub_scene aponta para cena inexistente: {name}",
+    es: "*gosub_scene apunta a escena inexistente: {name}",
+  },
   scene_unreachable: {
     pt: "cena \"{name}\" sem conexoes de entrada de outras cenas",
     es: "escena \"{name}\" sin conexiones de entrada de otras escenas",

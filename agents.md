@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 148
+- **Add `gosub_scene_missing` i18n key and backfill more `undef_var` keys.**
+  - **Problem**: Five more lint paths were missing `key`/`params` fields:
+    1. `*gosub_scene` pointing to a missing scene in both graph and preserved source had no key (unlike `*goto_scene` which already had `goto_scene_missing`).
+    2. `*set uses an undeclared variable` in `lintPreservedSetLine` was missing `key: "undef_var"`.
+    3. `*{command} uses an undeclared variable` in `lintPreservedInputCommand` was missing `key: "undef_var"`.
+    4. Option body (both `choice` and `fake_choice`) was missing `key: "undef_var"` (option text already had it).
+  - **Fix**: Added `gosub_scene_missing` to `lintMessages.ts` (PT/ES translations), emitted it from both graph and preserved source gosub_scene missing-scene checks. Added `key: "undef_var", params: { name }` to the remaining four paths.
+  - **Files changed**: `lintMessages.ts` (1 new entry), `choicescript.ts` (6 edits), `domain.test.ts` (2 new tests).
+  - **Tests**: 255 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 147
 - **Add `key: "undef_var"` to four condition/value-expression lint paths.**
   - **Problem**: `lintExpression`, `lintSourceExpression`, `*set` value expression in `lintSet`, and `*set` value expression in `lintPreservedSetLine` all emitted "undeclared variable" warnings without the `key`/`params` fields needed for `translateLintMsg`. Only prose-text variable references had the key.
