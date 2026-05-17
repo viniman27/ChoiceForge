@@ -4945,6 +4945,50 @@ test("undeclared variable in *set value expression emits undef_var key and name 
   assert.ok(issue, "expected undef_var key on undeclared variable in *set value expression");
 });
 
+test("lintUnusedTempVars does not flag temp as unused when read in *selectable_if in sourceText", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 300, title: "*temp flag", inputVar: "flag", body: "false" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+        sourceText: "*choice\n  *selectable_if (flag) #Try\n    *finish",
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp" && i.params?.name === "flag"), "flag temp used in *selectable_if must not be flagged as unused");
+});
+
+test("lintUnusedTempVars does not flag temp as unused when read in *set value in sourceText", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 300, title: "*temp bonus", inputVar: "bonus", body: "10" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+        sourceText: "*set score + bonus",
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "unused_temp" && i.params?.name === "bonus"), "bonus temp used in *set value must not be flagged as unused");
+});
+
 test("lintSet does not flag *set on a temp variable as undeclared", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

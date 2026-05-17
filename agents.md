@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 149
+- **Fix `lintUnusedTempVars` to scan `*selectable_if` conditions and `*set` value expressions in `sourceText`.**
+  - **Problem**: When a scene graph has both visual nodes and a `sourceText` blob, `lintUnusedTempVars` scanned the source for `*if`/`*elseif` conditions but missed `*selectable_if` and `*set` value expressions. A temp variable read only in those constructs in `sourceText` would be falsely flagged as unused.
+  - **Fix**: Added `|| cmd === "selectable_if"` and a `*set` value-expression branch to the `sourceText` scan loop in `lintUnusedTempVars`, matching the pattern used in `lintUnusedVariables.scanSource`, `computeVariableUses.scanSource`, and `computeVariableLocations.scanSource`. Also switched to `sourceConditionExpression` for correctness.
+  - **Files changed**: `choicescript.ts` (6 lines added), `domain.test.ts` (2 new tests).
+  - **Tests**: 257 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 148
 - **Add `gosub_scene_missing` i18n key and backfill more `undef_var` keys.**
   - **Problem**: Five more lint paths were missing `key`/`params` fields:
