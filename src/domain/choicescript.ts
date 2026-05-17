@@ -1873,11 +1873,12 @@ export function stripAchieveCommands(text: string): string {
   return text.replace(/^\s*\*achieve(?:\s+.+?)?\s*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+const EXPRESSION_RESERVED = new Set(["and", "or", "not", "true", "false", "modulo", "round", "round_down", "log", "abs", "length", "auto"]);
+
 function extractExpressionNames(expression: string): string[] {
-  const reserved = new Set(["and", "or", "not", "true", "false"]);
   return [...stripQuotedStrings(expression).matchAll(/\b[a-zA-Z_][\w]*\b/g)]
     .map((match) => match[0])
-    .filter((name) => !reserved.has(name));
+    .filter((name) => !EXPRESSION_RESERVED.has(name));
 }
 
 function countBodyWords(text: string): number {
