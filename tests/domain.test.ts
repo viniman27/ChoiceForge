@@ -2391,6 +2391,46 @@ test("does not flag unused variable that is only used in option body", () => {
   assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("lints *achieve in choice option body", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [{ id: "known", title: "Known", points: 10, desc: "Known", preDesc: "Before", postDesc: "After" }],
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        options: [
+          { text: "Fight", to: "n2", body: "You fight bravely.\n*achieve missing_ach" },
+          { text: "Flee", to: "n2", body: "*achieve known" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.msg.includes("missing_ach") && i.msg.includes("undeclared achievement")));
+  assert.ok(!issues.some((i) => i.msg.includes("\"known\"") && i.msg.includes("undeclared achievement")));
+});
+
+test("lints *achieve in fake_choice option body", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [],
+    nodes: [
+      { id: "n1", type: "fake_choice", x: 0, y: 0, w: 360, title: "fake_choose",
+        prompt: "Choose:",
+        fakeOptions: [
+          { text: "Inspect", body: "You look carefully.\n*achieve ghost_achieve" },
+          { text: "Leave" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.msg.includes("ghost_achieve") && i.msg.includes("undeclared achievement")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
