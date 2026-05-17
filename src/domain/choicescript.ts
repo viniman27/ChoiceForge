@@ -363,7 +363,7 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
   for (const variable of project.variables) {
     if (variable.showInStats !== false) continue;
     if (!readVars.has(variable.name)) {
-      issues.push({ level: "warning", msg: `variable "${variable.name}" is declared but never read`, scene: null });
+      issues.push({ level: "warning", msg: `variable "${variable.name}" is declared but never read`, key: "unused_var", params: { name: variable.name }, scene: null });
     }
   }
 }
@@ -713,7 +713,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
           ? targetGraph.sourceText.split(/\r?\n/).some((l) => sourceCommand(l.trim()) === "return")
           : targetGraph.nodes.some((n) => n.type === "return");
         if (!targetHasReturn) {
-          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, scene: sceneName, node: node.id });
+          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, key: "gosub_scene_no_return", params: { name: target }, scene: sceneName, node: node.id });
         }
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
@@ -726,7 +726,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     }
     if (node.type === "passage" && node.body) {
       const wc = countBodyWords(node.body);
-      if (wc > 600) issues.push({ level: "warning", msg: `passage "${node.title}" is very long (${wc} words)`, scene: sceneName, node: node.id });
+      if (wc > 600) issues.push({ level: "warning", msg: `passage "${node.title}" is very long (${wc} words)`, key: "passage_too_long", params: { name: node.title, wc: String(wc) }, scene: sceneName, node: node.id });
     }
 
     if (node.type === "image" && !node.target?.trim()) {
@@ -857,12 +857,12 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   );
   humanLabels.forEach(({ node, label }) => {
     if (label && !referencedLabels.has(label)) {
-      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, scene: sceneName, node: node.id });
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, key: "unreferenced_label", params: { name: label }, scene: sceneName, node: node.id });
     }
   });
 
   if (hasGosub && !graph.nodes.some((n) => n.type === "return")) {
-    issues.push({ level: "warning", msg: `scene "${sceneName}" has *gosub nodes but no *return node`, scene: sceneName });
+    issues.push({ level: "warning", msg: `scene "${sceneName}" has *gosub nodes but no *return node`, key: "gosub_no_return", params: { name: sceneName }, scene: sceneName });
   }
 
   lintUnusedTempVars(graph, issues, sceneName);
@@ -1003,7 +1003,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
           ? targetGraph.sourceText.split(/\r?\n/).some((l) => sourceCommand(l.trim()) === "return")
           : (targetGraph?.nodes ?? []).some((n) => n.type === "return");
         if (!targetHasReturn) {
-          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, scene: sceneName, line: lineNumber });
+          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, key: "gosub_scene_no_return", params: { name: target }, scene: sceneName, line: lineNumber });
         }
         const parts = sourceCommandValue(trimmed, "*gosub_scene").split(/\s+/);
         const entryLabel = parts[1]?.toLowerCase() ?? "";
@@ -1118,7 +1118,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const referencedLabelSet = new Set(referencedLabels.map(({ label }) => label));
   labels.forEach((lineNumber, label) => {
     if (!referencedLabelSet.has(label)) {
-      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, scene: sceneName, line: lineNumber });
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, key: "unreferenced_label", params: { name: label }, scene: sceneName, line: lineNumber });
     }
   });
   if (!hasGosub) {

@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 155
+- **Add i18n keys to 5 high-visibility lint messages (both graph and preserved-source linters).**
+  - `unused_var`: `variable "${name}" is declared but never read` (line 366 — hidden global variable warning).
+  - `passage_too_long`: `passage "${name}" is very long (${wc} words)` — includes a second `wc` param for the word count.
+  - `gosub_scene_no_return`: `*gosub_scene calls scene "${name}" which has no *return` — both graph node (line 716) and preserved source (line 1006) paths.
+  - `unreferenced_label`: `*label "${name}" is never referenced by any *goto or *gosub` — both graph node (line 860) and preserved source (line 1121) paths.
+  - `gosub_no_return`: `scene "${name}" has *gosub nodes but no *return node` (line 865).
+  - Added Portuguese and Spanish translations for all 5 keys in `lintMessages.ts`. `passage_too_long` uses both `{name}` and `{wc}` template params; `translateLintMsg` already supports multi-param objects.
+  - **Files changed**: `choicescript.ts` (7 `issues.push` calls updated), `lintMessages.ts` (5 new entries), `domain.test.ts` (7 new tests).
+  - **Tests**: 269 passing (was 262), no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 154
 - **Guard `inputMin`/`inputMax` variable scanning to rand/input_number node types only.**
   - **Problem**: Session 153 added `inputMin`/`inputMax` scanning to four variable-tracking functions. However, `image` nodes reuse `inputMin` for alignment text (`"left"`, `"right"`, `"none"`). Since `"left"` passes `isValidChoiceScriptIdentifier`, a variable named `left` would be falsely counted as used via the image alignment field.

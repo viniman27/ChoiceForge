@@ -99,6 +99,26 @@ export const lintMessages: LintTranslations = {
     pt: "variavel fairmath com valor inicial fora de 0–100: {name}",
     es: "variable fairmath con valor inicial fuera de 0–100: {name}",
   },
+  unused_var: {
+    pt: "variavel \"{name}\" declarada mas nunca lida",
+    es: "variable \"{name}\" declarada pero nunca leida",
+  },
+  unreferenced_label: {
+    pt: "*label \"{name}\" nunca referenciado por *goto ou *gosub",
+    es: "*label \"{name}\" nunca referenciado por *goto o *gosub",
+  },
+  gosub_no_return: {
+    pt: "cena \"{name}\" tem nos *gosub mas nenhum no *return",
+    es: "escena \"{name}\" tiene nodos *gosub pero ningun nodo *return",
+  },
+  gosub_scene_no_return: {
+    pt: "*gosub_scene chama cena \"{name}\" que nao tem *return",
+    es: "*gosub_scene llama a escena \"{name}\" que no tiene *return",
+  },
+  passage_too_long: {
+    pt: "passagem \"{name}\" e muito longa ({wc} palavras)",
+    es: "pasaje \"{name}\" es muy largo ({wc} palabras)",
+  },
 };
 
 export function translateLintMsg(
