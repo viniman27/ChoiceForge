@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 147
+- **Add `key: "undef_var"` to four condition/value-expression lint paths.**
+  - **Problem**: `lintExpression`, `lintSourceExpression`, `*set` value expression in `lintSet`, and `*set` value expression in `lintPreservedSetLine` all emitted "undeclared variable" warnings without the `key`/`params` fields needed for `translateLintMsg`. Only prose-text variable references had the key.
+  - **Fix**: Added `key: "undef_var", params: { name }` to each of the four issue pushes.
+  - **Files changed**: `choicescript.ts` (4 edits), `domain.test.ts` (2 new tests).
+  - **Tests**: 253 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 146
 - **Fix `lintSet` falsely flagging `*set` on temp variables as undeclared.**
   - **Problem**: `lintSet` (graph linter) fetched `variable = variableTypes.get(set.var)` where `variableTypes` only holds global project variables. The guard `!variables.has(set.var) || !variable` triggered on any temp variable (which is in `variables` but not in `variableTypes`), producing a false "undeclared" error and skipping type/operator checks.

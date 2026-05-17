@@ -4862,6 +4862,53 @@ test("computeVariableUses counts variable used in *selectable_if condition in pr
   assert.ok((uses.get("score") ?? 0) > 0, "score should have a use count from *selectable_if condition");
 });
 
+test("undeclared variable in *if condition emits undef_var key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          {
+            id: "n1", type: "if", x: 0, y: 0, w: 300, title: "*if",
+            branches: [{ kind: "if", expr: "ghost_var > 0", to: "n2" }],
+          },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "if" }, { from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "undef_var" && i.params?.name === "ghost_var");
+  assert.ok(issue, "expected undef_var key on undeclared variable in *if condition");
+});
+
+test("undeclared variable in *set value expression emits undef_var key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "set", x: 0, y: 0, w: 300, title: "*set", sets: [{ var: "score", op: "=", val: "ghost_var" }] },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "undef_var" && i.params?.name === "ghost_var");
+  assert.ok(issue, "expected undef_var key on undeclared variable in *set value expression");
+});
+
 test("lintSet does not flag *set on a temp variable as undeclared", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
