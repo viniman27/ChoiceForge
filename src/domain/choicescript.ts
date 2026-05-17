@@ -905,8 +905,14 @@ function lintUnusedTempVars(graph: SceneGraph, issues: LintIssue[], sceneName: s
       const trimmed = line.trim();
       scanText(trimmed);
       const cmd = sourceCommand(trimmed);
-      if (cmd === "if" || cmd === "elseif") {
-        scanExpr(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${cmd}`)));
+      if (cmd === "if" || cmd === "elseif" || cmd === "selectable_if") {
+        scanExpr(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, cmd)));
+      }
+      if (cmd === "set") {
+        const [, maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
+        const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+        const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+        if (valueExpr.trim()) scanExpr(normalizeSourceExpressionIdentifiers(valueExpr));
       }
     });
   }
