@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 88
+- **Search result excerpts + match highlighting; dynamic TopBar breadcrumb.**
+  - **Search excerpts**: `searchProject` in `LeftPanel.tsx` was setting `detail: target` where `target` was the full node body (potentially hundreds of words). The result list would show the beginning of the text, never the part that actually matched. Fixed with `snippetAround(text, query, 90)` — extracts ~90 chars centred around the first match, with `…` ellipsis markers when text is truncated. Full text is kept in `searchText` so `addResult`'s relevance check still works.
+  - **Match highlighting**: `SearchResults` now receives the raw `query` string and renders `result.detail` through `highlightMatch()`, which wraps the first matched substring in `<mark class="search-highlight">`. `.search-highlight` uses a translucent `--accent-1` background to make the match visible without breaking the line height.
+  - **TopBar breadcrumb**: replaced the hardcoded `"primeira_decisao"/"first_decision"` placeholder with `selectedNodeTitle` — a new optional prop passed from `App.tsx` as `selectedNode?.title`. The selected node ID is shown in accent colour with `text-overflow: ellipsis` so long titles don't overflow the top bar.
+  - 109 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 87
 - **`*finish` flow connections in SceneMapView.**
   - The scene map previously only showed explicit `goto_scene` / `gosub_scene` arrows, leaving the implicit sequential flow of `*finish` invisible. A scene with `*finish` nodes proceeds to the next playable scene in the `startup.txt` list, but that link couldn't be seen in the map.

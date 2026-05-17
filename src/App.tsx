@@ -199,6 +199,7 @@ export default function App() {
         theme={theme}
         density={density}
         view={view}
+        selectedNodeTitle={selectedNode?.title ?? undefined}
         onLangChange={setLang}
         onThemeChange={setTheme}
         onDensityChange={setDensity}

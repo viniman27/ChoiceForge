@@ -6,6 +6,7 @@ interface TopBarProps {
   theme: Theme;
   density: Density;
   view: EditorView;
+  selectedNodeTitle?: string;
   onLangChange: (lang: Language) => void;
   onThemeChange: (theme: Theme) => void;
   onDensityChange: (density: Density) => void;
@@ -26,7 +27,7 @@ interface TopBarProps {
   onSnapshots: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onResetProject, onSnapshots }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onResetProject, onSnapshots }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -62,8 +63,12 @@ export function TopBar({ data, lang, theme, density, view, onLangChange, onTheme
           <button className={view === "dashboard" ? "is-active" : ""} onClick={() => onViewChange("dashboard")}>stats</button>
         </div>
         <code style={{ marginLeft: 12 }}>{data.sceneTitle}</code>
-        <span className="dim">/</span>
-        <code>{lang === "pt" ? "primeira_decisao" : lang === "es" ? "primera_decision" : "first_decision"}</code>
+        {selectedNodeTitle && (
+          <>
+            <span className="dim">/</span>
+            <code className="breadcrumb-node">{selectedNodeTitle}</code>
+          </>
+        )}
       </div>
 
       <div className="top-actions">
