@@ -1180,14 +1180,17 @@ function buildBodyNodeChain(
   titlePrefix: string,
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
-): { firstId: string | null; lastId: string | null; hasTerminal: boolean } {
+): { firstId: string | null; lastId: string | null; pendingLastIds: string[]; hasTerminal: boolean } {
   let proseBuf: string[] = [];
   let prevId: string | null = null;
   let firstId: string | null = null;
   let hasTerminal = false;
+  const pendingLinks: string[] = [];
 
-  const link = (newId: string) => {
+  const linkAll = (newId: string) => {
     if (prevId) edges.push({ from: prevId, to: newId, kind: "flow" });
+    for (const id of pendingLinks) edges.push({ from: id, to: newId, kind: "flow" });
+    pendingLinks.length = 0;
     if (!firstId) firstId = newId;
     prevId = newId;
   };
@@ -1197,32 +1200,99 @@ function buildBodyNodeChain(
     proseBuf = [];
     if (!text) return;
     const n = addNode({ type: "passage", title: `${titlePrefix}_body`, body: text, w: 420 }, false);
-    link(n.id);
+    linkAll(n.id);
   };
 
-  for (const line of bodyLines) {
+  let i = 0;
+  while (i < bodyLines.length) {
+    const line = bodyLines[i];
     const trimmed = line.trim();
+    i += 1;
     if (!trimmed) { proseBuf.push(""); continue; }
     const command = commandName(trimmed);
     if (command === "comment") continue;
+
     if (command && BODY_TERMINAL_COMMANDS.has(command)) {
       flushProse();
       const termNode = simpleCommandNode(command, trimmed, 1);
-      if (termNode) { const n = addNode(termNode, false); link(n.id); }
+      if (termNode) { const n = addNode(termNode, false); linkAll(n.id); }
       hasTerminal = true;
       break;
     }
+
+    if (command === "choice" || command === "fake_choice") {
+      flushProse();
+      const block = [line];
+      while (i < bodyLines.length && (/^\s/.test(bodyLines[i]) || !bodyLines[i].trim())) {
+        block.push(bodyLines[i]);
+        i += 1;
+      }
+      if (command === "choice") {
+        const parsed = parseInlineChoiceBlock(block, 1);
+        if (parsed) {
+          const choiceNode = addNode(parsed.node, false);
+          linkAll(choiceNode.id);
+          const optTargets = parsed.options.map((opt) => addInlineOptionNodes(opt, addNode, edges));
+          const options: ChoiceOption[] = parsed.options.map((opt, idx) => ({
+            text: opt.text,
+            to: optTargets[idx].targetId,
+            body: optTargets[idx].body,
+            cond: opt.cond ?? null,
+            reuse: opt.reuse,
+            hideReuse: opt.hideReuse,
+            sets: opt.sets.length ? opt.sets : undefined,
+          }));
+          choiceNode.options = options;
+          options.forEach((opt, idx) => {
+            edges.push({ from: choiceNode.id, to: opt.to, kind: "choice", label: `#${idx + 1}${opt.cond ? ` *${opt.cond.type}` : ""}` });
+          });
+          prevId = null;
+          pendingLinks.length = 0;
+          optTargets.forEach((t) => { if (t.continuationId) pendingLinks.push(t.continuationId); });
+        } else {
+          proseBuf.push(...block);
+        }
+      } else {
+        const parsed = parseFakeChoiceBlock(block, 1) ?? parseInlineFakeChoiceBlock(block, 1);
+        if (parsed) {
+          const n = addNode(parsed, false);
+          linkAll(n.id);
+        } else {
+          proseBuf.push(...block);
+        }
+      }
+      continue;
+    }
+
     if (command && BODY_STRUCTURED_COMMANDS.has(command)) {
       flushProse();
       const cmdNode = simpleCommandNode(command, trimmed, 1);
-      if (cmdNode) { const n = addNode(cmdNode, false); link(n.id); }
+      if (cmdNode) { const n = addNode(cmdNode, false); linkAll(n.id); }
       continue;
     }
+
     proseBuf.push(line);
   }
 
   flushProse();
-  return { firstId, lastId: prevId, hasTerminal };
+  return { firstId, lastId: prevId, pendingLastIds: [...pendingLinks], hasTerminal };
+}
+
+function mergeBodyContinuations(
+  firstId: string,
+  lastId: string | null,
+  pendingLastIds: string[],
+  hasTerminal: boolean,
+  titlePrefix: string,
+  addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
+  edges: StoryEdge[],
+): { targetId: string; continuationId: string | null } {
+  const all = [...(lastId && !hasTerminal ? [lastId] : []), ...pendingLastIds];
+  if (all.length === 0) return { targetId: firstId, continuationId: null };
+  if (all.length === 1) return { targetId: firstId, continuationId: all[0] };
+  const merge = addNode({ type: "passage", title: `${titlePrefix}_merge`, body: "", w: 320 }, false);
+  all.forEach((id) => edges.push({ from: id, to: merge.id, kind: "flow" }));
+  return { targetId: firstId, continuationId: merge.id };
 }
 
 function addInlineBranchNodes(
@@ -1230,12 +1300,12 @@ function addInlineBranchNodes(
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
 ): { targetId: string; continuationId: string | null } {
-  const { firstId, lastId, hasTerminal } = buildBodyNodeChain(branch.bodyLines, `if_${branch.kind}`, addNode, edges);
+  const { firstId, lastId, pendingLastIds, hasTerminal } = buildBodyNodeChain(branch.bodyLines, `if_${branch.kind}`, addNode, edges);
   if (!firstId) {
     const emptyNode = addNode({ type: "passage", title: `if_${branch.kind}_empty`, body: "", w: 320 }, false);
     return { targetId: emptyNode.id, continuationId: emptyNode.id };
   }
-  return { targetId: firstId, continuationId: hasTerminal ? null : lastId };
+  return mergeBodyContinuations(firstId, lastId, pendingLastIds, hasTerminal, `if_${branch.kind}`, addNode, edges);
 }
 
 function addInlineOptionNodes(
@@ -1245,7 +1315,7 @@ function addInlineOptionNodes(
 ): { targetId: string; continuationId: string | null; body?: string } {
   const isPureProse = option.bodyLines.every((line) => {
     const cmd = commandName(line.trim());
-    return !cmd || (!BODY_TERMINAL_COMMANDS.has(cmd) && !BODY_STRUCTURED_COMMANDS.has(cmd) && cmd !== "comment");
+    return !cmd || (!BODY_TERMINAL_COMMANDS.has(cmd) && !BODY_STRUCTURED_COMMANDS.has(cmd) && cmd !== "comment" && cmd !== "choice" && cmd !== "fake_choice");
   });
 
   if (isPureProse) {
@@ -1256,12 +1326,12 @@ function addInlineOptionNodes(
     }
   }
 
-  const { firstId, lastId, hasTerminal } = buildBodyNodeChain(option.bodyLines, "choice_option", addNode, edges);
+  const { firstId, lastId, pendingLastIds, hasTerminal } = buildBodyNodeChain(option.bodyLines, "choice_option", addNode, edges);
   if (!firstId) {
     const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
     return { targetId: emptyNode.id, continuationId: emptyNode.id };
   }
-  return { targetId: firstId, continuationId: hasTerminal ? null : lastId };
+  return mergeBodyContinuations(firstId, lastId, pendingLastIds, hasTerminal, "choice_option", addNode, edges);
 }
 
 function cleanInlineBranch(branch: InlineConditionalBranch): InlineConditionalBranch {

@@ -343,6 +343,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 99
+- **Import: nested `*choice`/`*fake_choice` blocks inside `*if` branch bodies (and `*choice` option bodies).**
+  - **Problem**: `*choice` or `*fake_choice` blocks appearing inside an `*if` branch body were not recognized — the block lines (including option headers and their bodies) ended up as raw text inside a passage node.
+  - **`buildBodyNodeChain` upgraded** (`choicescriptImport.ts`): Now uses index-based iteration (was `for...of`) so it can look ahead to collect indented blocks. Introduces a `pendingLinks: string[]` mechanism analogous to the main loop's `pendingContinuations` — option continuations from a nested choice are held in `pendingLinks` and drained into the next node that gets created in the chain.
+    - `*choice` detected → collect indented block → parse with `parseInlineChoiceBlock` → create choice node + option nodes via `addInlineOptionNodes` (recursively); option continuations go to `pendingLinks`; `prevId = null`.
+    - `*fake_choice` detected → collect block → try `parseFakeChoiceBlock` then `parseInlineFakeChoiceBlock` → create a single fake_choice node; `prevId = fake_choice_id` (chain continues normally).
+    - Fallback: block pushed to prose if parser returns null.
+  - **`link` → `linkAll`**: The inner link helper now also drains `pendingLinks` on each new node, connecting all dangling option continuations forward.
+  - **Return type extended**: `buildBodyNodeChain` now returns `pendingLastIds: string[]` — option continuations that were not yet resolved when the chain ended.
+  - **`mergeBodyContinuations`**: New shared helper used by `addInlineBranchNodes` and `addInlineOptionNodes`. Merges `lastId` + `pendingLastIds` into a single `continuationId`; if multiple, creates an empty passage "merge node" to fan them in.
+  - **`addInlineOptionNodes` — `isPureProse` guard updated**: Now also excludes `choice` and `fake_choice` commands, preventing their block lines from being misidentified as pure prose.
+  - **Tests**: 3 new tests — nested `*choice` in `*if` branch (goto terminals); nested `*choice` in `*if` branch (prose + terminal options); nested `*fake_choice` in `*if` branch with following prose (fake_choice → passage → finish chained correctly). Total: **137 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 98
 - **Import: full structured intermediate command coverage in branch/option bodies + per-node word count in inspector.**
   - **`BODY_STRUCTURED_COMMANDS` extended** (`choicescriptImport.ts`): Added `gosub_scene`, `rand`, `input_text`, `input_number`, `save_checkpoint`, `temp`, `image`, `sound` to the set. All of these are handled by `simpleCommandNode`, so any of these commands appearing inside a `*if` branch body or `*choice` option body now create the correct graph node in the chain instead of ending up as raw text in a passage body.

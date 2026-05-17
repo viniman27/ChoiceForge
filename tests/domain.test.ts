@@ -2635,6 +2635,101 @@ test("imports *gosub in *choice option body as a gosub node", () => {
   assert.ok(graph.edges.some((e) => e.from === gosubNode!.id && e.to === gotoNode!.id), "gosub → goto edge");
 });
 
+test("imports nested *choice inside *if branch body — all options with goto terminals", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if courage > 50",
+    "  *choice",
+    "    #Fight bravely",
+    "      *goto fight_path",
+    "    #Retreat safely",
+    "      *goto flee_path",
+    "*else",
+    "  *goto coward_path",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+  assert.equal(ifNode!.branches?.length, 2);
+
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const choiceNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.ok(choiceNode, "if branch points to nested choice node");
+  assert.equal(choiceNode?.type, "choice");
+  assert.equal(choiceNode?.options?.length, 2);
+
+  const opt1Target = graph.nodes.find((n) => n.id === choiceNode!.options![0].to);
+  assert.equal(opt1Target?.type, "goto");
+  assert.ok(opt1Target?.title.includes("fight_path"));
+
+  const opt2Target = graph.nodes.find((n) => n.id === choiceNode!.options![1].to);
+  assert.equal(opt2Target?.type, "goto");
+  assert.ok(opt2Target?.title.includes("flee_path"));
+
+  const elseBranchTargetId = ifNode!.branches![1].to;
+  const elseGoto = graph.nodes.find((n) => n.id === elseBranchTargetId);
+  assert.equal(elseGoto?.type, "goto");
+  assert.ok(elseGoto?.title.includes("coward_path"));
+});
+
+test("imports nested *choice inside *if branch body — options with prose and terminal", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if courage > 50",
+    "  *choice",
+    "    #Fight",
+    "      You fight bravely!",
+    "      *finish",
+    "    #Flee",
+    "      You flee safely.",
+    "      *ending",
+    "*else",
+    "  *goto coward",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const choiceNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.equal(choiceNode?.type, "choice");
+
+  const opt1Id = choiceNode!.options![0].to;
+  const passage1 = graph.nodes.find((n) => n.id === opt1Id);
+  assert.equal(passage1?.type, "passage");
+  assert.ok(passage1?.body?.includes("You fight bravely!"));
+  assert.ok(graph.nodes.some((n) => n.type === "finish"));
+  assert.ok(graph.edges.some((e) => e.from === opt1Id && graph.nodes.find((n) => n.id === e.to)?.type === "finish"));
+
+  const opt2Id = choiceNode!.options![1].to;
+  const passage2 = graph.nodes.find((n) => n.id === opt2Id);
+  assert.equal(passage2?.type, "passage");
+  assert.ok(passage2?.body?.includes("You flee safely."));
+});
+
+test("imports nested *fake_choice inside *if branch body with following prose", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if exploring",
+    "  *fake_choice",
+    "    #Look north",
+    "      You see mountains.",
+    "    #Look south",
+    "      You see a river.",
+    "  You finish exploring.",
+    "  *finish",
+    "*else",
+    "  *ending",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const fakeChoiceNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.equal(fakeChoiceNode?.type, "fake_choice");
+  assert.equal(fakeChoiceNode?.fakeOptions?.length, 2);
+
+  const afterPassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You finish exploring."));
+  assert.ok(afterPassage, "passage after fake_choice exists");
+  assert.ok(graph.edges.some((e) => e.from === fakeChoiceNode!.id && e.to === afterPassage!.id), "fake_choice → passage edge");
+
+  assert.ok(graph.nodes.some((n) => n.type === "finish"), "finish node exists");
+});
+
 test("imports *rand in *if branch body as a rand node", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*if lucky",
