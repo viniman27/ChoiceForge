@@ -689,7 +689,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!isValidChoiceScriptIdentifier(target)) {
         issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
       } else if (!scenes.has(target)) {
-        issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, key: "gosub_scene_missing", params: { name: target }, scene: sceneName, node: node.id });
       } else {
         const entryLabel = node.body?.trim();
         if (entryLabel) {
@@ -986,7 +986,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const target = normalizeSourceIdentifier(rawTarget);
       if (!rawTarget) issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, line: lineNumber });
       else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
-      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
+      else if (!scenes.has(target)) issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, key: "gosub_scene_missing", params: { name: target }, scene: sceneName, line: lineNumber });
       else {
         const targetGraph = project.sceneData?.[target];
         const targetHasReturn = targetGraph?.sourceText
@@ -1240,7 +1240,7 @@ function lintPreservedSetLine(
     issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, scene: sceneName, line: lineNumber });
   }
   if (!variables.has(variable)) {
-    issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, key: "undef_var", params: { name: variable }, scene: sceneName, line: lineNumber });
     return;
   }
   const globalVariable = variableTypes.get(variable);
@@ -1274,7 +1274,7 @@ function lintPreservedInputCommand(
     return;
   }
   if (!variables.has(variable)) {
-    issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*${command} uses an undeclared variable: ${variable}`, key: "undef_var", params: { name: variable }, scene: sceneName, line: lineNumber });
   }
   const globalVariable = variableTypes.get(variable);
   if (command === "input_text" && globalVariable && globalVariable.type !== "string") {
@@ -1608,7 +1608,7 @@ function lintChoiceNode(
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
     extractVariableReferences(option.body ?? "").forEach((name) => {
-      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
     lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();
@@ -1645,7 +1645,7 @@ function lintFakeChoiceNode(
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
     extractVariableReferences(option.body ?? "").forEach((name) => {
-      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
     lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();

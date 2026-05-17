@@ -4862,6 +4862,42 @@ test("computeVariableUses counts variable used in *selectable_if condition in pr
   assert.ok((uses.get("score") ?? 0) > 0, "score should have a use count from *selectable_if condition");
 });
 
+test("*gosub_scene pointing to missing scene in graph emits gosub_scene_missing key", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [
+      { id: "intro", name: "intro", words: 0, nodes: 0, current: true },
+    ],
+    variables: [], achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 300, title: "*gosub_scene", target: "ghost_scene" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_scene_missing" && i.params?.name === "ghost_scene");
+  assert.ok(issue, "expected gosub_scene_missing key on *gosub_scene to unknown scene in graph");
+});
+
+test("*gosub_scene pointing to missing scene in preserved source emits gosub_scene_missing key", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*gosub_scene ghost_scene" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_scene_missing" && i.params?.name === "ghost_scene");
+  assert.ok(issue, "expected gosub_scene_missing key on *gosub_scene to unknown scene in preserved source");
+});
+
 test("undeclared variable in *if condition emits undef_var key and name param", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
