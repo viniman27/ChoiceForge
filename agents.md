@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 157
+- **Fix remaining Math.max/min spread crashes for large scenes (follow-up to session 156).**
+  - **Root cause discovered**: The graphLayout.ts fix was necessary but not sufficient. 9 additional `Math.max/min(...largeArray.map(...))` spread calls existed across `GraphCanvas.tsx` and `projectStore.ts`. The minimap one ran on EVERY render, meaning even after a successful import the canvas would crash immediately when displaying any large scene.
+  - **GraphCanvas.tsx** — fixed 4 groups: `fitNodesToViewport` (lines 901-904), minimap rendering (lines 985-988, critical — runs every render), and all 6 selection-alignment functions (alignLeft/Right/Center, alignTop/Middle/Bottom). Each replaced with `for...of` loops or `.reduce()`.
+  - **projectStore.ts** — fixed paste-node bounding box (lines 424-427).
+  - **styles.css** — increased default `.zoom-color-dot` opacity from 0.35 to 0.55 so filter dots are visible before hover/selection (addresses user feedback that dots were unclear when not active).
+  - **Files changed**: `GraphCanvas.tsx`, `projectStore.ts`, `styles.css`.
+  - **Tests**: 269 passing, no regressions. Build clean.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 156
 - **Fix `RangeError: Invalid array length` crash when importing large scenes.**
   - **Root cause**: `graphLayout.ts` line 60 used `Math.max(0, ...depth.values())` and line 85 used `Math.max(...sortedNodes.map(n => n.w), 260)`. Both spread large arrays/iterators as function arguments. JavaScript's call stack limit (~65K arguments) causes `RangeError` when a scene has thousands of nodes — which occurs when importing many/large ChoiceScript files or editing a large scene in text mode (which re-runs layout on save).

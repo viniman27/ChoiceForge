@@ -706,33 +706,33 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBul
   const hs = () => Object.fromEntries(sel.map((n) => [n.id, estimateNodeHeight(data, n.id, density)]));
 
   const alignLeft = () => {
-    const minX = Math.min(...sel.map((n) => n.x));
+    const minX = sel.reduce((a, n) => n.x < a ? n.x : a, Infinity);
     onMoveNodes(sel.map((n) => ({ id: n.id, x: minX, y: n.y })));
   };
   const alignCenterH = () => {
-    const minX = Math.min(...sel.map((n) => n.x));
-    const maxX = Math.max(...sel.map((n) => n.x + n.w));
+    const minX = sel.reduce((a, n) => n.x < a ? n.x : a, Infinity);
+    const maxX = sel.reduce((a, n) => n.x + n.w > a ? n.x + n.w : a, -Infinity);
     const cx = (minX + maxX) / 2;
     onMoveNodes(sel.map((n) => ({ id: n.id, x: Math.round(cx - n.w / 2), y: n.y })));
   };
   const alignRight = () => {
-    const maxX = Math.max(...sel.map((n) => n.x + n.w));
+    const maxX = sel.reduce((a, n) => n.x + n.w > a ? n.x + n.w : a, -Infinity);
     onMoveNodes(sel.map((n) => ({ id: n.id, x: maxX - n.w, y: n.y })));
   };
   const alignTop = () => {
-    const minY = Math.min(...sel.map((n) => n.y));
+    const minY = sel.reduce((a, n) => n.y < a ? n.y : a, Infinity);
     onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: minY })));
   };
   const alignMiddleV = () => {
     const heights = hs();
-    const minY = Math.min(...sel.map((n) => n.y));
-    const maxBY = Math.max(...sel.map((n) => n.y + heights[n.id]));
+    const minY = sel.reduce((a, n) => n.y < a ? n.y : a, Infinity);
+    const maxBY = sel.reduce((a, n) => n.y + heights[n.id] > a ? n.y + heights[n.id] : a, -Infinity);
     const cy = (minY + maxBY) / 2;
     onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: Math.round(cy - heights[n.id] / 2) })));
   };
   const alignBottom = () => {
     const heights = hs();
-    const maxBY = Math.max(...sel.map((n) => n.y + heights[n.id]));
+    const maxBY = sel.reduce((a, n) => n.y + heights[n.id] > a ? n.y + heights[n.id] : a, -Infinity);
     onMoveNodes(sel.map((n) => ({ id: n.id, x: n.x, y: maxBY - heights[n.id] })));
   };
   const distributeH = () => {
@@ -898,10 +898,14 @@ function fitNodesToViewport(
 ) {
   if (!nodes.length) return;
   const padding = 90;
-  const minX = Math.min(...nodes.map((n) => n.x));
-  const minY = Math.min(...nodes.map((n) => n.y));
-  const maxX = Math.max(...nodes.map((n) => n.x + n.w));
-  const maxY = Math.max(...nodes.map((n) => n.y + (density === "minimal" ? 44 : 120)));
+  const nodeH = density === "minimal" ? 44 : 120;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const n of nodes) {
+    if (n.x < minX) minX = n.x;
+    if (n.y < minY) minY = n.y;
+    if (n.x + n.w > maxX) maxX = n.x + n.w;
+    if (n.y + nodeH > maxY) maxY = n.y + nodeH;
+  }
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
   const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
@@ -982,10 +986,15 @@ function Minimap({
     width: viewport.width / zoom,
     height: viewport.height / zoom,
   };
-  const minX = Math.min(...data.nodes.map((node) => node.x), visibleRect.x) - 40;
-  const minY = Math.min(...data.nodes.map((node) => node.y), visibleRect.y) - 40;
-  const maxX = Math.max(...data.nodes.map((node) => node.x + node.w), visibleRect.x + visibleRect.width) + 40;
-  const maxY = Math.max(...data.nodes.map((node) => node.y + 200), visibleRect.y + visibleRect.height) + 40;
+  let minX = visibleRect.x, minY = visibleRect.y;
+  let maxX = visibleRect.x + visibleRect.width, maxY = visibleRect.y + visibleRect.height;
+  for (const node of data.nodes) {
+    if (node.x < minX) minX = node.x;
+    if (node.y < minY) minY = node.y;
+    if (node.x + node.w > maxX) maxX = node.x + node.w;
+    if (node.y + 200 > maxY) maxY = node.y + 200;
+  }
+  minX -= 40; minY -= 40; maxX += 40; maxY += 40;
   const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 
   const panToPointer = (event: React.PointerEvent<SVGSVGElement>) => {
