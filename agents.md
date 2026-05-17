@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 153
+- **Track `inputMin`/`inputMax` variable references in all four variable scanners.**
+  - **Problem**: When a `rand` or `input_number` graph node uses variable names for its min/max bounds (e.g., `inputMin: "lo"`, `inputMax: "hi"`), those variable references were not counted or tracked by `lintUnusedVariables.scanNode`, `lintUnusedTempVars.scanNode`, `computeVariableUses.scanNode`, or `computeVariableLocations.scanGraph`. Variables used only as rand bounds would be falsely flagged as unused and show zero uses in the inspector.
+  - **Fix**: Added `isValidChoiceScriptIdentifier` checks on `node.inputMin` and `node.inputMax` in all four scanners, recording them as reads (or uses) when they are valid identifiers.
+  - **Files changed**: `choicescript.ts` (8 lines added across 4 functions), `domain.test.ts` (2 new tests).
+  - **Tests**: 261 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 152
 - **Fix `normalizeSourceExpressionIdentifiers` regex including hyphen in identifier character class.**
   - **Problem**: The regex `[a-zA-Z_][a-zA-Z0-9_-]*` (note the `-` in the character class) matched hyphenated tokens like `score-5` as a single identifier. `normalizeSourceIdentifier("score-5")` would return `"score_5"`. This means `*if score-5 > 0` would have `score-5` tokenized as `score_5`, causing a false "undeclared variable: score_5" warning even when `score` is declared.
