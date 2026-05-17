@@ -3231,6 +3231,57 @@ test("*line_break in choice option body becomes a blank line, not literal text",
   assert.ok(!opt!.body!.includes("*line_break"), "option body should not contain literal *line_break");
 });
 
+test("prose before *choice is captured as choice prompt, not a separate passage node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "You stand at a crossroads.",
+    "What will you do?",
+    "*choice",
+    "  #Go left",
+    "    You go left.",
+    "    *finish",
+    "  #Go right",
+    "    You go right.",
+    "    *ending",
+  ].join("\n"));
+
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  assert.ok(choice!.prompt?.includes("You stand at a crossroads."), "prompt should contain preceding prose");
+  assert.ok(choice!.prompt?.includes("What will you do?"), "prompt should contain all prose lines");
+  const passageWithPromptText = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You stand at a crossroads."));
+  assert.equal(passageWithPromptText, undefined, "preceding prose should not create a separate passage node");
+});
+
+test("prose before *fake_choice is captured as fake_choice prompt", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "Make your selection.",
+    "*fake_choice",
+    "  #Option A",
+    "  #Option B",
+    "*finish",
+  ].join("\n"));
+
+  const fakeChoice = graph.nodes.find((n) => n.type === "fake_choice");
+  assert.ok(fakeChoice, "should have a fake_choice node");
+  assert.ok(fakeChoice!.prompt?.includes("Make your selection."), "prompt should contain preceding prose");
+  const passages = graph.nodes.filter((n) => n.type === "passage");
+  assert.equal(passages.length, 0, "no separate passage node created for prompt prose");
+});
+
+test("*choice without preceding prose still gets the default prompt", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Option A",
+    "    *finish",
+    "  #Option B",
+    "    *ending",
+  ].join("\n"));
+
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  assert.ok(choice!.prompt, "choice should still have a prompt");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

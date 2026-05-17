@@ -289,17 +289,18 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
     }
 
     if (command === "choice") {
-      flushPassage();
+      const promptText = pending.join("\n").trim();
+      pending.length = 0;
       const block = collectIndentedBlock(lines, index);
       index += block.length - 1;
       const parsedChoice = parseChoiceBlock(block, nodes.length + 1);
       if (parsedChoice) {
-        const choiceNode = addNode(parsedChoice.node);
+        const choiceNode = addNode({ ...parsedChoice.node, prompt: promptText || parsedChoice.node.prompt });
         pendingChoices.push({ nodeId: choiceNode.id, options: parsedChoice.options });
       } else {
         const inlineChoice = parseInlineChoiceBlock(block, nodes.length + 1);
         if (inlineChoice) {
-          const choiceNode = addNode(inlineChoice.node);
+          const choiceNode = addNode({ ...inlineChoice.node, prompt: promptText || inlineChoice.node.prompt });
           const inlineTargets = inlineChoice.options.map((option) => addInlineOptionNodes(option, addNode, edges));
           const options = inlineChoice.options.map((option, optionIndex): ChoiceOption => ({
             text: option.text,
@@ -324,6 +325,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
           });
           previous = choiceNode;
         } else {
+          if (promptText) addNode({ type: "passage", title: `${sceneName}_text_${nodes.length + 1}`, body: promptText });
           addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
         }
       }
@@ -331,13 +333,15 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
     }
 
     if (command === "fake_choice") {
-      flushPassage();
+      const promptText = pending.join("\n").trim();
+      pending.length = 0;
       const block = collectIndentedBlock(lines, index);
       index += block.length - 1;
       const parsedFakeChoice = parseFakeChoiceBlock(block, nodes.length + 1) ?? parseInlineFakeChoiceBlock(block, nodes.length + 1);
       if (parsedFakeChoice) {
-        addNode(parsedFakeChoice);
+        addNode({ ...parsedFakeChoice, prompt: promptText || parsedFakeChoice.prompt });
       } else {
+        if (promptText) addNode({ type: "passage", title: `${sceneName}_text_${nodes.length + 1}`, body: promptText });
         addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
       }
       continue;
