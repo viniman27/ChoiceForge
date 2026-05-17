@@ -3400,6 +3400,18 @@ test("multiple consecutive *set after prose in *if branch body merge into single
   assert.equal(setNode!.sets?.[1].var, "strength");
 });
 
+test("compound *if condition (a) and (b) is preserved without stripping inner parens", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if (strength > 50) and (courage > 30)",
+    "  You are powerful and brave.",
+    "  *finish",
+  ].join("\n"));
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "should have an if node");
+  const expr = ifNode!.branches?.[0]?.expr;
+  assert.equal(expr, "(strength > 50) and (courage > 30)", "compound expression should be preserved intact");
+});
+
 test("*if guard on choice option without parentheses is parsed correctly", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*choice",
