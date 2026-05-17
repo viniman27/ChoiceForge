@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 126
+- **Lint `*image` and `*sound` nodes with unsupported file extensions.**
+  - **Problem**: ChoiceScript only supports specific image formats (jpg, jpeg, png, gif, webp) and audio formats (mp3, ogg, wav, aac, m4a, mp4). An author referencing `hero.svg` or `theme.flac` would produce a game that silently fails to load the asset in the browser. The existing asset linting only checked whether the file was registered in `project.assets`, not whether the extension was supported.
+  - **Fix**: Added `IMAGE_EXTENSIONS`, `AUDIO_EXTENSIONS` sets and `fileExtension(filename)` helper. In `lintSceneGraph` for `image` and `sound` nodes with a non-empty target, check the extension against the appropriate set and emit a `warning` if not supported. Same check added in `lintPreservedScriptSource` for `*image` and `*sound` command lines. Refactored the existing asset-registry check to share the extracted filename variable.
+  - **Files changed**: `choicescript.ts` (3 new constants + helper, updated image/sound checks in both lintSceneGraph and lintPreservedScriptSource), `domain.test.ts` (3 new tests).
+  - **Tests**: 218 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 125
 - **Lint variable/temp/params names that clash with ChoiceScript reserved words.**
   - **Problem**: ChoiceScript treats `true`, `false`, `not`, `and`, `or`, and `modulo` as keywords/operators. A variable named any of these passes `isValidChoiceScriptIdentifier` (it's lowercase alphanumeric) but would cause ChoiceScript parse errors at runtime since the engine would interpret the identifier as a literal or operator rather than a variable name.

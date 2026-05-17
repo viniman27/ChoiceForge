@@ -722,14 +722,28 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "image" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
     }
-    if (node.type === "image" && node.target?.trim() && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], node.target.trim())) {
-      issues.push({ level: "warning", msg: `*image references an unknown asset file: ${node.target.trim()}`, key: "image_unknown", params: { name: node.target.trim() }, scene: sceneName, node: node.id });
+    if (node.type === "image" && node.target?.trim()) {
+      const imageTarget = node.target.trim();
+      const imageFile = imageTarget.split("/").pop() ?? imageTarget;
+      if (!IMAGE_EXTENSIONS.has(fileExtension(imageFile))) {
+        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${imageFile}`, scene: sceneName, node: node.id });
+      }
+      if ((project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], imageTarget)) {
+        issues.push({ level: "warning", msg: `*image references an unknown asset file: ${imageTarget}`, key: "image_unknown", params: { name: imageTarget }, scene: sceneName, node: node.id });
+      }
     }
     if (node.type === "sound" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, node: node.id });
     }
-    if (node.type === "sound" && node.target?.trim() && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], node.target.trim())) {
-      issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${node.target.trim()}`, key: "sound_unknown", params: { name: node.target.trim() }, scene: sceneName, node: node.id });
+    if (node.type === "sound" && node.target?.trim()) {
+      const soundTarget = node.target.trim();
+      const soundFile = soundTarget.split("/").pop() ?? soundTarget;
+      if (!AUDIO_EXTENSIONS.has(fileExtension(soundFile))) {
+        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${soundFile}`, scene: sceneName, node: node.id });
+      }
+      if ((project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], soundTarget)) {
+        issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${soundTarget}`, key: "sound_unknown", params: { name: soundTarget }, scene: sceneName, node: node.id });
+      }
     }
 
     if (node.type === "goto") {
@@ -955,6 +969,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "image") {
       const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
+      if (filename && !IMAGE_EXTENSIONS.has(fileExtension(filename))) {
+        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${filename}`, scene: sceneName, line: lineNumber });
+      }
       if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
         issues.push({ level: "warning", msg: `*image references an unknown asset file: ${filename}`, key: "image_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
@@ -962,6 +979,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "sound") {
       const filename = sourceCommandValue(trimmed, "*sound").split(/\s+/)[0] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, line: lineNumber });
+      if (filename && !AUDIO_EXTENSIONS.has(fileExtension(filename))) {
+        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${filename}`, scene: sceneName, line: lineNumber });
+      }
       if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
         issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${filename}`, key: "sound_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
@@ -1588,6 +1608,13 @@ function isKnownAsset(assets: ChoiceForgeProject["assets"], target: string): boo
     const assetBase = (asset.fileName ?? asset.path.split("/").pop()) ?? "";
     return assetBase === baseName;
   });
+}
+
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const AUDIO_EXTENSIONS = new Set(["mp3", "ogg", "wav", "aac", "m4a", "mp4"]);
+
+function fileExtension(filename: string): string {
+  return (filename.split(".").pop() ?? "").toLowerCase();
 }
 
 function mergeGraphEdges(...edgeGroups: StoryEdge[][]): StoryEdge[] {
