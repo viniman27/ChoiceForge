@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 119
+- **Warn when `*gosub_scene` calls a scene with no `*return`.**
+  - **Problem**: `*gosub_scene` calls a subroutine scene and expects to resume after it via a `*return`. If the called scene has no `*return` node, the game will either crash or hang. We already warned when the calling scene had no flow-continuation edge, but we didn't check the target scene itself.
+  - **Fix**: Inside the `gosub_scene` validation block in `lintSceneGraph`, after verifying the target scene exists, look it up via `getSceneGraph`. For visual scenes: check if any node has `type === "return"`. For preserved-source scenes: scan each line via `sourceCommand` for `"return"`. Emit a `warning` if neither is found.
+  - **Files changed**: `choicescript.ts` (+7 lines inside the gosub_scene `else` block), `domain.test.ts` (3 new tests: no return warns, has return doesn't warn, preserved source without return warns).
+  - **Tests**: 201 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 118
 - **Lint variable interpolations in choice option text and choice/node prompts.**
   - **Problem**: `lintChoiceNode` and `lintFakeChoiceNode` scanned `option.body` for `${var}` / `@{var}` references but not `option.text` (the visible label shown to the player). `lintSceneGraph`'s main loop scanned `node.body` but not `node.prompt` (the preamble text before `*choice`/`*fake_choice`). Authors can and do use variable interpolation in option labels (`Ask about ${topic}.`) and prompts (`You are ${rank}. What do you do?`).
