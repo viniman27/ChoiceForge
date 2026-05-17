@@ -334,7 +334,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       flushPassage();
       const block = collectIndentedBlock(lines, index);
       index += block.length - 1;
-      const parsedFakeChoice = parseFakeChoiceBlock(block, nodes.length + 1);
+      const parsedFakeChoice = parseFakeChoiceBlock(block, nodes.length + 1) ?? parseInlineFakeChoiceBlock(block, nodes.length + 1);
       if (parsedFakeChoice) {
         addNode(parsedFakeChoice);
       } else {
@@ -937,6 +937,56 @@ function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, 
     fakeOptions: options,
     w: 360,
   };
+}
+
+function parseInlineFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
+  const options: FakeChoiceOption[] = [];
+  let current: { option: FakeChoiceOption; bodyLines: string[] } | null = null;
+
+  for (const line of block.slice(1)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (current) current.bodyLines.push("");
+      continue;
+    }
+    const header = parseChoiceHeader(trimmed);
+    if (header && isChoiceOptionHeaderLine(line)) {
+      if (current) options.push(flushInlineFakeOption(current));
+      current = { option: { text: header.text, cond: header.cond ?? null, reuse: header.reuse, hideReuse: header.hideReuse, sets: [] }, bodyLines: [] };
+      continue;
+    }
+    if (!current) return null;
+    const bodyLine = removeChoiceOptionIndent(line);
+    const bodyCommand = commandName(bodyLine);
+    if (bodyCommand === "set") {
+      const set = parseSet(commandValue(bodyLine.trim(), "*set"));
+      if (set) current.option.sets = [...(current.option.sets ?? []), set];
+      continue;
+    }
+    if (bodyCommand === "comment") continue;
+    current.bodyLines.push(bodyLine);
+  }
+
+  if (current) options.push(flushInlineFakeOption(current));
+  if (!options.length || options.every((opt) => !opt.body)) return null;
+  return {
+    type: "fake_choice",
+    title: `imported_fake_choice_${index}`,
+    prompt: "Choose:",
+    fakeOptions: options,
+    w: 360,
+  };
+}
+
+function flushInlineFakeOption(current: { option: FakeChoiceOption; bodyLines: string[] }): FakeChoiceOption {
+  const firstContent = current.bodyLines.findIndex((line) => line.trim());
+  let lastContent = -1;
+  for (let i = current.bodyLines.length - 1; i >= 0; i -= 1) {
+    if (current.bodyLines[i].trim()) { lastContent = i; break; }
+  }
+  const trimmed = firstContent >= 0 ? current.bodyLines.slice(firstContent, lastContent + 1) : [];
+  const body = trimmed.join("\n").trim() || undefined;
+  return { ...current.option, body };
 }
 
 function parseIfBlock(block: string[], index: number): { node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }; branches: ImportedConditionalBranch[] } | null {

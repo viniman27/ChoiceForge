@@ -188,7 +188,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
         {!hasError && hasWarning && <span className="node-flag node-flag-warn" title="warning">⚠</span>}
       </div>
 
-      {!isMinimal && node.body && <div className="node-body"><p className="narrative">{highlightInline(node.body)}</p></div>}
+      {!isMinimal && node.body && <div className="node-body"><p className="narrative narrative-clip">{highlightInline(node.body)}</p></div>}
       {!isMinimal && node.prompt && <div className="node-prompt">{highlightInline(node.prompt)}</div>}
 
       {!isMinimal && node.options && (
@@ -199,6 +199,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
               <span className="opt-text">{highlightInline(option.text)}</span>
               {isRich && option.cond && <span className="cond-badge"><span className="cond-key">*{option.cond.type}</span><code>{option.cond.expr}</code></span>}
               {isRich && choiceReuseLabel(option) && <span className="opt-tag">{choiceReuseLabel(option)}</span>}
+              {isRich && option.body && <p className="opt-body">{option.body.length > 72 ? `${option.body.slice(0, 70)}…` : option.body}</p>}
             </li>
           ))}
         </ul>
@@ -212,6 +213,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
               <span className="opt-text">{highlightInline(option.text)}</span>
               {isRich && option.cond && <span className="cond-badge"><span className="cond-key">*{option.cond.type}</span><code>{option.cond.expr}</code></span>}
               {isRich && choiceReuseLabel(option) && <span className="opt-tag">{choiceReuseLabel(option)}</span>}
+              {isRich && option.body && <p className="opt-body">{option.body.length > 72 ? `${option.body.slice(0, 70)}…` : option.body}</p>}
             </li>
           ))}
         </ul>
