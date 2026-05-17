@@ -452,6 +452,10 @@ function ContentTab({
     return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} onSelectNode={onSelectNode} />;
   }
 
+  if (node.type === "achieve") {
+    return <AchieveNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
+  }
+
   return <div className="ip-content"><p className="dim">Simple node - no content fields.</p></div>;
 }
 
@@ -485,6 +489,38 @@ function AchievementInsert({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AchieveNodeFields({
+  node,
+  project,
+  onUpdateNode,
+}: {
+  node: StoryNode;
+  project: ChoiceForgeProject;
+  onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
+}) {
+  const currentId = node.target?.trim() ?? "";
+  const set = (id: string) => {
+    const normalized = normalizeIdentifier(id);
+    onUpdateNode(node.id, { target: normalized, title: `*achieve ${normalized}`.trimEnd() });
+  };
+
+  return (
+    <div className="ip-content">
+      <label className="ip-label">achievement</label>
+      {project.achievements.length > 0 ? (
+        <select className="command-input" value={currentId} onChange={(event) => set(event.target.value)}>
+          {!currentId && <option value="">— select —</option>}
+          {project.achievements.map((achievement) => (
+            <option key={achievement.id} value={achievement.id}>{achievement.id} — {achievement.title}</option>
+          ))}
+        </select>
+      ) : (
+        <input className="command-input" value={currentId} placeholder="achievement_id" onChange={(event) => set(event.target.value)} />
+      )}
     </div>
   );
 }

@@ -27,7 +27,8 @@ export type NodeType =
   | "image"
   | "sound"
   | "temp"
-  | "params";
+  | "params"
+  | "achieve";
 
 export interface SceneSummary {
   id: string;

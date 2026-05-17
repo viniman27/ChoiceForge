@@ -31,7 +31,7 @@ const creatableNodeTypes: NodeType[] = [
   "passage", "choice", "fake_choice", "if", "set", "label", "goto", "goto_scene",
   "gosub", "gosub_scene", "return", "input_text", "input_number", "rand",
   "image", "sound", "temp", "params", "page_break", "checkpoint", "restore_checkpoint",
-  "comment", "finish", "ending",
+  "comment", "finish", "ending", "achieve",
 ];
 const TOOLBAR_WIDTH_KEY = "choiceforge.canvasToolbarWidth.v1";
 const SNAP_KEY = "choiceforge.snap.v1";

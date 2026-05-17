@@ -13,7 +13,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 ## Current Implementation Status
 
 ### Done
-- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements (23 NodeTypes including `temp` and `params`)
+- Full TypeScript domain model (`src/domain/types.ts`) for nodes, edges, scenes, variables, achievements (24 NodeTypes including `temp`, `params`, and `achieve`)
 - ChoiceScript code generator (`src/domain/choicescript.ts`): produces valid `.txt` output from the graph model
 - Real-time linter (`lintProject`) runs across every playable scene and covers empty project title/author, empty achievement titles/descriptions, invalid achievement points, unsafe/duplicate asset metadata, duplicate exported asset files, malformed asset data URLs, asset export path collisions, orphan nodes, missing labels, undefined variables/achievements, dead-end nodes, empty choices, empty page break labels, empty checkpoint names, invalid `*goto_scene` targets, input bounds, invalid stat operators, scene reachability (`lintSceneReachability` warns when scenes have no incoming connections), temp variable shadowing, and preserved-source diagnostics for imported `startup.txt`, `choicescript_stats.txt`, and scene files
 - Project state management (`src/state/projectStore.ts`) using React `useState` with localStorage autosave, manual Save, Ctrl/Cmd+S, and pagehide/visibilitychange flush
@@ -342,6 +342,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 101
+- **New node type: `*achieve`** — adds first-class graph support for the ChoiceScript achievement-unlock command.
+  - **`types.ts`**: Added `"achieve"` to the `NodeType` union. Stores achievement ID in `node.target`.
+  - **`choicescript.ts`**: Code generator emits `*achieve ${node.target}`; linter checks that target is non-empty, a valid identifier, and declared in the project's achievements list.
+  - **`projectStore.ts`**: `defaultNodeTitle`, `createStoryNode` (picks first achievement ID), `renameNodeAchievement` (updates both `node.body` inline commands AND `achieve` node `target`/`title`), `removeNodeAchievement` (clears `target` + `title` for `achieve` nodes instead of removing them).
+  - **`choicescriptImport.ts`**: `simpleCommandNode` handles `"achieve"` → creates `{ type: "achieve", target: id }`. Added `"achieve"` to `BODY_STRUCTURED_COMMANDS` so `*achieve` inside branch/option bodies becomes a proper node via `buildBodyNodeChain`.
+  - **`NodeCard.tsx`**: Added `achieve` to `typeColors` (new amber/gold `--c-achieve` color) and `NodeIcon` (star shape). Target displayed inline (no `.txt` suffix).
+  - **`styles.css`**: Added `--c-achieve` / `--c-achieve-tint` color variables for light and dark themes.
+  - **`RightPanel.tsx`**: `AchieveNodeFields` component — shows a `<select>` over all declared achievements (with ID + title) when achievements exist, or a plain text input for the ID otherwise.
+  - **`GraphCanvas.tsx`**: Added `"achieve"` to `creatableNodeTypes` (toolbar).
+  - **`Dashboard.tsx`**: Added `achieve: "var(--c-achieve)"` to the `summarizeNodeTypes` color map.
+  - **`PlaytestView.tsx`**: `achieve` node auto-advances on flow edge and registers the achievement ID in `earnedAchievements`.
+  - **`sampleProject.ts`**: i18n labels added for PT (`"conquista"`), EN (`"achieve"`), ES (`"logro"`).
+  - **Tests**: 6 new tests — import in scene body, import in `*if` branch, import in `*choice` option, lint error for undeclared achievement, no error for valid achievement, code generation. Total: **146 tests, all passing**.
 
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 100
 - **Import: nested `*if`/`*elseif`/`*else` blocks inside branch/option bodies.**

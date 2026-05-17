@@ -167,6 +167,11 @@ export function PlaytestView({ project, onClose, onNavigateToNode }: PlaytestVie
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);
     }
+    if (node.type === "achieve") {
+      if (node.target?.trim()) setEarnedAchievements((prev) => (prev.includes(node.target!) ? prev : [...prev, node.target!]));
+      const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
+      if (flowTarget) setNodeId(flowTarget);
+    }
     if (node.type === "comment" || node.type === "label" || node.type === "sound") {
       const flowTarget = graph.edges.find((edge) => edge.from === node.id && edge.kind === "flow")?.to;
       if (flowTarget) setNodeId(flowTarget);

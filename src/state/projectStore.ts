@@ -886,6 +886,8 @@ function renameNodeAchievement(node: StoryNode, from: string, to: string): Story
   return {
     ...node,
     body: node.body ? replaceAchievementCommand(node.body, from, to) : node.body,
+    target: node.type === "achieve" && node.target === from ? to : node.target,
+    title: node.type === "achieve" && node.target === from ? `*achieve ${to}` : node.title,
   };
 }
 
@@ -893,6 +895,8 @@ function removeNodeAchievement(node: StoryNode, id: string): StoryNode {
   return {
     ...node,
     body: node.body ? removeAchievementCommand(node.body, id) : node.body,
+    target: node.type === "achieve" && node.target === id ? "" : node.target,
+    title: node.type === "achieve" && node.target === id ? "*achieve" : node.title,
   };
 }
 
@@ -1351,6 +1355,10 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "sound") return { ...base, title: "*sound", target: "" };
   if (type === "temp") return { ...base, title: "*temp temp_var", inputVar: "temp_var", body: "0" };
   if (type === "params") return { ...base, title: "*params", body: "" };
+  if (type === "achieve") {
+    const firstAch = project.achievements[0]?.id ?? "achievement";
+    return { ...base, title: `*achieve ${firstAch}`, target: firstAch };
+  }
   return { ...base, title: "*ending" };
 }
 
@@ -1380,6 +1388,7 @@ function defaultNodeTitle(type: NodeType): string {
     sound: "*sound",
     temp: "*temp",
     params: "*params",
+    achieve: "*achieve",
   };
   return titles[type];
 }
