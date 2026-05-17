@@ -674,6 +674,13 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
             issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, node: node.id });
           }
         }
+        const targetGraph = getSceneGraph(project, target);
+        const targetHasReturn = targetGraph.sourceText
+          ? targetGraph.sourceText.split(/\r?\n/).some((l) => sourceCommand(l.trim()) === "return")
+          : targetGraph.nodes.some((n) => n.type === "return");
+        if (!targetHasReturn) {
+          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, scene: sceneName, node: node.id });
+        }
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
         issues.push({ level: "warning", msg: "*gosub_scene has no flow continuation for the return", scene: sceneName, node: node.id });

@@ -1549,6 +1549,89 @@ test("warns about gosub_scene nodes without flow continuation", () => {
   assert.ok(warnings.some((message) => message.includes("no flow continuation")));
 });
 
+test("warns when gosub_scene target scene has no *return node", () => {
+  const callerGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene helper", target: "helper" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const helperGraph: SceneGraph = {
+    nodes: [{ id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "helper body", body: "Helper text." }],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "helper", name: "helper", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: callerGraph, helper: helperGraph },
+    sceneTitle: "intro",
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning").map((i) => i.msg);
+  assert.ok(warnings.some((m) => m.includes('scene "helper"') && m.includes("no *return")));
+});
+
+test("does not warn when gosub_scene target scene has a *return node", () => {
+  const callerGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene helper", target: "helper" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const helperGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "helper body", body: "Helper text." },
+      { id: "n2", type: "return", x: 0, y: 160, w: 240, title: "*return" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "helper", name: "helper", words: 0, nodes: 2 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: callerGraph, helper: helperGraph },
+    sceneTitle: "intro",
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("no *return")).map((i) => i.msg);
+  assert.equal(warnings.length, 0);
+});
+
+test("warns when gosub_scene target is a preserved source scene with no *return", () => {
+  const callerGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene helper", target: "helper" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "helper", name: "helper", words: 0, nodes: 0 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: {
+      intro: callerGraph,
+      helper: { nodes: [], edges: [], sourceText: "Some helper prose.\n*finish" },
+    },
+    sceneTitle: "intro",
+  };
+  const warnings = lintProject(project).filter((i) => i.level === "warning" && i.msg.includes("no *return")).map((i) => i.msg);
+  assert.ok(warnings.some((m) => m.includes('scene "helper"')));
+});
+
 test("warns about image nodes with missing filename", () => {
   const graph: SceneGraph = {
     nodes: [
