@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 100
+- **Import: nested `*if`/`*elseif`/`*else` blocks inside branch/option bodies.**
+  - **Problem**: `*if` blocks appearing inside a `*if` branch body or `*choice` option body were not recognized — the entire `*if` block (including `*elseif`/`*else` continuations and their indented bodies) fell through to the prose buffer as raw text.
+  - **`buildBodyNodeChain` upgraded** (`choicescriptImport.ts`): Added `command === "if"` case. Uses index-based look-ahead to collect: (1) the `*if` line + its indented body, then (2) any `*elseif`/`*else` continuations at the same level, each with their own indented body. The collected block is parsed with the existing `parseInlineIfBlock`. On success, creates the if node with `linkAll`, processes each branch via `addInlineBranchNodes` (recursively handles arbitrarily-deep nesting), then resets `prevId = null` and stows branch continuations into `pendingLinks`.
+  - **`addInlineOptionNodes` — `isPureProse` guard updated**: Now also excludes `"if"` from being treated as pure prose.
+  - **Tests**: 3 new tests — nested `*if`/`*else` inside `*if` branch body with goto terminals (verifies outer branch points to prose node, prose chains to inner if, inner branches lead to correct gotos); nested `*if`/`*elseif`/`*else` inside `*choice` option body with goto terminals in every branch; nested `*if`/`*else` inside `*choice` option body with prose continuing after the nested if (pendingLinks drain into the continuation passage, which then flows to finish). Total: **140 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 99
 - **Import: nested `*choice`/`*fake_choice` blocks inside `*if` branch bodies (and `*choice` option bodies).**
   - **Problem**: `*choice` or `*fake_choice` blocks appearing inside an `*if` branch body were not recognized — the block lines (including option headers and their bodies) ended up as raw text inside a passage node.

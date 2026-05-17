@@ -1264,6 +1264,47 @@ function buildBodyNodeChain(
       continue;
     }
 
+    if (command === "if") {
+      flushProse();
+      const block = [line];
+      while (i < bodyLines.length && (/^\s/.test(bodyLines[i]) || !bodyLines[i].trim())) {
+        block.push(bodyLines[i]);
+        i += 1;
+      }
+      while (i < bodyLines.length) {
+        const nextCmd = commandName(bodyLines[i].trim());
+        if (nextCmd !== "elseif" && nextCmd !== "else") break;
+        block.push(bodyLines[i]);
+        i += 1;
+        while (i < bodyLines.length && (/^\s/.test(bodyLines[i]) || !bodyLines[i].trim())) {
+          block.push(bodyLines[i]);
+          i += 1;
+        }
+      }
+      const inlineIf = parseInlineIfBlock(block, 1);
+      if (inlineIf) {
+        const ifNode = addNode(inlineIf.node, false);
+        linkAll(ifNode.id);
+        const branchTargets = inlineIf.branches.map((branch) => addInlineBranchNodes(branch, addNode, edges));
+        const branches = inlineIf.branches.map((branch, idx) => ({
+          kind: branch.kind,
+          expr: branch.expr,
+          to: branchTargets[idx].targetId,
+          sets: branch.sets.length ? branch.sets : undefined,
+        }));
+        ifNode.branches = branches;
+        branches.forEach((branch) => {
+          edges.push({ from: ifNode.id, to: branch.to, kind: branch.kind, label: branch.kind === "else" ? "*else" : `*${branch.kind}` });
+        });
+        prevId = null;
+        pendingLinks.length = 0;
+        branchTargets.forEach((t) => { if (t.continuationId) pendingLinks.push(t.continuationId); });
+      } else {
+        proseBuf.push(...block);
+      }
+      continue;
+    }
+
     if (command && BODY_STRUCTURED_COMMANDS.has(command)) {
       flushProse();
       const cmdNode = simpleCommandNode(command, trimmed, 1);
@@ -1315,7 +1356,7 @@ function addInlineOptionNodes(
 ): { targetId: string; continuationId: string | null; body?: string } {
   const isPureProse = option.bodyLines.every((line) => {
     const cmd = commandName(line.trim());
-    return !cmd || (!BODY_TERMINAL_COMMANDS.has(cmd) && !BODY_STRUCTURED_COMMANDS.has(cmd) && cmd !== "comment" && cmd !== "choice" && cmd !== "fake_choice");
+    return !cmd || (!BODY_TERMINAL_COMMANDS.has(cmd) && !BODY_STRUCTURED_COMMANDS.has(cmd) && cmd !== "comment" && cmd !== "choice" && cmd !== "fake_choice" && cmd !== "if");
   });
 
   if (isPureProse) {

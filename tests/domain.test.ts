@@ -2907,6 +2907,101 @@ test("does not report referenced *label as unreferenced", () => {
   assert.ok(!issues.some((i) => i.msg.includes("never referenced")));
 });
 
+test("imports nested *if inside *if branch body with goto terminals", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if courage > 50",
+    "  You feel brave.",
+    "  *if has_sword",
+    "    *goto fight_armed",
+    "  *else",
+    "    *goto fight_unarmed",
+    "*else",
+    "  *goto flee",
+  ].join("\n"));
+
+  const outerIf = graph.nodes.find((n) => n.type === "if");
+  assert.ok(outerIf, "outer if node exists");
+  assert.equal(outerIf!.branches?.length, 2);
+
+  const bravePassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You feel brave."));
+  assert.ok(bravePassage, "prose before nested if exists");
+  assert.equal(outerIf!.branches![0].to, bravePassage!.id, "outer if branch[0] points to brave passage");
+  assert.ok(graph.edges.some((e) => e.from === outerIf!.id && e.to === bravePassage!.id), "outer if → brave passage edge");
+
+  const innerIf = graph.nodes.find((n) => n.type === "if" && n !== outerIf);
+  assert.ok(innerIf, "inner *if node exists");
+  assert.equal(innerIf!.branches?.length, 2);
+
+  const gotoArmed = graph.nodes.find((n) => n.type === "goto" && n.title.includes("fight_armed"));
+  const gotoUnarmed = graph.nodes.find((n) => n.type === "goto" && n.title.includes("fight_unarmed"));
+  const gotoFlee = graph.nodes.find((n) => n.type === "goto" && n.title.includes("flee"));
+  assert.ok(gotoArmed, "goto fight_armed exists");
+  assert.ok(gotoUnarmed, "goto fight_unarmed exists");
+  assert.ok(gotoFlee, "goto flee exists");
+});
+
+test("imports nested *if inside *choice option body with elseif", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Search the room",
+    "    *if perception > 3",
+    "      You find a hidden key.",
+    "      *goto found_key",
+    "    *elseif perception > 1",
+    "      You find nothing of note.",
+    "      *goto found_nothing",
+    "    *else",
+    "      You miss everything.",
+    "      *goto missed_all",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+  assert.equal(choiceNode!.options?.length, 1);
+
+  const innerIf = graph.nodes.find((n) => n.type === "if");
+  assert.ok(innerIf, "nested if node inside option exists");
+  assert.equal(innerIf!.branches?.length, 3);
+
+  const foundKey = graph.nodes.find((n) => n.type === "goto" && n.title.includes("found_key"));
+  const foundNothing = graph.nodes.find((n) => n.type === "goto" && n.title.includes("found_nothing"));
+  const missedAll = graph.nodes.find((n) => n.type === "goto" && n.title.includes("missed_all"));
+  assert.ok(foundKey, "goto found_key exists");
+  assert.ok(foundNothing, "goto found_nothing exists");
+  assert.ok(missedAll, "goto missed_all exists");
+
+  const keyPassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You find a hidden key."));
+  assert.ok(keyPassage, "prose inside *if branch preserved");
+});
+
+test("imports nested *if inside *choice option body — prose continues after if", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Investigate",
+    "    You approach cautiously.",
+    "    *if has_lantern",
+    "      You light the lantern.",
+    "    *else",
+    "      You grope in the dark.",
+    "    You press on regardless.",
+    "    *finish",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+
+  const innerIf = graph.nodes.find((n) => n.type === "if");
+  assert.ok(innerIf, "nested if inside option exists");
+  assert.equal(innerIf!.branches?.length, 2);
+
+  const afterPassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You press on regardless."));
+  assert.ok(afterPassage, "prose after nested if exists");
+
+  const finishNode = graph.nodes.find((n) => n.type === "finish");
+  assert.ok(finishNode, "finish node exists");
+  assert.ok(graph.edges.some((e) => e.from === afterPassage!.id && e.to === finishNode!.id), "prose → finish edge");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
