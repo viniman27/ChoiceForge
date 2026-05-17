@@ -3319,6 +3319,87 @@ test("prose before *fake_choice inside *if branch body is captured as fake_choic
   assert.equal(passageWithPromptText, undefined, "preceding branch prose should not create a separate passage node");
 });
 
+test("*set at start of *if branch body (before prose) is extracted to branch.sets", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  *set courage +1",
+    "  You step forward.",
+    "  *finish",
+  ].join("\n"));
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "should have an if node");
+  const branch = ifNode!.branches?.[0];
+  assert.deepEqual(branch?.sets, [{ var: "courage", op: "+", val: "1" }]);
+  const passage = graph.nodes.find((n) => n.type === "passage");
+  assert.ok(passage?.body?.includes("You step forward."), "passage body should have prose");
+});
+
+test("*set after prose in *if branch body becomes a set node in the graph", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  You step forward.",
+    "  *set courage +1",
+    "  *finish",
+  ].join("\n"));
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "should have an if node");
+  const branch = ifNode!.branches?.[0];
+  assert.deepEqual(branch?.sets ?? [], [], "no sets in branch.sets when set appears after prose");
+  const setNode = graph.nodes.find((n) => n.type === "set");
+  assert.ok(setNode, "should have a set node in the graph");
+  assert.deepEqual(setNode!.sets, [{ var: "courage", op: "+", val: "1" }]);
+  const passage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You step forward."));
+  assert.ok(passage, "should have a passage with prose");
+});
+
+test("*set at start of inline choice option body (before prose) is extracted to option.sets", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Be brave",
+    "    *set courage +1",
+    "    You step forward.",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  const option = choice!.options?.[0];
+  assert.ok(option, "should have an option");
+  assert.deepEqual(option!.sets, [{ var: "courage", op: "+", val: "1" }]);
+});
+
+test("*set after prose in inline choice option body becomes a set node in the graph", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Be brave",
+    "    You step forward.",
+    "    *set courage +1",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  const option = choice!.options?.[0];
+  assert.ok(option, "option should exist");
+  assert.deepEqual(option!.sets ?? [], [], "no sets in option.sets when set appears after prose");
+  const setNode = graph.nodes.find((n) => n.type === "set");
+  assert.ok(setNode, "should have a set node in the graph");
+  assert.deepEqual(setNode!.sets, [{ var: "courage", op: "+", val: "1" }]);
+});
+
+test("multiple consecutive *set after prose in *if branch body merge into single set node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  You step forward.",
+    "  *set courage +1",
+    "  *set strength +2",
+    "  *finish",
+  ].join("\n"));
+  const setNode = graph.nodes.find((n) => n.type === "set");
+  assert.ok(setNode, "should have a set node");
+  assert.equal(setNode!.sets?.length, 2, "should have two sets merged");
+  assert.equal(setNode!.sets?.[0].var, "courage");
+  assert.equal(setNode!.sets?.[1].var, "strength");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

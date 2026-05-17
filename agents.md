@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 110
+- **Import hardening: `*set` ordering in branch/option bodies + compact operator parsing.**
+  - **Problem 1 (ordering)**: `parseInlineIfBlock`, `parseInlineChoiceBlock`, and `parseInlineFakeChoiceBlock` extracted ALL `*set` commands from branch/option bodies into `branch.sets`/`option.sets` regardless of position. If prose appeared BEFORE a `*set`, the set was still pulled out and placed before the prose in the generated output — silently changing execution order.
+  - **Fix 1**: Changed all three parsers to only extract `*set` into `sets` while `bodyLines` is still empty (i.e., no other content has been seen in the current branch/option yet). `*set` after prose stays in `bodyLines` for `buildBodyNodeChain` to process in correct sequence.
+  - **Problem 2 (compact op)**: `parseSet` didn't handle compact operator form (`*set courage +1` with no space between op and value). `"courage +1".split(" ")` yields `["courage", "+1"]`; `"+1"` is not a known op, so it was silently stored as `{ op: "=", val: "+1" }`.
+  - **Fix 2**: Added compact-operator regex to `parseSet`: `maybeOp.match(/^(%[+-]|[+\-])(.+)$/)` splits `+1` into op `+` and val `1`.
+  - **Fix 3**: Added `"set"` to `BODY_STRUCTURED_COMMANDS` so `*set` anywhere in `buildBodyNodeChain` body lines creates a proper set node (with consecutive merging) rather than falling through to prose buffer.
+  - **Files changed**: `choicescriptImport.ts` (parseSet, BODY_STRUCTURED_COMMANDS, buildBodyNodeChain, parseInlineIfBlock, parseInlineChoiceBlock, parseInlineFakeChoiceBlock), `domain.test.ts` (5 new tests).
+  - **Tests**: 165 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 109
 - **Lint message localization (PT/ES) + BottomBar i18n.**
   - **Problem**: All ~90 lint messages in `choicescript.ts` were English-only despite the bilingual UI — explicitly listed as a known v1.0 gap in agents.md.

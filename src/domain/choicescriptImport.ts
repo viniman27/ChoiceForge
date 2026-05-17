@@ -792,6 +792,12 @@ function parseSet(value: string): VariableSet | null {
     const setValue = rest.join(" ").trim();
     return setValue ? { var: normalizedVariable, op: maybeOp as VariableSet["op"], val: setValue } : null;
   }
+  const compactOp = maybeOp.match(/^(%[+-]|[+\-])(.+)$/);
+  if (compactOp) {
+    const op = compactOp[1] as VariableSet["op"];
+    const val = [compactOp[2], ...rest].join(" ").trim();
+    return val ? { var: normalizedVariable, op, val } : null;
+  }
   return { var: normalizedVariable, op: "=", val: [maybeOp, ...rest].join(" ").trim() };
 }
 
@@ -982,10 +988,9 @@ function parseInlineChoiceBlock(block: string[], index: number): { node: Importe
       ? removeChoiceOptionIndent(removeChoiceOptionIndent(line))
       : removeChoiceOptionIndent(line);
     const bodyCommand = commandName(bodyLine);
-    if (bodyCommand === "set") {
+    if (bodyCommand === "set" && current.bodyLines.length === 0) {
       const set = parseSet(commandValue(bodyLine.trim(), "*set"));
-      if (set) current.sets.push(set);
-      continue;
+      if (set) { current.sets.push(set); continue; }
     }
     current.bodyLines.push(bodyLine);
   }
@@ -1108,10 +1113,9 @@ function parseInlineFakeChoiceBlock(block: string[], index: number): (Omit<Story
       ? removeChoiceOptionIndent(removeChoiceOptionIndent(line))
       : removeChoiceOptionIndent(line);
     const bodyCommand = commandName(bodyLine);
-    if (bodyCommand === "set") {
+    if (bodyCommand === "set" && current.bodyLines.length === 0) {
       const set = parseSet(commandValue(bodyLine.trim(), "*set"));
-      if (set) current.option.sets = [...(current.option.sets ?? []), set];
-      continue;
+      if (set) { current.option.sets = [...(current.option.sets ?? []), set]; continue; }
     }
     if (bodyCommand === "comment") continue;
     current.bodyLines.push(bodyLine);
@@ -1200,10 +1204,9 @@ function parseInlineIfBlock(block: string[], index: number): { node: ImportedNod
     if (!current) return null;
     const bodyLine = removeOneIndent(line);
     const bodyCommand = commandName(bodyLine);
-    if (bodyCommand === "set") {
+    if (bodyCommand === "set" && current.bodyLines.length === 0) {
       const set = parseSet(commandValue(bodyLine.trim(), "*set"));
-      if (set) current.sets.push(set);
-      continue;
+      if (set) { current.sets.push(set); continue; }
     }
     current.bodyLines.push(bodyLine);
   }
@@ -1223,7 +1226,7 @@ function parseInlineIfBlock(block: string[], index: number): { node: ImportedNod
 }
 
 const BODY_TERMINAL_COMMANDS = new Set(["goto", "goto_scene", "return", "restore_checkpoint", "finish", "ending"]);
-const BODY_STRUCTURED_COMMANDS = new Set(["gosub", "gosub_scene", "page_break", "rand", "input_text", "input_number", "save_checkpoint", "temp", "image", "sound", "achieve"]);
+const BODY_STRUCTURED_COMMANDS = new Set(["set", "gosub", "gosub_scene", "page_break", "rand", "input_text", "input_number", "save_checkpoint", "temp", "image", "sound", "achieve"]);
 
 function buildBodyNodeChain(
   bodyLines: string[],
@@ -1354,6 +1357,26 @@ function buildBodyNodeChain(
         branchTargets.forEach((t) => { if (t.continuationId) pendingLinks.push(t.continuationId); });
       } else {
         proseBuf.push(...block);
+      }
+      continue;
+    }
+
+    if (command === "set") {
+      flushProse();
+      const firstSet = parseSet(commandValue(trimmed, "*set"));
+      if (firstSet) {
+        const sets: VariableSet[] = [firstSet];
+        while (i < bodyLines.length) {
+          const nextTrimmed = bodyLines[i].trim();
+          if (commandName(nextTrimmed) !== "set") break;
+          const nextSet = parseSet(commandValue(nextTrimmed, "*set"));
+          if (!nextSet) break;
+          sets.push(nextSet);
+          i += 1;
+        }
+        const title = `*set ${sets[0].var}${sets.length > 1 ? ` +${sets.length - 1}` : ""}`;
+        const n = addNode({ type: "set", title, sets, w: 280 }, false);
+        linkAll(n.id);
       }
       continue;
     }
