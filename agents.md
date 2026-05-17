@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 125
+- **Lint variable/temp/params names that clash with ChoiceScript reserved words.**
+  - **Problem**: ChoiceScript treats `true`, `false`, `not`, `and`, `or`, and `modulo` as keywords/operators. A variable named any of these passes `isValidChoiceScriptIdentifier` (it's lowercase alphanumeric) but would cause ChoiceScript parse errors at runtime since the engine would interpret the identifier as a literal or operator rather than a variable name.
+  - **Fix**: Added `CHOICESCRIPT_RESERVED` set and `isChoiceScriptReserved(name)` helper. In `lintProjectMetadata`, after the existing invalid-identifier check for global variables, added an `error`-level check for reserved names. In the `temp` node branch of `lintSceneGraph`, added the same reserved-word check (before the existing "shadows global" check). In the `*params` forEach, added the same check.
+  - **Files changed**: `choicescript.ts` (`CHOICESCRIPT_RESERVED` constant + `isChoiceScriptReserved` helper + 3 check insertions), `domain.test.ts` (3 new tests).
+  - **Tests**: 215 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 124
 - **Lint `*set` node with no assignments.**
   - **Problem**: A `*set` node with an empty `sets` array (no variable assignments configured) generates no ChoiceScript output but still appears as a node in the graph, silently doing nothing. Authors may accidentally leave an empty set node behind after editing, and there was no diagnostic to catch this.
