@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 92
+- **Option body gaps — find & replace + achievement linting.**
+  - **Find & replace** (`projectStore.ts`): `replaceInNode` was skipping `option.body` and `fakeOption.body`. Fixed — both are now included in the text replacement pass, so `findAndReplace` operates on all prose in the project uniformly.
+  - **Achievement linting in option bodies** (`choicescript.ts`): `lintChoiceNode` and `lintFakeChoiceNode` now receive `achievements: Set<string>` and call `lintAchievementCommands(option.body ?? "", ...)` for every option. `*achieve` commands buried in option body text are now validated (bad id, invalid identifier format, undeclared achievement).
+  - **Tests**: 2 new tests — "lints `*achieve` in choice option body", "lints `*achieve` in fake_choice option body". Total: 117 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 91
 - **Canvas card polish + inline `*fake_choice` body import.**
   - **Passage body clipping** (`NodeCard.tsx`): Added `narrative-clip` class to passage body `<p>` in non-minimal density. The `.narrative-clip` CSS rule (already present) applies `-webkit-line-clamp: 2`, so long passages no longer make extremely tall canvas cards — just a clean 2-line preview.

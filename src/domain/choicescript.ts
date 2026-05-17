@@ -586,8 +586,8 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     lintAchievementCommands(node.body ?? "", achievements, issues, sceneName, node.id);
 
-    if (node.type === "choice") lintChoiceNode(node, nodeIds, variables, variableTypes, issues, sceneName);
-    if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName);
+    if (node.type === "choice") lintChoiceNode(node, nodeIds, variables, variableTypes, issues, sceneName, achievements);
+    if (node.type === "fake_choice") lintFakeChoiceNode(node, variables, variableTypes, issues, sceneName, achievements);
     if (node.type === "if") lintIfNode(node, nodeIds, variables, variableTypes, issues, sceneName);
 
     if (node.type === "goto_scene") {
@@ -1262,6 +1262,7 @@ function lintChoiceNode(
   variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
   issues: LintIssue[],
   sceneName: string,
+  achievements: Set<string>,
 ) {
   if (!node.options?.length) {
     issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
@@ -1278,6 +1279,7 @@ function lintChoiceNode(
     extractVariableReferences(option.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
+    lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();
     if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
     seenOptionText.add(key);
@@ -1290,6 +1292,7 @@ function lintFakeChoiceNode(
   variableTypes: Map<string, ChoiceForgeProject["variables"][number]>,
   issues: LintIssue[],
   sceneName: string,
+  achievements: Set<string>,
 ) {
   if (!node.fakeOptions?.length) {
     issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
@@ -1304,6 +1307,7 @@ function lintFakeChoiceNode(
     extractVariableReferences(option.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
+    lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();
     if (key && seenFakeText.has(key)) issues.push({ level: "warning", msg: `duplicate fake_choice option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
     seenFakeText.add(key);

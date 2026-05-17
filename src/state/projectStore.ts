@@ -374,8 +374,8 @@ export function useProjectStore() {
           ...node,
           body: node.body !== undefined ? replaceText(node.body) : undefined,
           prompt: node.prompt !== undefined ? replaceText(node.prompt) : undefined,
-          options: node.options?.map((opt) => ({ ...opt, text: replaceText(opt.text) })),
-          fakeOptions: node.fakeOptions?.map((opt) => ({ ...opt, text: replaceText(opt.text) })),
+          options: node.options?.map((opt) => ({ ...opt, text: replaceText(opt.text), body: opt.body !== undefined ? replaceText(opt.body) : undefined })),
+          fakeOptions: node.fakeOptions?.map((opt) => ({ ...opt, text: replaceText(opt.text), body: opt.body !== undefined ? replaceText(opt.body) : undefined })),
         });
         if (scope === "scene") {
           return commitProject(clearActiveSceneSource({
