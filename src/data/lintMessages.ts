@@ -12,12 +12,12 @@ export const lintMessages: LintTranslations = {
     es: "el autor del proyecto esta vacio",
   },
   orphan_node: {
-    pt: "no isolado — nao acessivel a partir do inicio da cena",
-    es: "nodo huerfano — no accesible desde el inicio de la escena",
+    pt: "no \"{name}\" isolado — nao acessivel a partir do inicio da cena",
+    es: "nodo \"{name}\" huerfano — no accesible desde el inicio de la escena",
   },
   dead_end: {
-    pt: "no sem saida — sem conexao de saida",
-    es: "nodo sin salida — sin conexion de salida",
+    pt: "no \"{name}\" sem saida — sem conexao de saida",
+    es: "nodo \"{name}\" sin salida — sin conexion de salida",
   },
   empty_choice: {
     pt: "*choice sem opcoes",
@@ -60,8 +60,8 @@ export const lintMessages: LintTranslations = {
     es: "*goto_scene apunta a escena inexistente: {name}",
   },
   scene_unreachable: {
-    pt: "cena sem conexoes de entrada",
-    es: "escena sin conexiones de entrada",
+    pt: "cena \"{name}\" sem conexoes de entrada de outras cenas",
+    es: "escena \"{name}\" sin conexiones de entrada de otras escenas",
   },
   image_unknown: {
     pt: "*image referencia arquivo desconhecido: {name}",
@@ -80,8 +80,8 @@ export const lintMessages: LintTranslations = {
     es: "*rand siempre produce el mismo valor (min = max = {val})",
   },
   empty_passage_body: {
-    pt: "passagem sem texto de corpo",
-    es: "pasaje sin texto de cuerpo",
+    pt: "passagem \"{name}\" sem texto de corpo",
+    es: "pasaje \"{name}\" sin texto de cuerpo",
   },
   unused_temp: {
     pt: "*temp declarado mas nunca lido nesta cena: {name}",

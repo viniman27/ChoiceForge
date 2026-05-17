@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 141
+- **Fix lint message translations to include `{name}` placeholder for node/scene context.**
+  - **Problem**: `orphan_node`, `dead_end`, `scene_unreachable`, and `empty_passage_body` all pass `params: { name }` but their PT/ES translation strings had no `{name}` placeholder. When a user viewed lint messages in Portuguese or Spanish, the translated strings omitted the specific node or scene name, making it harder to act on the warning.
+  - **Fix**: Updated `lintMessages.ts` translations for all four keys to include `"{name}"` in the template string. The `translateLintMsg` function already handles `{name}` substitution — no code changes needed.
+  - **Files changed**: `src/data/lintMessages.ts` (4 translation entries updated).
+  - **Tests**: 240 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 140
 - **Parity: detect unused `*temp` variables in preserved source.**
   - **Problem**: `lintUnusedTempVars` (graph linter) flags `*temp` variables that are declared but never read within a scene. This check only ran for visual-graph scenes; preserved-source scenes completely skipped it.
