@@ -3136,6 +3136,54 @@ test("generates *achieve command in code output", () => {
   assert.ok(output.includes("*achieve hero"));
 });
 
+test("merges consecutive top-level *set commands into a single set node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "Opening prose.",
+    "*set strength + 10",
+    "*set courage + 5",
+    "*set pistas + 1",
+    "Continuing prose.",
+    "*finish",
+  ].join("\n"));
+
+  const setNodes = graph.nodes.filter((n) => n.type === "set");
+  assert.equal(setNodes.length, 1, "should have exactly one set node");
+  assert.equal(setNodes[0].sets?.length, 3, "set node should have 3 entries");
+  assert.equal(setNodes[0].sets?.[0].var, "strength");
+  assert.equal(setNodes[0].sets?.[1].var, "courage");
+  assert.equal(setNodes[0].sets?.[2].var, "pistas");
+  assert.ok(setNodes[0].title?.includes("+2"), "title should indicate multiple sets");
+});
+
+test("does not merge non-consecutive *set commands", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*set strength + 10",
+    "Some prose between sets.",
+    "*set courage + 5",
+    "*finish",
+  ].join("\n"));
+
+  const setNodes = graph.nodes.filter((n) => n.type === "set");
+  assert.equal(setNodes.length, 2, "should have two separate set nodes");
+  assert.equal(setNodes[0].sets?.length, 1);
+  assert.equal(setNodes[1].sets?.length, 1);
+});
+
+test("merges consecutive top-level *comment lines into a single comment node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*comment First line of notes",
+    "*comment Second line of notes",
+    "*comment Third line of notes",
+    "*finish",
+  ].join("\n"));
+
+  const commentNodes = graph.nodes.filter((n) => n.type === "comment");
+  assert.equal(commentNodes.length, 1, "should have exactly one comment node");
+  assert.ok(commentNodes[0].body?.includes("First line of notes"));
+  assert.ok(commentNodes[0].body?.includes("Second line of notes"));
+  assert.ok(commentNodes[0].body?.includes("Third line of notes"));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

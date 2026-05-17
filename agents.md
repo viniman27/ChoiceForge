@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 103
+- **Import: merge consecutive top-level `*set` and `*comment` commands into single nodes.**
+  - **Problem**: Each `*set` or `*comment` line at top-level created its own separate graph node. Three `*set` lines in a row produced three nodes cluttering the canvas.
+  - **Solution** (`choicescriptImport.ts`, `createImportedSceneGraph`): Added two look-ahead blocks before the general `simpleCommandNode` fallback.
+    - `command === "set"`: walks forward collecting consecutive `*set` lines (stops at first unparseable line or non-set command), creates one `set` node with all `VariableSet` entries in `sets: [...]`. Title is `*set firstVar +N` for N extra sets, `*set firstVar` for a single one.
+    - `command === "comment"`: walks forward collecting consecutive `*comment` lines, joins their bodies with `\n`, creates one `comment` node. Both blocks fall through to existing handling if zero entries are collected (e.g., first line fails to parse).
+  - **Tests**: 3 new tests — consecutive sets merge to 1 node with 3 entries; non-consecutive sets stay separate; consecutive comments merge to 1 node. Total: **152 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 102
 - **Manuscript view: all node types now rendered and exported.**
   - `ManuscriptView.tsx` previously returned `null` for `achieve`, `set`, `comment`, `image`, `sound`, `rand`, `input_text`, `input_number`, `temp`, `params` nodes, making them invisible in the prose reading mode and absent from the downloaded/copied text.
