@@ -1755,6 +1755,72 @@ test("lints gosub_scene and image in preserved script source", () => {
   assert.ok(warnings.some((message) => message.includes("*image needs a filename")));
 });
 
+test("preserved source: prose with declared global var does not trigger undef_var warning", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "hero_name", type: "string" as const, initial: "Hero" }],
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "Hello, ${hero_name}!\nAnother line.",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((i) => i.level === "warning" && i.msg.includes("undeclared variable"));
+  assert.equal(warnings.length, 0);
+});
+
+test("preserved source: prose with undeclared var triggers undef_var warning", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "Hello, ${ghost_name}!\nAnother line with @{shadow choice1 choice2}.",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((i) => i.level === "warning" && i.msg.includes("undeclared variable"));
+  assert.ok(warnings.some((w) => w.msg.includes("ghost_name")));
+  assert.ok(warnings.some((w) => w.msg.includes("shadow")));
+});
+
+test("preserved source: prose referencing a *temp declared later in the file does not trigger undef_var", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "Your name is ${player_name}.\n*temp player_name Hero",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((i) => i.level === "warning" && i.msg.includes("undeclared variable"));
+  assert.equal(warnings.length, 0);
+});
+
+test("preserved source: *comment lines do not trigger undef_var for interpolation-like text", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "*comment ${internal_note} not linted\n*temp internal_note 0",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  const warnings = issues.filter((i) => i.level === "warning" && i.msg.includes("undeclared variable"));
+  assert.equal(warnings.length, 0, "command lines should not be scanned for prose variable references");
+});
+
 test("lintSceneReachability warns on unreachable scenes", () => {
   const makeGraph = (nodes: { id: string; type: string; target?: string }[]): SceneGraph => ({
     nodes: nodes.map((n) => ({ ...n, x: 0, y: 0, w: 240, title: n.type })) as StoryNode[],

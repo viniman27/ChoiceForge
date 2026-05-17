@@ -857,6 +857,21 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   let hasGosub = false;
   const lines = sourceText.split(/\r?\n/);
 
+  const allDeclaredVars = new Set(variableNames);
+  lines.forEach((line) => {
+    const t = line.trim();
+    const cmd = sourceCommand(t);
+    if (cmd === "temp") {
+      const rawName = t.split(/\s+/)[1] ?? "";
+      if (rawName && isValidChoiceScriptIdentifier(rawName)) allDeclaredVars.add(normalizeSourceIdentifier(rawName));
+    }
+    if (cmd === "params") {
+      sourceCommandValue(t, "*params").split(/\s+/).filter(Boolean).forEach((rawName) => {
+        if (isValidChoiceScriptIdentifier(rawName)) allDeclaredVars.add(normalizeSourceIdentifier(rawName));
+      });
+    }
+  });
+
   issues.push({ level: "info", msg: infoMessage, scene: sceneName, line: 1 });
 
   lines.forEach((line, index) => {
@@ -933,6 +948,13 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       } else if (!achievements.has(achievement)) {
         issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achievement}`, scene: sceneName, line: lineNumber });
       }
+    }
+    if (!command) {
+      extractVariableReferences(trimmed).forEach((name) => {
+        if (!allDeclaredVars.has(name)) {
+          issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, line: lineNumber });
+        }
+      });
     }
   });
 
