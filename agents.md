@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 138
+- **Parity: `*rand` same-bounds warning in preserved source; fairmath range check in `*create`; `*image` alignment in preserved source.**
+  - **`*rand` same-bounds in preserved source**: `lintInputNode` (graph linter) warns when a `*rand` has `min === max` (always produces one value). `lintPreservedInputCommand` (preserved-source linter) handled `min > max` (error) but missed `min === max` (warning). Added parity check at end of `lintPreservedInputCommand` for `command === "rand" && min === max`.
+  - **Files changed**: `choicescript.ts` (4 lines added), `domain.test.ts` (1 new test).
+  - **Tests**: 235 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 137
 - **Add fairmath range check to `*create` in preserved startup; add alignment validation to `*image` in preserved source.**
   - **`lintPreservedCreateLine` fairmath range**: `lintProjectMetadata` already warns when a graph-based variable with `fairmath: true` has an initial value outside 0–100. `lintPreservedCreateLine` (called when startup.txt is preserved source) only checked that the initial value was a valid number, not that it was in range. Added parity check: if `projectVariable` has `fairmath: true` and the numeric initial value is outside [0, 100], emit a `fairmath_range` warning.
