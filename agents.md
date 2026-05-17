@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 150
+- **Align `*temp` no-initial-value lint severity: error→warning in preserved source.**
+  - **Problem**: The graph linter emits a **warning** ("*temp has no initial value (defaults to 0)") for a `*temp` node with no initial value. `lintPreservedTempLine` was emitting an **error** ("*temp has an empty initial value") for the same ChoiceScript construct. In ChoiceScript, `*temp` with no initial value is valid (defaults to 0), so a warning matches the correct severity.
+  - **Fix**: Changed level from `"error"` to `"warning"` in `lintPreservedTempLine` and aligned the message wording with the graph-linter version.
+  - **Files changed**: `choicescript.ts` (1 line), `domain.test.ts` (1 new test).
+  - **Tests**: 258 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 149
 - **Fix `lintUnusedTempVars` to scan `*selectable_if` conditions and `*set` value expressions in `sourceText`.**
   - **Problem**: When a scene graph has both visual nodes and a `sourceText` blob, `lintUnusedTempVars` scanned the source for `*if`/`*elseif` conditions but missed `*selectable_if` and `*set` value expressions. A temp variable read only in those constructs in `sourceText` would be falsely flagged as unused.

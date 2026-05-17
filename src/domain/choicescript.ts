@@ -1178,7 +1178,7 @@ function lintPreservedTempLine(
     issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
   }
   if (!rest.join(" ").trim()) {
-    issues.push({ level: "error", msg: `*temp has an empty initial value: ${normalizedName}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*temp "${normalizedName}" has no initial value (defaults to 0)`, scene: sceneName, line: lineNumber });
   }
   if (variables.has(normalizedName) && !localVariables.has(normalizedName)) {
     issues.push({ level: "warning", msg: `*temp shadows a global variable: ${normalizedName}`, key: "temp_shadows", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
