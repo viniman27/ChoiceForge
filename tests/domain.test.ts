@@ -3266,6 +3266,36 @@ test("does not report referenced *label as unreferenced", () => {
   assert.ok(!issues.some((i) => i.msg.includes("never referenced")));
 });
 
+test("preserved source: unreferenced *label reported as info", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "*label orphan_label\nSome text.\n*finish",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "info" && i.msg.includes('"orphan_label"') && i.msg.includes("never referenced")));
+});
+
+test("preserved source: referenced *label not reported as unreferenced", () => {
+  const project = {
+    ...minimalProject(),
+    sceneData: {
+      intro: {
+        nodes: [],
+        edges: [],
+        sourceText: "*label subroutine\nSome text.\n*return\n*gosub subroutine\n*finish",
+      },
+    },
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.level === "info" && i.msg.includes('"subroutine"') && i.msg.includes("never referenced")));
+});
+
 test("imports *label inside *if branch body as a label node", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*if courage > 50",

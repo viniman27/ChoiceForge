@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 122
+- **Report unreferenced `*label` declarations in preserved source (info level).**
+  - **Problem**: The preserved source linter checked that `*goto`/`*gosub` targets exist (`jump points to a missing label`) but not the reverse — `*label` declarations that are never referenced. The visual graph linter already had this symmetric check (info level, "is never referenced by any *goto or *gosub"). Preserved source lacked parity.
+  - **Fix**: After the existing `referencedLabels.forEach` check, build `referencedLabelSet` from the referenced labels array, then iterate `labels` map and emit `info` for any label not in the set. Matches the exact message and level used by the visual graph linter.
+  - **Files changed**: `choicescript.ts` (+6 lines in `lintPreservedScriptSource`), `domain.test.ts` (2 new tests).
+  - **Tests**: 208 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 121
 - **Fix bug: `generateStartupChoiceScript` always goto_scenes the first playable scene.**
   - **Problem**: `generateStartupChoiceScript` ended with `*goto_scene ${project.sceneTitle}`. `project.sceneTitle` tracks the currently active editor scene, not necessarily the first playable scene. If the user was editing scene 3 ("epilogue") and exported, the generated `startup.txt` would have `*goto_scene epilogue`, skipping scenes 1 and 2. Since ChoiceScript executes startup.txt top-to-bottom and `*goto_scene` immediately jumps there, this caused the game to start mid-story.

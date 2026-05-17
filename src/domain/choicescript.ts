@@ -982,6 +982,12 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   referencedLabels.forEach(({ label, line }) => {
     if (!labels.has(label)) issues.push({ level: "error", msg: `jump points to a missing label: ${label}`, scene: sceneName, line });
   });
+  const referencedLabelSet = new Set(referencedLabels.map(({ label }) => label));
+  labels.forEach((lineNumber, label) => {
+    if (!referencedLabelSet.has(label)) {
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, scene: sceneName, line: lineNumber });
+    }
+  });
   if (!hasGosub) {
     returnLines.forEach((line) => {
       issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub commands", scene: sceneName, line });
