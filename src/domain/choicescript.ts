@@ -341,6 +341,12 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
       if (command === "if" || command === "elseif") {
         scanExpr(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`)));
       }
+      if (command === "set") {
+        const [, maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
+        const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+        const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+        if (valueExpr.trim()) scanExpr(normalizeSourceExpressionIdentifiers(valueExpr));
+      }
     });
   };
 
@@ -975,6 +981,30 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       if (!rawTarget) issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, line: lineNumber });
       else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, scene: sceneName, line: lineNumber });
+      else {
+        const targetGraph = project.sceneData?.[target];
+        const targetHasReturn = targetGraph?.sourceText
+          ? targetGraph.sourceText.split(/\r?\n/).some((l) => sourceCommand(l.trim()) === "return")
+          : (targetGraph?.nodes ?? []).some((n) => n.type === "return");
+        if (!targetHasReturn) {
+          issues.push({ level: "warning", msg: `*gosub_scene calls scene "${target}" which has no *return`, scene: sceneName, line: lineNumber });
+        }
+        const parts = sourceCommandValue(trimmed, "*gosub_scene").split(/\s+/);
+        const entryLabel = parts[1]?.toLowerCase() ?? "";
+        if (entryLabel) {
+          const visualLabelNames = (targetGraph?.nodes ?? [])
+            .filter((n) => n.type === "label")
+            .map((n) => stripCommandPrefix(n.title, "*label"))
+            .filter(Boolean);
+          const sourceLabelNames = targetGraph?.sourceText
+            ? [...targetGraph.sourceText.matchAll(/^\*label\s+(\S+)/gim)].map((m) => m[1].toLowerCase())
+            : [];
+          const targetLabelNames = new Set([...visualLabelNames, ...sourceLabelNames]);
+          if (targetLabelNames.size > 0 && !targetLabelNames.has(entryLabel)) {
+            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, line: lineNumber });
+          }
+        }
+      }
     }
     if (command === "image") {
       const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
@@ -1964,8 +1994,12 @@ export function computeVariableUses(project: ChoiceForgeProject): Map<string, nu
       extractVariableReferences(trimmed).forEach(tally);
       const command = sourceCommand(trimmed);
       if (command === "set") {
-        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
+        const [rawVar = "", maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
+        const varName = normalizeSourceIdentifier(rawVar);
         if (varName) tally(varName);
+        const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+        const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+        if (valueExpr.trim()) extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach(tally);
       }
       if (command === "if" || command === "elseif") {
         extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach(tally);
@@ -2050,8 +2084,12 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
       extractVariableReferences(trimmed).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
       const command = sourceCommand(trimmed);
       if (command === "set") {
-        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
+        const [rawVar = "", maybeOp = "", ...rest] = sourceCommandValue(trimmed, "*set").split(/\s+/);
+        const varName = normalizeSourceIdentifier(rawVar);
         if (varName) addLoc(varName, sceneName, "source", "preserved source", "write");
+        const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+        const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+        if (valueExpr.trim()) extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
       }
       if (command === "if" || command === "elseif") {
         extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
