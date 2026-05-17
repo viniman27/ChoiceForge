@@ -1145,6 +1145,9 @@ function lintPreservedTempLine(
   if (!rest.join(" ").trim()) {
     issues.push({ level: "error", msg: `*temp has an empty initial value: ${normalizedName}`, scene: sceneName, line: lineNumber });
   }
+  if (variables.has(normalizedName) && !localVariables.has(normalizedName)) {
+    issues.push({ level: "warning", msg: `*temp shadows a global variable: ${normalizedName}`, key: "temp_shadows", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
+  }
   if (localVariables.has(normalizedName)) {
     issues.push({ level: "warning", msg: `*temp repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
   }
@@ -1173,6 +1176,9 @@ function lintPreservedParamsLine(
     }
     if (isChoiceScriptReserved(rawName)) {
       issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
+    }
+    if (variables.has(normalizedName) && !localVariables.has(normalizedName)) {
+      issues.push({ level: "warning", msg: `*params shadows a global variable: ${normalizedName}`, key: "temp_shadows", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
     }
     if (localVariables.has(normalizedName)) {
       issues.push({ level: "warning", msg: `*params repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
