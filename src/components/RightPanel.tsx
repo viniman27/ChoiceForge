@@ -272,6 +272,7 @@ function ContentTab({
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
+              <textarea className="ip-opt-body" placeholder="option body text (optional)" value={option.body ?? ""} onChange={(event) => updateOption(node, index, { body: event.target.value || undefined }, onUpdateNode)} rows={2} />
               <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}

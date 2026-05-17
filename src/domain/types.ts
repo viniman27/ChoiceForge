@@ -90,6 +90,7 @@ export type ChoiceReuse = "hide" | "disable" | "allow";
 export interface ChoiceOption {
   text: string;
   to: string;
+  body?: string;
   cond?: ChoiceCondition | null;
   reuse?: ChoiceReuse;
   hideReuse?: boolean;

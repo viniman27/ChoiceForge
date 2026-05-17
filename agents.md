@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 89
+- **`ChoiceOption.body` — inline option body text for `*choice` nodes.**
+  - **Types**: Added `body?: string` to `ChoiceOption` in `types.ts`. Body text is narrative prose displayed after the player selects an option, before the flow jumps to `option.to`.
+  - **Generator** (`choicescript.ts`): In the `*choice` block, body lines are now emitted between the option header and the `*goto`. Lines are split on `\n` and filtered for blanks, each prefixed with four spaces (`    `).
+  - **RightPanel**: Added a resizable `<textarea class="ip-opt-body">` inside each option row, after the reuse selector. Empty value → `undefined` (no body stored). CSS: `ip-opt-body` styled to match the panel's visual language.
+  - **Importer** (`choicescriptImport.ts`): `addInlineOptionNodes` now detects pure-prose inline bodies (no terminal command, no lines starting with `*`) and inlines them directly on the option instead of creating a `choice_option_body` passage node. An empty continuation passage node is created as the `to` target. Complex bodies (with terminal commands or CS directives) still follow the existing node-creation path.
+  - **Tests**: 2 new tests — "inlines pure prose body text directly onto choice options" verifies the importer path; "generates option body text inline between header and goto" verifies the generator. Total: 111 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 88
 - **Search result excerpts + match highlighting; dynamic TopBar breadcrumb.**
   - **Search excerpts**: `searchProject` in `LeftPanel.tsx` was setting `detail: target` where `target` was the full node body (potentially hundreds of words). The result list would show the beginning of the text, never the part that actually matched. Fixed with `snippetAround(text, query, 90)` — extracts ~90 chars centred around the first match, with `…` ellipsis markers when text is truncated. Full text is kept in `searchText` so `addResult`'s relevance check still works.
