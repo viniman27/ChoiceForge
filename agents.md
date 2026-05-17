@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 142
+- **Lint empty `*set` value expression as an error.**
+  - **Problem**: `lintSet` (graph linter for all `sets` assignments) checked that the variable exists and the operator is valid, but never checked whether `set.val` is non-empty. A `VariableSet { var: "score", op: "=", val: "" }` would pass through silently. The generator produces `*set score =` (with no value) which is invalid ChoiceScript.
+  - **Fix**: Added `if (!set.val.trim())` check at the top of `lintSet`, emitting an error and returning early before type and expression checks. Applied to all callers since all sets go through `lintSet`.
+  - **Files changed**: `choicescript.ts` (4 lines added), `domain.test.ts` (1 new test).
+  - **Tests**: 241 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 141
 - **Fix lint message translations to include `{name}` placeholder for node/scene context.**
   - **Problem**: `orphan_node`, `dead_end`, `scene_unreachable`, and `empty_passage_body` all pass `params: { name }` but their PT/ES translation strings had no `{name}` placeholder. When a user viewed lint messages in Portuguese or Spanish, the translated strings omitted the specific node or scene name, making it harder to act on the warning.
