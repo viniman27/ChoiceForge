@@ -2939,6 +2939,38 @@ test("does not report referenced *label as unreferenced", () => {
   assert.ok(!issues.some((i) => i.msg.includes("never referenced")));
 });
 
+test("imports *label inside *if branch body as a label node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if courage > 50",
+    "  *label brave_path",
+    "  You charge forward!",
+    "  *finish",
+    "*else",
+    "  You flee.",
+    "  *finish",
+  ].join("\n"));
+
+  const labelNode = graph.nodes.find((n) => n.type === "label");
+  assert.ok(labelNode, "label node should be created from *label inside *if branch body");
+  assert.ok(labelNode!.title.includes("brave_path"), "label node should have the correct name");
+});
+
+test("imports *label inside choice option body as a label node", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Attack",
+    "    *label fight_start",
+    "    You swing your sword.",
+    "    *finish",
+    "  #Flee",
+    "    *finish",
+  ].join("\n"));
+
+  const labelNode = graph.nodes.find((n) => n.type === "label");
+  assert.ok(labelNode, "label node should be created from *label inside choice option body");
+  assert.ok(labelNode!.title.includes("fight_start"), "label should have the correct name");
+});
+
 test("imports nested *if inside *if branch body with goto terminals", () => {
   const graph = importChoiceScriptSceneText("startup", [
     "*if courage > 50",

@@ -1227,7 +1227,7 @@ function parseInlineIfBlock(block: string[], index: number): { node: ImportedNod
 }
 
 const BODY_TERMINAL_COMMANDS = new Set(["goto", "goto_scene", "return", "restore_checkpoint", "finish", "ending"]);
-const BODY_STRUCTURED_COMMANDS = new Set(["set", "gosub", "gosub_scene", "page_break", "rand", "input_text", "input_number", "save_checkpoint", "temp", "image", "sound", "achieve"]);
+const BODY_STRUCTURED_COMMANDS = new Set(["set", "label", "gosub", "gosub_scene", "page_break", "rand", "input_text", "input_number", "save_checkpoint", "temp", "image", "sound", "achieve"]);
 
 function buildBodyNodeChain(
   bodyLines: string[],

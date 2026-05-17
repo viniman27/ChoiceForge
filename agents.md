@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 114
+- **Import: `*label` in body nodes; lintCheckpoints extended to cover preserved source.**
+  - **`*label` in body nodes**: `"label"` was missing from `BODY_STRUCTURED_COMMANDS`. When `*label` appeared inside an `*if` branch or `*choice` option body, it fell through to the prose buffer and was emitted as literal text. Adding `"label"` to `BODY_STRUCTURED_COMMANDS` causes `buildBodyNodeChain` to create a proper `label` type node and wire it into the chain. Added 2 tests.
+  - **`lintCheckpoints` extended to preserved source**: The `lintPreservedScriptSource` function had its own same-scene checkpoint check that was removed when we moved to project-wide checking (session 113). But `lintCheckpoints`' second pass was skipping preserved-source scenes. Fixed by adding a source-text scan in the second pass for `*restore_checkpoint` lines and comparing against the project-wide `savedSlots`. Removed the now-dead `savedCheckpoints`/`restoredCheckpoints` variables and the corresponding command handlers from `lintPreservedScriptSource`. The `*save_checkpoint needs a checkpoint name` error (for unnamed checkpoints) is kept in `lintPreservedScriptSource`.
+  - **Files changed**: `choicescriptImport.ts` (BODY_STRUCTURED_COMMANDS +`"label"`), `choicescript.ts` (lintCheckpoints second pass handles sourceText; removed 6 lines from lintPreservedScriptSource), `domain.test.ts` (2 new tests).
+  - **Tests**: 183 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 113
 - **Three linter improvements: routing-node false-positive fix, cross-scene checkpoint check, new empty-passage lint.**
   - **False positive fix (empty_passage_body)**: The importer creates structural routing nodes (`choice_option_empty`, `if_*_empty`, `*_merge`) as `type: "passage"` with `body: ""`. The new `empty_passage_body` lint fired on these. Fixed by excluding nodes whose title matches `/_(?:empty|merge)$/`. Added regression test that imports a choice and verifies no false positive fires.
