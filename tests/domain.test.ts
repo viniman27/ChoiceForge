@@ -3400,6 +3400,60 @@ test("multiple consecutive *set after prose in *if branch body merge into single
   assert.equal(setNode!.sets?.[1].var, "strength");
 });
 
+test("*if without *else creates flow edge from if node to following passage", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  You step forward.",
+    "  *finish",
+    "The story continues.",
+    "*finish",
+  ].join("\n"));
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  const followingPassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("The story continues."));
+  assert.ok(ifNode, "should have an if node");
+  assert.ok(followingPassage, "should have following passage");
+  const edge = graph.edges.find((e) => e.from === ifNode!.id && e.to === followingPassage!.id);
+  assert.ok(edge, "should have flow edge from if node to following passage (false path)");
+});
+
+test("*if with *else does not create extra flow edge from if node to following passage", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  You are brave.",
+    "  *finish",
+    "*else",
+    "  You are not brave.",
+    "  *finish",
+    "This text is unreachable.",
+    "*finish",
+  ].join("\n"));
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  const unreachable = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("This text is unreachable."));
+  assert.ok(ifNode, "should have an if node");
+  assert.ok(unreachable, "should have unreachable passage node");
+  const directEdge = graph.edges.find((e) => e.from === ifNode!.id && e.to === unreachable!.id && e.kind === "flow");
+  assert.equal(directEdge, undefined, "should not have direct flow edge from if to unreachable passage");
+});
+
+test("two consecutive *if without *else: first if connects to second if, second if connects to following passage", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if flag1",
+    "  Do thing 1.",
+    "*if flag2",
+    "  Do thing 2.",
+    "The story continues.",
+    "*finish",
+  ].join("\n"));
+  const [if1, if2] = graph.nodes.filter((n) => n.type === "if");
+  const followingPassage = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("The story continues."));
+  assert.ok(if1 && if2, "should have two if nodes");
+  assert.ok(followingPassage, "should have following passage");
+  const edgeIf1ToIf2 = graph.edges.find((e) => e.from === if1!.id && e.to === if2!.id && e.kind === "flow");
+  assert.ok(edgeIf1ToIf2, "first if should connect to second if (false-path flow)");
+  const edgeIf2ToPassage = graph.edges.find((e) => e.from === if2!.id && e.to === followingPassage!.id && e.kind === "flow");
+  assert.ok(edgeIf2ToPassage, "second if should connect to following passage (false-path flow)");
+});
+
 test("compound *if condition (a) and (b) is preserved without stripping inner parens", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*if (strength > 50) and (courage > 30)",
