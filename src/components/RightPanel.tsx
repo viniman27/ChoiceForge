@@ -272,7 +272,7 @@ function ContentTab({
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
-              <textarea className="ip-opt-body" placeholder="option body text (optional)" value={option.body ?? ""} onChange={(event) => updateOption(node, index, { body: event.target.value || undefined }, onUpdateNode)} rows={2} />
+              <div className="ip-opt-body-editor"><NodeBodyEditor key={`opt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
               <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -313,7 +313,7 @@ function ContentTab({
               </div>
               {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateFakeOptionReuse(node, index, reuse, onUpdateNode)} />
-              <textarea className="ip-opt-body" placeholder="option body text (optional)" value={option.body ?? ""} onChange={(event) => updateFakeOption(node, index, { body: event.target.value || undefined }, onUpdateNode)} rows={2} />
+              <div className="ip-opt-body-editor"><NodeBodyEditor key={`fopt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateFakeOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
               <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
             </li>
           ))}

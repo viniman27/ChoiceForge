@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 93
+- **`*if` guard on choice option groups + option body → NodeBodyEditor.**
+  - **`parseChoiceBlock` guard support** (`choicescriptImport.ts`): Extended the label-based choice block parser to handle `*if (cond)` / `*elseif (cond)` / `*else` lines at option-level indent (≤ 3 spaces). Options indented inside the guard (4+ spaces) inherit the guard's `ChoiceCondition`. `*else` clears the guard (options after it get no condition). Top-level `#option` lines also clear the guard. Key fix: guard is NOT applied to top-level options even if one was active — `!isTopLevel ? guardCond : null`.
+  - **Option body → NodeBodyEditor** (`RightPanel.tsx`): Both `choice` and `fake_choice` option body fields switched from plain `<textarea className="ip-opt-body">` to `<NodeBodyEditor>` with `variables` and `achievements` wired. Now has ChoiceScript syntax highlighting, variable/achievement autocomplete, and internal undo history inside the field.
+  - **CSS** (`styles.css`): Replaced `.ip-opt-body`/`.ip-opt-body:focus` textarea rules with `.ip-opt-body-editor` overrides that set compact min-height (48px) and smaller font-size (12px) for the CodeMirror container.
+  - **Tests**: 2 new tests — `*if` guard on single group, `*if`/`*elseif`/`*else` guard chain. Total: 119 tests, all passing.
+
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 92
 - **Option body gaps — find & replace + achievement linting.**
   - **Find & replace** (`projectStore.ts`): `replaceInNode` was skipping `option.body` and `fakeOption.body`. Fixed — both are now included in the text replacement pass, so `findAndReplace` operates on all prose in the project uniformly.

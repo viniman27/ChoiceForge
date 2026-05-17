@@ -825,14 +825,32 @@ function collectIfChain(lines: string[], startIndex: number): string[] {
 function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }; options: ImportedChoiceOption[] } | null {
   const options: ImportedChoiceOption[] = [];
   let current: ImportedChoiceOption | null = null;
+  let guardCond: ChoiceCondition | null = null;
 
   for (const line of block.slice(1)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+    const indent = line.length - line.trimStart().length;
+    const isTopLevel = indent <= 3;
+
+    if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed)) {
+      if (current) { options.push(current); current = null; }
+      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      if (!m) return null;
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      continue;
+    }
+    if (isTopLevel && /^\*else$/i.test(trimmed)) {
+      if (current) { options.push(current); current = null; }
+      guardCond = null;
+      continue;
+    }
+
     const header = parseChoiceHeader(trimmed);
     if (header) {
       if (current) options.push(current);
-      current = { ...header, targetLabel: "", sets: [] };
+      current = { ...header, cond: header.cond ?? (!isTopLevel ? guardCond : null), targetLabel: "", sets: [] };
+      if (isTopLevel) guardCond = null;
       continue;
     }
     if (!current) return null;
