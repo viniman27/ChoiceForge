@@ -1372,6 +1372,8 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .node.has-warning { border-color: var(--warn); }
 .node.has-color-tag { border-left: 3.5px solid var(--ct, transparent); }
 .node.is-dimmed { opacity: 0.18; pointer-events: none; transition: opacity 0.15s; }
+.node.is-navigable { cursor: pointer; }
+.node.is-navigable:hover { border-color: var(--accent); }
 .node:active { cursor: grabbing; }
 
 .node-head {

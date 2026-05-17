@@ -54,8 +54,7 @@ This is a **web app** (React + TypeScript + Vite), deployed to Cloudflare Pages.
 
 ### Not Yet Implemented
 - Full-fidelity ChoiceScript parser/AST. Current import handles common/simple structures but is not a complete parser.
-- Assets served to the CS runtime (images in scene body won't load without a serving mechanism)
-- Git integration, version history, snapshots
+- Git integration, version history, snapshots (SnapshotPanel covers localStorage snapshots; git/cloud sync is out of scope)
 - Desktop packaging (Tauri/Electron)
 
 ---
@@ -343,6 +342,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 ---
 
 ## Session Log
+
+### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 86
+- **Double-click `goto_scene`/`gosub_scene` nodes to navigate to target scene.**
+  - Added `onNavigateToScene?: (sceneName: string) => void` prop to `NodeCard` and `GraphCanvas`.
+  - `NodeCard`: `onDoubleClick` on the card div calls `onNavigateToScene(node.target)` when the node is a `goto_scene` or `gosub_scene` with a target set. `stopPropagation` prevents the canvas from creating a new passage on the same double-click.
+  - Added `.is-navigable` class to these cards: `cursor: pointer` and a subtle accent border on hover, signalling interactivity to the user.
+  - `App.tsx`: passes `onNavigateToScene` to `GraphCanvas`, looking up the scene by name and delegating to the existing `navigateToScene(id)` function.
+  - 109 tests, all passing.
 
 ### 2026-05-16 — Claude Code (claude-sonnet-4-6) — session 85
 - **Asset injection into OfficialPlayView iframe.**

@@ -24,6 +24,7 @@ interface GraphCanvasProps {
   onPan: (pan: { x: number; y: number }) => void;
   zoom: number;
   setZoom: React.Dispatch<React.SetStateAction<number>>;
+  onNavigateToScene?: (sceneName: string) => void;
 }
 
 const creatableNodeTypes: NodeType[] = [
@@ -42,7 +43,7 @@ const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blu
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
   onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes, onBulkUpdateNodes,
-  sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom,
+  sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom, onNavigateToScene,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{
@@ -539,6 +540,7 @@ export function GraphCanvas({
               setDrag({ nodeId: id, startX: event.clientX, startY: event.clientY, origPositions });
             }}
             onUpdateTitle={sourcePreserved ? undefined : onUpdateTitle}
+            onNavigateToScene={onNavigateToScene}
             onConnectStart={(event, id) => {
               if (sourcePreserved) return;
               const current = data.nodes.find((n) => n.id === id);

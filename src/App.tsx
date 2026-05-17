@@ -402,6 +402,10 @@ export default function App() {
           onBulkUpdateNodes={actions.bulkUpdateNodes}
           sourcePreserved={currentSceneSourcePreserved}
           onConvertSource={confirmVisualConversion}
+          onNavigateToScene={(sceneName) => {
+            const scene = lintedProject.scenes.find((s) => s.name === sceneName);
+            if (scene) navigateToScene(scene.id);
+          }}
         />
       )}
       <button
