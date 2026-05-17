@@ -400,6 +400,40 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       continue;
     }
 
+    if (command === "set") {
+      const sets: VariableSet[] = [];
+      let setIndex = index;
+      while (setIndex < lines.length && commandName(lines[setIndex]) === "set") {
+        const parsed = parseSet(commandValue(lines[setIndex].trim(), "*set"));
+        if (!parsed) break;
+        sets.push(parsed);
+        setIndex += 1;
+      }
+      if (sets.length) {
+        flushPassage();
+        const titleSuffix = sets.length > 1 ? ` +${sets.length - 1}` : "";
+        addNode({ type: "set", title: `*set ${sets[0].var}${titleSuffix}`, sets });
+        index = setIndex - 1;
+        continue;
+      }
+    }
+
+    if (command === "comment") {
+      const bodies: string[] = [];
+      let commentIndex = index;
+      while (commentIndex < lines.length && commandName(lines[commentIndex]) === "comment") {
+        const body = commandValue(lines[commentIndex].trim(), "*comment").trim();
+        bodies.push(body);
+        commentIndex += 1;
+      }
+      if (bodies.length) {
+        flushPassage();
+        addNode({ type: "comment", title: "*comment", body: bodies.join("\n") });
+        index = commentIndex - 1;
+        continue;
+      }
+    }
+
     const simpleNode = simpleCommandNode(command, line, nodes.length + 1);
     if (simpleNode) {
       flushPassage();
