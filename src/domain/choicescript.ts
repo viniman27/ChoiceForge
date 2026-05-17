@@ -1098,6 +1098,9 @@ function lintPreservedTempLine(
     issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${rawName || "(empty)"}`, scene: sceneName, line: lineNumber });
     return;
   }
+  if (isChoiceScriptReserved(rawName)) {
+    issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
+  }
   if (!rest.join(" ").trim()) {
     issues.push({ level: "error", msg: `*temp has an empty initial value: ${normalizedName}`, scene: sceneName, line: lineNumber });
   }
@@ -1126,6 +1129,9 @@ function lintPreservedParamsLine(
     if (!isValidChoiceScriptIdentifier(rawName)) {
       issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${rawName}`, scene: sceneName, line: lineNumber });
       return;
+    }
+    if (isChoiceScriptReserved(rawName)) {
+      issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
     }
     if (localVariables.has(normalizedName)) {
       issues.push({ level: "warning", msg: `*params repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
@@ -1433,8 +1439,8 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
     if (chartType === "percent" && projectVariable?.type === "number" && !projectVariable.fairmath) {
       issues.push({ level: "warning", msg: `*stat_chart percent uses a number variable without percent stat format: ${variable}`, scene: "choicescript_stats", line: lineNumber });
     }
-    if (chartType === "text" && projectVariable && projectVariable.type !== "string") {
-      issues.push({ level: "error", msg: `*stat_chart text requires a string variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+    if (chartType === "text" && projectVariable && projectVariable.type === "number") {
+      issues.push({ level: "warning", msg: `*stat_chart text displays ${variable} as a raw number — use percent or opposed_pair for a bar chart`, scene: "choicescript_stats", line: lineNumber });
     }
   });
 }

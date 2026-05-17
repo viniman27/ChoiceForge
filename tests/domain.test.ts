@@ -459,7 +459,7 @@ test("lints preserved startup and stats source by line", () => {
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 4 && issue.msg.includes("invalid row type: slider")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 5 && issue.msg.includes("invalid variable identifier")));
   assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 6 && issue.msg.includes("*stat_chart percent requires a number variable: name")));
-  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 7 && issue.msg.includes("*stat_chart text requires a string variable: score")));
+  assert.ok(issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 7 && issue.msg.includes("raw number")));
   assert.ok(!issues.some((issue) => issue.scene === "choicescript_stats" && issue.line === 8));
 });
 
