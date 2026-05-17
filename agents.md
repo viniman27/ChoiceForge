@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 145
+- **Scan `*selectable_if` conditions in all three preserved-source scanners.**
+  - **Problem**: `lintUnusedVariables.scanSource`, `computeVariableUses.scanSource`, and `computeVariableLocations.scanSource` checked for `*if` and `*elseif` conditions but skipped `*selectable_if`. Variables read only in `*selectable_if` conditions in preserved-source scenes would be falsely flagged as unused and under-counted in usage stats.
+  - **Fix**: Added `|| command === "selectable_if"` to the condition branch in each of the three scanners. Also switched from `sourceCommandValue` to `sourceConditionExpression` in all three, so the option text after `#` is stripped before expression parsing (prevents option text words being miscounted as variable references).
+  - **Files changed**: `choicescript.ts` (3 edits), `domain.test.ts` (2 new tests).
+  - **Tests**: 250 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 144
 - **Backfill i18n `key`/`params` on five more lint issues.**
   - **Problem**: Five lint paths were emitting issues without the `key`/`params` fields needed for `translateLintMsg` to produce localized messages:
