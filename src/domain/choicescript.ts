@@ -1174,6 +1174,12 @@ function lintPreservedSetLine(
   if (globalVariable?.type === "number" && (maybeOp === "%+" || maybeOp === "%-") && !globalVariable.fairmath) {
     issues.push({ level: "warning", msg: `*set ${variable} uses fairmath without a percent stat format`, scene: sceneName, line: lineNumber });
   }
+  const valueExpr = isExplicitOperator ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+  extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((name) => {
+    if (!variables.has(name)) {
+      issues.push({ level: "warning", msg: `*set ${variable} value references an undeclared variable: ${name}`, scene: sceneName, line: lineNumber });
+    }
+  });
 }
 
 function lintPreservedInputCommand(
@@ -1335,6 +1341,9 @@ function lintPreservedCreateLine(
   if (!rawName || !isValidChoiceScriptIdentifier(rawName)) {
     issues.push({ level: "error", msg: `*create has an invalid variable identifier: ${rawName || "(empty)"}`, scene: "startup", line: lineNumber });
     return;
+  }
+  if (isChoiceScriptReserved(rawName)) {
+    issues.push({ level: "error", msg: `*create name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: "startup", line: lineNumber });
   }
   if (!initial.trim()) {
     issues.push({ level: "error", msg: `*create has an empty initial value: ${normalizedName}`, scene: "startup", line: lineNumber });
