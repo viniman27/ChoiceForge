@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 118
+- **Lint variable interpolations in choice option text and choice/node prompts.**
+  - **Problem**: `lintChoiceNode` and `lintFakeChoiceNode` scanned `option.body` for `${var}` / `@{var}` references but not `option.text` (the visible label shown to the player). `lintSceneGraph`'s main loop scanned `node.body` but not `node.prompt` (the preamble text before `*choice`/`*fake_choice`). Authors can and do use variable interpolation in option labels (`Ask about ${topic}.`) and prompts (`You are ${rank}. What do you do?`).
+  - **Fix**: Added `extractVariableReferences(option.text)` scan in `lintChoiceNode` and `lintFakeChoiceNode`; added `extractVariableReferences(node.prompt ?? "")` scan in the `lintSceneGraph` node loop. All three emit `warning` level with `undef_var` key (consistent with body text scanning).
+  - **Files changed**: `choicescript.ts` (+3 scanning calls, ~9 lines), `domain.test.ts` (4 new tests: choice option text undeclared, declared OK, choice prompt undeclared, fake_choice option text undeclared).
+  - **Tests**: 198 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 117
 - **Lint preserved source prose for undeclared variable interpolations.**
   - **Problem**: `lintPreservedScriptSource` validated commands (label, goto, set, if, etc.) but never scanned prose text lines for `${var}` / `@{var}` interpolation references. An imported scene with `${undeclared}` in its narrative text went undetected.

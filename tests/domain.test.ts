@@ -2516,6 +2516,80 @@ test("does not flag unused variable that is only used in option body", () => {
   assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("lints undeclared variable in choice option text", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        options: [
+          { text: "Ask about ${ghost_topic}.", to: "n2" },
+          { text: "Leave.", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("undeclared variable") && i.msg.includes("ghost_topic")));
+});
+
+test("does not flag declared variable used in choice option text", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "topic", type: "string", initial: "" }],
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        options: [
+          { text: "Ask about ${topic}.", to: "n2" },
+          { text: "Leave.", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.level === "warning" && i.msg.includes("undeclared variable")));
+});
+
+test("lints undeclared variable in choice node prompt", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choose",
+        prompt: "You are ${rank_name}. What do you do?",
+        options: [
+          { text: "Fight.", to: "n2" },
+          { text: "Flee.", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("undeclared variable") && i.msg.includes("rank_name")));
+});
+
+test("lints undeclared variable in fake_choice option text", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: [
+      { id: "n1", type: "fake_choice", x: 0, y: 0, w: 360, title: "browse",
+        fakeOptions: [
+          { text: "The ${phantom_item}.", body: "" },
+          { text: "Something else.", body: "" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.msg.includes("undeclared variable") && i.msg.includes("phantom_item")));
+});
+
 test("imports *if guard on inline fake_choice option group with body text", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*fake_choice",
