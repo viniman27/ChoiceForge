@@ -136,9 +136,8 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
     "*scene_list",
   ];
 
-  project.scenes
-    .filter((scene) => !scene.special && scene.name !== "startup")
-    .forEach((scene) => lines.push(`  ${scene.name}`));
+  const playableScenes = project.scenes.filter((scene) => !scene.special && scene.name !== "startup");
+  playableScenes.forEach((scene) => lines.push(`  ${scene.name}`));
 
   if (project.variables.length) lines.push("");
   project.variables.forEach((variable) => lines.push(`*create ${variable.name} ${variable.initial}`));
@@ -152,7 +151,7 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
   });
 
   lines.push("");
-  lines.push(`*goto_scene ${project.sceneTitle}`);
+  lines.push(`*goto_scene ${playableScenes[0]?.name ?? project.sceneTitle}`);
 
   return `${lines.join("\n")}\n`;
 }
