@@ -114,9 +114,10 @@ interface NodeCardProps {
   onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectEnd: (id: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
+  onNavigateToScene?: (sceneName: string) => void;
 }
 
-export function NodeCard({ node, density, labels, selected, hasError, hasWarning, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, hasWarning, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle, onNavigateToScene }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -137,13 +138,19 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
 
   return (
     <div
-      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${hasWarning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""}`}
+      className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${hasWarning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""} ${(node.type === "goto_scene" || node.type === "gosub_scene") && node.target && onNavigateToScene ? "is-navigable" : ""}`}
       style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;
         event.stopPropagation();
         onSelect(node.id, event.shiftKey);
         onDragStart(event, node.id);
+      }}
+      onDoubleClick={(event) => {
+        if ((node.type === "goto_scene" || node.type === "gosub_scene") && node.target && onNavigateToScene) {
+          event.stopPropagation();
+          onNavigateToScene(node.target);
+        }
       }}
     >
       <div className="node-head">
