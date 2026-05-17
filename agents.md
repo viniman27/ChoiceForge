@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 111
+- **Import hardening: choice guards without parens, compound expression fix, if-without-else flow edges.**
+  - **Problem 1 (choice guards)**: `parseChoiceHeader` required parens in `*if (cond) #option` and `*selectable_if (cond) #option` forms. Without parens (`*if cond > 50 #option`) the option was dropped. Same for group `*if` guards in all 4 choice block parsers.
+  - **Fix 1**: Changed guard regexes from `\((.+)\)` to `(.+)` (capture full condition string), then `stripOuterParens` normalizes either form.
+  - **Problem 2 (compound expressions)**: `stripOuterParens` used `startsWith("(") && endsWith(")")` which incorrectly stripped `(a > 5) and (b > 3)` → `a > 5) and (b > 3` (unbalanced). Also `parseIfHeader` used tricky non-greedy `\(?(.+?)\)?$` pattern with the same issue.
+  - **Fix 2**: `stripOuterParens` now tracks paren depth — only strips if the opening `(` is paired with the final `)`. `parseIfHeader` simplified to `(.+)$`.
+  - **Problem 3 (if-without-else flow)**: An `*if` block with no `*else` branch had no flow edge to the following node for the "false" path. All downstream content was orphaned.
+  - **Fix 3**: After processing inline `*if` with no else, add `ifNode.id` to `pendingContinuations` (top-level) or `pendingLinks` (`buildBodyNodeChain`). Also removed the overly-conservative `canAutoFlow(source)` check from `pendingContinuations` processing (the check was always satisfied for real continuation nodes, but blocked the new if-node case).
+  - **Files changed**: `choicescriptImport.ts` (stripOuterParens, parseIfHeader, parseChoiceHeader, 4 guard patterns, addNode continuation logic, createImportedSceneGraph if branch, buildBodyNodeChain if branch), `domain.test.ts` (5 new tests).
+  - **Tests**: 172 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 110
 - **Import hardening: `*set` ordering in branch/option bodies + compact operator parsing.**
   - **Problem 1 (ordering)**: `parseInlineIfBlock`, `parseInlineChoiceBlock`, and `parseInlineFakeChoiceBlock` extracted ALL `*set` commands from branch/option bodies into `branch.sets`/`option.sets` regardless of position. If prose appeared BEFORE a `*set`, the set was still pulled out and placed before the prose in the generated output — silently changing execution order.

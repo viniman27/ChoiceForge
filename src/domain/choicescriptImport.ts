@@ -262,8 +262,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
     nodes.push(next);
     if (autoFlow && pendingContinuations.size) {
       [...pendingContinuations].forEach((sourceId) => {
-        const source = nodes.find((candidate) => candidate.id === sourceId);
-        if (source && canAutoFlow(source) && !edges.some((edge) => edge.kind === "flow" && edge.from === sourceId)) {
+        if (!edges.some((edge) => edge.kind === "flow" && edge.from === sourceId)) {
           edges.push({ from: sourceId, to: next.id, kind: "flow" });
         }
       });
@@ -380,6 +379,8 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
           inlineTargets.forEach((target) => {
             if (target.continuationId) pendingContinuations.add(target.continuationId);
           });
+          const hasElse = inlineIf.branches.some((b) => b.kind === "else");
+          if (!hasElse) pendingContinuations.add(ifNode.id);
           previous = ifNode;
         } else {
           addNode({ type: "passage", title: `${command}_block_${nodes.length + 1}`, body: block.join("\n").trimEnd(), w: 500 });
@@ -1355,6 +1356,8 @@ function buildBodyNodeChain(
         prevId = null;
         pendingLinks.length = 0;
         branchTargets.forEach((t) => { if (t.continuationId) pendingLinks.push(t.continuationId); });
+        const hasElseBranch = inlineIf.branches.some((b) => b.kind === "else");
+        if (!hasElseBranch) pendingLinks.push(ifNode.id);
       } else {
         proseBuf.push(...block);
       }
