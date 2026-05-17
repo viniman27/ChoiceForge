@@ -17,7 +17,7 @@ interface SceneMapViewProps {
 interface Connection {
   fromId: string;
   toId: string;
-  kind: "goto" | "gosub";
+  kind: "goto" | "gosub" | "finish";
 }
 
 export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: SceneMapViewProps) {
@@ -45,6 +45,7 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
 
   const seen = new Set<string>();
   const connections: Connection[] = [];
+  const playableScenes = ordered.filter((s) => !s.isStart && !s.special);
   ordered.forEach((scene) => {
     const nodes =
       scene.name === data.sceneTitle
@@ -60,6 +61,20 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
       seen.add(key);
       connections.push({ fromId: scene.id, toId: target.id, kind: node.type === "gosub_scene" ? "gosub" : "goto" });
     });
+    if (!scene.isStart && !scene.special) {
+      const hasFinish = nodes.some((n) => n.type === "finish");
+      if (hasFinish) {
+        const idx = playableScenes.findIndex((s) => s.id === scene.id);
+        const next = playableScenes[idx + 1];
+        if (next) {
+          const key = `${scene.id}|${next.id}|finish`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            connections.push({ fromId: scene.id, toId: next.id, kind: "finish" });
+          }
+        }
+      }
+    }
   });
 
   const doneCounts = new Map<string, { done: number; total: number }>();
@@ -135,6 +150,11 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
           <marker id="ml-gosub" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="var(--c-gosub)" /></marker>
         </svg>
         <span>gosub_scene</span>
+        <svg width="24" height="10" viewBox="0 0 24 10">
+          <path d="M 0 5 L 18 5" stroke="var(--c-finish)" strokeWidth="1.5" strokeDasharray="2 4" fill="none" markerEnd="url(#ml-finish)" />
+          <marker id="ml-finish" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6z" fill="var(--c-finish)" /></marker>
+        </svg>
+        <span>*finish</span>
         <span className="map-legend-hint">{ordered.length} scenes · Ctrl+scroll to zoom · drag to pan</span>
       </div>
       <div
@@ -152,6 +172,9 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
             <marker id="sm-arrow-gosub" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
               <path d="M0 0L7 3L0 6z" fill="var(--c-gosub)" />
             </marker>
+            <marker id="sm-arrow-finish" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+              <path d="M0 0L7 3L0 6z" fill="var(--c-finish)" />
+            </marker>
           </defs>
           {connections.map((conn, idx) => {
             const from = positions.get(conn.fromId);
@@ -162,9 +185,9 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
             const x2 = to.x;
             const y2 = to.y + CARD_H / 2;
             const bend = Math.max(50, Math.abs(x2 - x1) * 0.45);
-            const color = conn.kind === "goto" ? "var(--c-goto)" : "var(--c-gosub)";
-            const marker = conn.kind === "goto" ? "url(#sm-arrow-goto)" : "url(#sm-arrow-gosub)";
-            const dash = conn.kind === "gosub" ? "5 4" : undefined;
+            const color = conn.kind === "goto" ? "var(--c-goto)" : conn.kind === "gosub" ? "var(--c-gosub)" : "var(--c-finish)";
+            const marker = conn.kind === "goto" ? "url(#sm-arrow-goto)" : conn.kind === "gosub" ? "url(#sm-arrow-gosub)" : "url(#sm-arrow-finish)";
+            const dash = conn.kind === "gosub" ? "5 4" : conn.kind === "finish" ? "2 4" : undefined;
             return (
               <path
                 key={idx}
