@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 132
+- **Fix false-positive: `modulo` and built-in functions falsely flagged as undeclared variables in expressions.**
+  - **Problem**: `extractExpressionNames` had a local `reserved` set with only `and`, `or`, `not`, `true`, `false`. ChoiceScript also has `modulo` (arithmetic operator) and built-in functions `round`, `round_down`, `log`, `abs`, `length`, `auto`. An expression like `score modulo 2 = 0` would emit "condition uses an undeclared variable: modulo". Same for `round(score)`, `abs(delta)`, etc.
+  - **Fix**: Replaced the local `reserved` set with a module-level `EXPRESSION_RESERVED` constant that includes the full set of ChoiceScript operators and built-ins that appear as bare identifiers in expressions.
+  - **Files changed**: `choicescript.ts` (new `EXPRESSION_RESERVED` constant, `extractExpressionNames` updated), `domain.test.ts` (1 new test).
+  - **Tests**: 225 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 131
 - **Parity improvements: reserved-word checks in `*create`; undeclared-variable scan in preserved `*set` RHS.**
   - **Problem 1**: `lintPreservedCreateLine` (startup.txt linting) didn't check for reserved words in variable names, unlike `lintProjectMetadata`, `lintPreservedTempLine`, and `lintPreservedParamsLine` which all gained that check in session 125/128.
