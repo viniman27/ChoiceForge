@@ -4163,6 +4163,33 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("computeVariableUses counts reads in choice option bodies", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "" }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          {
+            id: "n1", type: "choice", x: 0, y: 0, w: 300, title: "*choice",
+            options: [
+              { text: "Option A", to: "n2", body: "Score is ${score}." },
+              { text: "Option B", to: "n2" },
+            ],
+          },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "choice" }],
+      },
+    },
+    lints: [],
+  };
+  const uses = computeVariableUses(project);
+  assert.ok((uses.get("score") ?? 0) > 0, "score should be counted as used in option body");
+});
+
 test("detects undeclared variable in @!{name} capitalized interpolation", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
