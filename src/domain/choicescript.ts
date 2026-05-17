@@ -407,14 +407,14 @@ function lintSceneReachability(project: ChoiceForgeProject, sceneNames: string[]
   }
   sceneNames.forEach((name) => {
     if (!reachable.has(name)) {
-      issues.push({ level: "warning", msg: `scene "${name}" has no incoming connections from other scenes`, scene: null });
+      issues.push({ level: "warning", msg: `scene "${name}" has no incoming connections from other scenes`, key: "scene_unreachable", params: { name }, scene: null });
     }
   });
 }
 
 function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
-  if (!project.title.trim()) issues.push({ level: "error", msg: "project has an empty title", scene: null });
-  if (!project.author.trim()) issues.push({ level: "error", msg: "project has an empty author", scene: null });
+  if (!project.title.trim()) issues.push({ level: "error", msg: "project has an empty title", key: "project_empty_title", scene: null });
+  if (!project.author.trim()) issues.push({ level: "error", msg: "project has an empty author", key: "project_empty_author", scene: null });
   const generatedExportPaths = generatedChoiceScriptExportPaths(project);
 
   findDuplicates(project.scenes.map((scene) => scene.name))
@@ -572,17 +572,17 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
   graph.nodes.forEach((node) => {
     if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, key: "orphan_node", params: { name: node.title }, scene: sceneName, node: node.id });
     }
 
     if (!TERMINAL_NODE_TYPES.has(node.type) && node.type !== "choice" && node.type !== "if" && (outgoing.get(node.id) ?? 0) === 0) {
-      issues.push({ level: "info", msg: `node "${node.title}" has no visual output`, scene: sceneName, node: node.id });
+      issues.push({ level: "info", msg: `node "${node.title}" has no visual output`, key: "dead_end", params: { name: node.title }, scene: sceneName, node: node.id });
     }
 
     node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
-      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
 
     lintAchievementCommands(node.body ?? "", achievements, issues, sceneName, node.id);
@@ -598,7 +598,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!isValidChoiceScriptIdentifier(target)) {
         issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
       } else if (!scenes.has(target)) {
-        issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, key: "goto_scene_missing", params: { name: target }, scene: sceneName, node: node.id });
       }
     }
 
@@ -649,7 +649,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!isValidChoiceScriptIdentifier(label)) {
         issues.push({ level: "error", msg: `*goto has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
       } else if (!labels.has(label)) {
-        issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, key: "goto_missing_label", params: { name: label }, scene: sceneName, node: node.id });
       }
     }
 
@@ -660,7 +660,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!isValidChoiceScriptIdentifier(label)) {
         issues.push({ level: "error", msg: `*gosub has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
       } else if (!labels.has(label)) {
-        issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, key: "gosub_missing_label", params: { name: label }, scene: sceneName, node: node.id });
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
         issues.push({ level: "warning", msg: "*gosub has no flow continuation for *return", scene: sceneName, node: node.id });
@@ -696,7 +696,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if (!varName || !isValidChoiceScriptIdentifier(varName)) {
         issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${varName || "(empty)"}`, scene: sceneName, node: node.id });
       } else if (project.variables.some((variable) => variable.name === varName)) {
-        issues.push({ level: "warning", msg: `*temp shadows a global variable: ${varName}`, scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: `*temp shadows a global variable: ${varName}`, key: "temp_shadows", params: { name: varName }, scene: sceneName, node: node.id });
       }
       if (!node.body?.trim()) {
         issues.push({ level: "warning", msg: `*temp "${varName}" has no initial value (defaults to 0)`, scene: sceneName, node: node.id });
@@ -728,7 +728,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       } else if (!isValidChoiceScriptIdentifier(achId)) {
         issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${achId}`, scene: sceneName, node: node.id });
       } else if (!achievements.has(achId)) {
-        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achId}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achId}`, key: "undef_ach", params: { name: achId }, scene: sceneName, node: node.id });
       }
     }
   });
@@ -1238,7 +1238,7 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
     }
     const projectVariable = statVariables.get(variable);
     if (variable && !projectVariable) {
-      issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, key: "stat_undef_var", params: { name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
     if ((chartType === "percent" || chartType === "opposed_pair") && projectVariable && projectVariable.type !== "number") {
       issues.push({ level: "error", msg: `*stat_chart ${chartType} requires a number variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
@@ -1289,7 +1289,7 @@ function lintLabels(
     }
     const previous = seen.get(label);
     if (previous) {
-      issues.push({ level: "error", msg: `duplicate *label in scene: ${label}`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `duplicate *label in scene: ${label}`, key: "duplicate_label", params: { name: label }, scene: sceneName, node: node.id });
       return;
     }
     seen.set(label, node);
@@ -1306,7 +1306,7 @@ function lintChoiceNode(
   achievements: Set<string>,
 ) {
   if (!node.options?.length) {
-    issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+    issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, key: "empty_choice", scene: sceneName, node: node.id });
   } else if (node.options.length === 1) {
     issues.push({ level: "warning", msg: `*choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
   }
@@ -1342,7 +1342,7 @@ function lintFakeChoiceNode(
   achievements: Set<string>,
 ) {
   if (!node.fakeOptions?.length) {
-    issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, scene: sceneName, node: node.id });
+    issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, key: "empty_fake_choice", scene: sceneName, node: node.id });
   } else if (node.fakeOptions.length === 1) {
     issues.push({ level: "warning", msg: `*fake_choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
   }
@@ -1370,7 +1370,7 @@ function lintIfNode(
   sceneName: string,
 ) {
   if (!node.branches?.length) {
-    issues.push({ level: "error", msg: `*if node "${node.title}" has no branches`, scene: sceneName, node: node.id });
+    issues.push({ level: "error", msg: `*if node "${node.title}" has no branches`, key: "empty_if", scene: sceneName, node: node.id });
   }
   let seenElse = false;
   node.branches?.forEach((branch, index) => {
@@ -1538,7 +1538,7 @@ function lintSet(
   }
   const variable = variableTypes.get(set.var);
   if (!variables.has(set.var) || !variable) {
-    issues.push({ level: "error", msg: `*set uses an undeclared variable: ${set.var}`, scene, node });
+    issues.push({ level: "error", msg: `*set uses an undeclared variable: ${set.var}`, key: "undef_var", params: { name: set.var }, scene, node });
     return;
   }
   if (variable.type !== "number" && set.op !== "=") {
@@ -1614,7 +1614,7 @@ function lintAchievementCommands(text: string, achievements: Set<string>, issues
       return;
     }
     if (!achievements.has(id)) {
-      issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, scene, node });
+      issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${id}`, key: "undef_ach", params: { name: id }, scene, node });
     }
   });
 }

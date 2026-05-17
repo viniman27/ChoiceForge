@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 109
+- **Lint message localization (PT/ES) + BottomBar i18n.**
+  - **Problem**: All ~90 lint messages in `choicescript.ts` were English-only despite the bilingual UI — explicitly listed as a known v1.0 gap in agents.md.
+  - **Approach**: Added optional `key?: string` and `params?: Record<string, string>` fields to `LintIssue` (backward compatible — existing code reading `msg` is unaffected). Tagged ~17 of the most common/important lint messages with keys and parameter dicts. Created `src/data/lintMessages.ts` with a PT and ES translation table (17 keys × 2 languages). Added a `translateLintMsg(key, params, fallback, lang)` helper that applies template substitution (`{name}` etc.) and falls back to the English `msg` if no translation exists.
+  - **Files changed**: `types.ts` (2 new `LintIssue` fields, 5 new `I18nLabels` fields for BottomBar UI), `sampleProject.ts` (5 BottomBar UI strings in PT/EN/ES), `choicescript.ts` (~17 lint pushes tagged with `key`/`params`), `lintMessages.ts` (new translation table), `BottomBar.tsx` (uses `translateLintMsg` + new `lang` prop, localized filter dropdown and empty-state text).
+  - **Tests**: 160 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 108
 - **V1.0 gap assessment + New Project modal.**
   - **Gap assessment**: project is functionally v1.0 ready. All 24+ node types, export, import, linting, undo/redo, snapshots, manuscript, scene map, dashboard, search, command palette, copy/paste, multi-select, keyboard shortcuts — all implemented and working (160 tests). Remaining gaps: (1) lint messages English-only despite bilingual UI, (2) no "start blank" project option (Reset always loads sample), (3) import edge cases for deeply nested patterns, (4) no UI/browser test coverage.

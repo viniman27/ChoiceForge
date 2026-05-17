@@ -1,15 +1,18 @@
 import { useState } from "react";
-import type { ChoiceForgeProject, I18nLabels, LintIssue } from "../domain/types";
+import { translateLintMsg } from "../data/lintMessages";
+import type { ChoiceForgeProject, I18nLabels, Language, LintIssue } from "../domain/types";
 
 export function BottomBar({
   data,
   labels,
+  lang,
   open,
   onOpenChange,
   onSelectIssue,
 }: {
   data: ChoiceForgeProject;
   labels: I18nLabels;
+  lang: Language;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectIssue: (lint: LintIssue) => void;
@@ -48,9 +51,9 @@ export function BottomBar({
                 value={filterLevel}
                 onChange={(e) => setFilterLevel(e.target.value as "" | "error" | "warning")}
               >
-                <option value="">all levels</option>
-                <option value="error">errors only</option>
-                <option value="warning">warnings only</option>
+                <option value="">{labels.lintAllLevels}</option>
+                <option value="error">{labels.lintErrorsOnly}</option>
+                <option value="warning">{labels.lintWarningsOnly}</option>
               </select>
               {sceneNames.length > 1 && (
                 <select
@@ -58,7 +61,7 @@ export function BottomBar({
                   value={filterScene}
                   onChange={(e) => setFilterScene(e.target.value)}
                 >
-                  <option value="">all scenes</option>
+                  <option value="">{labels.lintAllScenes}</option>
                   {sceneNames.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               )}
@@ -83,12 +86,12 @@ export function BottomBar({
               >
                 <span className={`con-dot dot-${lint.level}`} />
                 <span className="con-level">{lint.level}</span>
-                <span className="con-msg">{lint.msg}</span>
+                <span className="con-msg">{translateLintMsg(lint.key, lint.params, lint.msg, lang)}</span>
                 <span className="con-loc dim">{lint.scene && <code>{lint.scene}</code>}{lint.node && <code>{lint.node}</code>}{lint.line && <span> :{lint.line}</span>}</span>
               </li>
             ))}
             {visibleLints.length === 0 && isFiltered && (
-              <li className="con-row con-empty">no issues match the current filter</li>
+              <li className="con-row con-empty">{labels.lintNoMatch}</li>
             )}
           </ul>
         </details>

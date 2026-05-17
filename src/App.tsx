@@ -430,6 +430,7 @@ export default function App() {
       <BottomBar
         data={lintedProject}
         labels={i18n[lang]}
+        lang={lang}
         open={consoleOpen}
         onOpenChange={setConsoleOpen}
         onSelectIssue={(lint) => {
