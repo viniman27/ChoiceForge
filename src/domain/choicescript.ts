@@ -627,6 +627,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
     node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
 
+    if (node.type === "set" && (!node.sets || node.sets.length === 0)) {
+      issues.push({ level: "warning", msg: `*set node "${node.title}" has no assignments`, scene: sceneName, node: node.id });
+    }
+
     extractVariableReferences(node.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });

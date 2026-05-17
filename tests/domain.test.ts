@@ -4163,6 +4163,50 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("lints set node with no assignments as warning", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [],
+    assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set nothing", sets: [] },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.node === "n1" && i.msg.includes("no assignments")));
+});
+
+test("does not lint set node with assignments", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0" }],
+    achievements: [],
+    assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set score", sets: [{ var: "score", op: "=", val: "10" }] },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.node === "n1" && i.msg.includes("no assignments")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
