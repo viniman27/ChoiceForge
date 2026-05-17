@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 135
+- **Parity: `computeAchievementLocations` and `computeAchievementUses` scan option bodies and preserved source.**
+  - **Problem**: Both functions only called `extractAchievementCommandTargets` on `node.body`. Option bodies (`option.body`, `fakeOption.body`) and preserved source text (`graph.sourceText`, `startupSource`) were silently skipped. A `*achieve` command inside a choice option body or imported source would not appear in the location map or use count shown in the UI.
+  - **Fix `computeAchievementLocations`**: Added `node.options?.forEach` and `node.fakeOptions?.forEach` loops in `scanGraph` (matching the `computeVariableLocations` pattern). Added `scanSource` function that splits preserved source text line-by-line and calls `addLoc` for every `*achieve` command found. Called for each `graph.sourceText` and `startupSource`.
+  - **Fix `computeAchievementUses`**: Expanded `scanNode` to also call `scanText` on `option.body` and `fakeOption.body` for both options and fakeOptions.
+  - **Files changed**: `choicescript.ts` (18 lines added).
+  - **Tests**: 226 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 134
 - **Extend `*gosub_scene` entry label check to cover preserved-source scenes; fix `computeVariableLocations` to scan source text.**
   - **`*gosub_scene` label check**: The existing check only looked at `targetGraph.nodes` for label nodes, missing labels in preserved-source scenes (where `sourceText` holds the actual ChoiceScript). Added extraction of `*label` lines from `targetGraph.sourceText` via regex and merged with visual label names. Now correctly validates entry labels for both visual-graph and preserved-source target scenes.
