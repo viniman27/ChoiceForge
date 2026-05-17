@@ -293,6 +293,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   lintSceneReachability(project, sceneNames, issues);
   lintUnusedVariables(project, issues);
+  lintCheckpoints(project, sceneNames, issues);
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
   return issues;
@@ -354,6 +355,38 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
       issues.push({ level: "warning", msg: `variable "${variable.name}" is declared but never read`, scene: null });
     }
   }
+}
+
+function lintCheckpoints(project: ChoiceForgeProject, sceneNames: string[], issues: LintIssue[]) {
+  const savedSlots = new Set<string>();
+  sceneNames.forEach((sceneName) => {
+    const graph = getSceneGraph(project, sceneName);
+    graph.nodes.forEach((node) => {
+      if (node.type === "checkpoint") {
+        const slot = checkpointSlot(node.title, "*save_checkpoint");
+        savedSlots.add(slot);
+      }
+    });
+    if (graph.sourceText) {
+      graph.sourceText.split(/\r?\n/).forEach((line) => {
+        if (sourceCommand(line.trim()) === "save_checkpoint") {
+          savedSlots.add(sourceCommandValue(line.trim(), "*save_checkpoint").trim());
+        }
+      });
+    }
+  });
+  sceneNames.forEach((sceneName) => {
+    const graph = getSceneGraph(project, sceneName);
+    if (graph.sourceText) return;
+    graph.nodes.forEach((node) => {
+      if (node.type !== "restore_checkpoint") return;
+      const slot = checkpointSlot(node.title, "*restore_checkpoint");
+      if (!savedSlots.has(slot)) {
+        const label = slot ? ` "${slot}"` : "";
+        issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in the project`, key: "restore_no_save", params: { name: slot }, scene: sceneName, node: node.id });
+      }
+    });
+  });
 }
 
 function lintSceneReachability(project: ChoiceForgeProject, sceneNames: string[], issues: LintIssue[]) {
@@ -550,7 +583,6 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   const achievements = new Set(project.achievements.map((achievement) => achievement.id));
   const scenes = new Set(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name));
   const hasGosub = graph.nodes.some((node) => node.type === "gosub");
-  const checkpointSlots = new Set(graph.nodes.filter((node) => node.type === "checkpoint").map((node) => checkpointSlot(node.title, "*save_checkpoint")));
   const outgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
   const flowOutgoing = new Map(graph.nodes.map((node) => [node.id, 0]));
@@ -630,7 +662,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       }
     }
 
-    if (node.type === "passage" && !node.body?.trim()) {
+    if (node.type === "passage" && !node.body?.trim() && !/_(?:empty|merge)$/.test(node.title)) {
       issues.push({ level: "info", msg: `passage "${node.title}" has no body text`, key: "empty_passage_body", params: { name: node.title }, scene: sceneName, node: node.id });
     }
     if (node.type === "passage" && node.body) {
@@ -682,13 +714,6 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, node: node.id });
     }
 
-    if (node.type === "restore_checkpoint") {
-      const slot = checkpointSlot(node.title, "*restore_checkpoint");
-      if (!checkpointSlots.has(slot)) {
-        const label = slot ? ` "${slot}"` : "";
-        issues.push({ level: "warning", msg: `*restore_checkpoint${label} has no matching *save_checkpoint in this scene`, scene: sceneName, node: node.id });
-      }
-    }
 
     if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
       lintInputNode(node, variables, variableTypes, issues, sceneName);

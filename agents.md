@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 113
+- **Three linter improvements: routing-node false-positive fix, cross-scene checkpoint check, new empty-passage lint.**
+  - **False positive fix (empty_passage_body)**: The importer creates structural routing nodes (`choice_option_empty`, `if_*_empty`, `*_merge`) as `type: "passage"` with `body: ""`. The new `empty_passage_body` lint fired on these. Fixed by excluding nodes whose title matches `/_(?:empty|merge)$/`. Added regression test that imports a choice and verifies no false positive fires.
+  - **Cross-scene checkpoint check (restore_no_save)**: The old `*restore_checkpoint` lint only checked if a matching `*save_checkpoint` existed in the SAME scene — a near-universal false positive since checkpoints are designed to span scenes. Removed the per-scene check. Added a new `lintCheckpoints` function at the project level that first collects all saved checkpoint slots from all scenes (including preserved source), then checks each `*restore_checkpoint` against the project-wide set. Warning message now says "in the project" instead of "in this scene". Added tests for the no-save case and the cross-scene save case.
+  - **Files changed**: `choicescript.ts` (removed per-scene restore check + checkpointSlots var, added lintCheckpoints, updated lintProject call, tweaked empty_passage_body filter), `lintMessages.ts` (+1 restore_no_save translation), `domain.test.ts` (3 new tests).
+  - **Tests**: 181 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 112
 - **Three new linter rules: `*rand` same bounds, empty passage body, write-only `*temp`.**
   - **Rule 1 (`rand_same_bounds`)**: Warns when `*rand` is given `min = max` as numeric literals — always produces the same value, almost certainly a mistake. Added to `lintInputNode`, fires only for `node.type === "rand"` (not `input_number`). Translated to PT/ES.
