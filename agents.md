@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 128
+- **Fix incorrect `error` for `*stat_chart text` with a number variable; add reserved-word checks to preserved source temp/params.**
+  - **Problem 1**: `lintPreservedStatsSource` raised an `error` for `*stat_chart text varname` when `varname` is a number variable. ChoiceScript actually accepts `text` for any variable type — it just renders the raw value. The restriction was wrong and would flag valid ChoiceScript.
+  - **Fix 1**: Changed the check to `warning` level with a helpful message ("displays X as a raw number — use percent or opposed_pair for a bar chart"). Also scoped it to only fire for `number` type (boolean and string with `text` are now silent).
+  - **Problem 2**: `lintPreservedTempLine` and `lintPreservedParamsLine` didn't check for ChoiceScript reserved words, unlike their graph-node counterparts (already fixed in session 125).
+  - **Fix 2**: Added `isChoiceScriptReserved()` call in both preserved-source functions after the identifier-validity check, mirroring the graph-node lint added in session 125.
+  - **Files changed**: `choicescript.ts` (1 check changed in lintPreservedStatsSource, 2 reserved-word checks added in lintPreservedTempLine and lintPreservedParamsLine), `domain.test.ts` (1 test assertion updated).
+  - **Tests**: 220 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 127
 - **Lint scene with `*gosub` but no `*return` node.**
   - **Problem**: The existing check at `node.type === "return" && !hasGosub` warned when a `*return` appeared in a scene with no `*gosub`. The symmetric case — a `*gosub` in a scene with no `*return` — was missing. Without a `*return`, the gosub'd subroutine can never return to the caller, leaving the player stuck in a dead flow.
