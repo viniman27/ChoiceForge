@@ -2391,6 +2391,63 @@ test("does not flag unused variable that is only used in option body", () => {
   assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("imports *if guard on option group in choice block", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *if (strength > 5)",
+    "    #Kick the door",
+    "      *goto door_kicked",
+    "    #Smash the window",
+    "      *goto window_smashed",
+    "  #Give up",
+    "    *goto gave_up",
+    "*label door_kicked",
+    "*finish",
+    "*label window_smashed",
+    "*finish",
+    "*label gave_up",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "choice node should be imported");
+  assert.equal(choice?.options?.length, 3);
+  assert.equal(choice?.options?.[0]?.text, "Kick the door");
+  assert.equal(choice?.options?.[0]?.cond?.type, "if");
+  assert.equal(choice?.options?.[0]?.cond?.expr, "strength > 5");
+  assert.equal(choice?.options?.[1]?.text, "Smash the window");
+  assert.equal(choice?.options?.[1]?.cond?.type, "if");
+  assert.equal(choice?.options?.[1]?.cond?.expr, "strength > 5");
+  assert.equal(choice?.options?.[2]?.text, "Give up");
+  assert.ok(!choice?.options?.[2]?.cond, "top-level option should have no condition");
+});
+
+test("imports *if/*elseif guard on option groups in choice block", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *if (speed > 5)",
+    "    #Run",
+    "      *goto ran",
+    "  *elseif (strength > 5)",
+    "    #Fight",
+    "      *goto fought",
+    "  *else",
+    "    #Surrender",
+    "      *goto surrendered",
+    "*label ran",
+    "*finish",
+    "*label fought",
+    "*finish",
+    "*label surrendered",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "choice node should be imported");
+  assert.equal(choice?.options?.length, 3);
+  assert.equal(choice?.options?.[0]?.cond?.expr, "speed > 5");
+  assert.equal(choice?.options?.[1]?.cond?.expr, "strength > 5");
+  assert.ok(!choice?.options?.[2]?.cond, "*else branch options have no condition");
+});
+
 test("lints *achieve in choice option body", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
