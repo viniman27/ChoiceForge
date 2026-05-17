@@ -1272,7 +1272,9 @@ function buildBodyNodeChain(
     }
 
     if (command === "choice" || command === "fake_choice") {
-      flushProse();
+      const savedProseBuf = [...proseBuf];
+      const promptText = proseBuf.join("\n").trim();
+      proseBuf.length = 0;
       const block = [line];
       while (i < bodyLines.length && (/^\s/.test(bodyLines[i]) || !bodyLines[i].trim())) {
         block.push(bodyLines[i]);
@@ -1281,7 +1283,7 @@ function buildBodyNodeChain(
       if (command === "choice") {
         const parsed = parseInlineChoiceBlock(block, 1);
         if (parsed) {
-          const choiceNode = addNode(parsed.node, false);
+          const choiceNode = addNode({ ...parsed.node, prompt: promptText || parsed.node.prompt }, false);
           linkAll(choiceNode.id);
           const optTargets = parsed.options.map((opt) => addInlineOptionNodes(opt, addNode, edges));
           const options: ChoiceOption[] = parsed.options.map((opt, idx) => ({
@@ -1301,15 +1303,15 @@ function buildBodyNodeChain(
           pendingLinks.length = 0;
           optTargets.forEach((t) => { if (t.continuationId) pendingLinks.push(t.continuationId); });
         } else {
-          proseBuf.push(...block);
+          proseBuf.push(...savedProseBuf, ...block);
         }
       } else {
         const parsed = parseFakeChoiceBlock(block, 1) ?? parseInlineFakeChoiceBlock(block, 1);
         if (parsed) {
-          const n = addNode(parsed, false);
+          const n = addNode({ ...parsed, prompt: promptText || parsed.prompt }, false);
           linkAll(n.id);
         } else {
-          proseBuf.push(...block);
+          proseBuf.push(...savedProseBuf, ...block);
         }
       }
       continue;

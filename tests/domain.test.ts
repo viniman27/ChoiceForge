@@ -3282,6 +3282,43 @@ test("*choice without preceding prose still gets the default prompt", () => {
   assert.ok(choice!.prompt, "choice should still have a prompt");
 });
 
+test("prose before *choice inside *if branch body is captured as choice prompt", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if strong",
+    "  You are strong.",
+    "  Pick your weapon.",
+    "  *choice",
+    "    #Sword",
+    "      *finish",
+    "    #Axe",
+    "      *finish",
+    "*finish",
+  ].join("\n"));
+
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  assert.ok(choice!.prompt?.includes("Pick your weapon."), "prompt should contain preceding branch prose");
+  const passageWithPromptText = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("Pick your weapon."));
+  assert.equal(passageWithPromptText, undefined, "preceding branch prose should not create a separate passage node");
+});
+
+test("prose before *fake_choice inside *if branch body is captured as fake_choice prompt", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if brave",
+    "  Be brave.",
+    "  *fake_choice",
+    "    #Stay",
+    "    #Run",
+    "*finish",
+  ].join("\n"));
+
+  const fakeChoice = graph.nodes.find((n) => n.type === "fake_choice");
+  assert.ok(fakeChoice, "should have a fake_choice node");
+  assert.ok(fakeChoice!.prompt?.includes("Be brave."), "prompt should contain preceding branch prose");
+  const passageWithPromptText = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("Be brave."));
+  assert.equal(passageWithPromptText, undefined, "preceding branch prose should not create a separate passage node");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

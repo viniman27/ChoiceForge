@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 107
+- **Import: collapse preceding prose into nested `*choice`/`*fake_choice` prompt (inside `*if` branches and option bodies).**
+  - **Problem**: Session 106 absorbed prose-before-choice at the top level (`createImportedSceneGraph`), but inside `buildBodyNodeChain` (used for `*if` branch bodies and `*choice` option bodies), the same situation still called `flushProse()`, creating a separate passage node.
+  - **Fix** (`choicescriptImport.ts`, `buildBodyNodeChain`): Replaced `flushProse()` before `choice`/`fake_choice` with prompt-absorption: save `proseBuf`, capture as `promptText`, clear buffer, apply to parsed node's `prompt` field. On parse failure, restore `savedProseBuf` and push block lines back (no behavior change from before).
+  - **Tests**: 2 new tests — `*choice` inside `*if` branch with preceding prose (absorbed into prompt, no separate passage); `*fake_choice` inside `*if` branch with preceding prose (same). Total: **160 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 106
 - **Import: collapse preceding prose into `*choice`/`*fake_choice` prompt field.**
   - **Problem**: Prose immediately before a `*choice` or `*fake_choice` (e.g., "What will you do?") was always flushed as a separate passage node, then connected via a flow edge to the choice. This produced an extra node for what is semantically just the choice's prompt — making imported graphs noisier than necessary.
