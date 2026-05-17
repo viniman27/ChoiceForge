@@ -731,6 +731,10 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       if ((project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], imageTarget)) {
         issues.push({ level: "warning", msg: `*image references an unknown asset file: ${imageTarget}`, key: "image_unknown", params: { name: imageTarget }, scene: sceneName, node: node.id });
       }
+      const imageAlignment = node.inputMin?.trim();
+      if (imageAlignment && !["none", "left", "right"].includes(imageAlignment)) {
+        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${imageAlignment}" — use none, left, or right`, scene: sceneName, node: node.id });
+      }
     }
     if (node.type === "sound" && !node.target?.trim()) {
       issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, node: node.id });

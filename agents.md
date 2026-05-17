@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 133
+- **Validate `*image` alignment value; fix false-positives from ChoiceScript built-in functions in expressions; reserved-word parity in `*create`; undeclared-variable scan in `*set` RHS for preserved source.**
+  - **`*image` alignment lint**: Added check that `node.inputMin` (used as alignment) must be one of `none`, `left`, `right`. If not, emits a `warning`. The generator defaults to `"none"` so the generated ChoiceScript is valid even without a lint error, but the author should be aware of invalid alignment values.
+  - **EXPRESSION_RESERVED set**: `extractExpressionNames` previously filtered `["and", "or", "not", "true", "false"]` but not `modulo`, `round`, `round_down`, `log`, `abs`, `length`, `auto`. These all appear as bare identifiers in ChoiceScript expressions but are not variable names. Changed to a module-level `EXPRESSION_RESERVED` constant with all built-ins.
+  - **`*create` reserved-word check**: Added `isChoiceScriptReserved` call in `lintPreservedCreateLine` for parity with temp/params/global variable checks.
+  - **`*set` RHS undeclared-variable scan**: `lintPreservedSetLine` now scans the value expression for undeclared variables, matching `lintSet`'s graph-node behavior.
+  - **Files changed**: `choicescript.ts`, `domain.test.ts` (multiple tests).
+  - **Tests**: 226 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 132
 - **Fix false-positive: `modulo` and built-in functions falsely flagged as undeclared variables in expressions.**
   - **Problem**: `extractExpressionNames` had a local `reserved` set with only `and`, `or`, `not`, `true`, `false`. ChoiceScript also has `modulo` (arithmetic operator) and built-in functions `round`, `round_down`, `log`, `abs`, `length`, `auto`. An expression like `score modulo 2 = 0` would emit "condition uses an undeclared variable: modulo". Same for `round(score)`, `abs(delta)`, etc.
