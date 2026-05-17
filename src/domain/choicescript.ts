@@ -630,6 +630,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       }
     }
 
+    if (node.type === "passage" && !node.body?.trim()) {
+      issues.push({ level: "info", msg: `passage "${node.title}" has no body text`, key: "empty_passage_body", params: { name: node.title }, scene: sceneName, node: node.id });
+    }
     if (node.type === "passage" && node.body) {
       const wc = countBodyWords(node.body);
       if (wc > 600) issues.push({ level: "warning", msg: `passage "${node.title}" is very long (${wc} words)`, scene: sceneName, node: node.id });
@@ -745,6 +748,61 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, scene: sceneName, node: node.id });
     }
   });
+
+  lintUnusedTempVars(graph, issues, sceneName);
+}
+
+function lintUnusedTempVars(graph: SceneGraph, issues: LintIssue[], sceneName: string) {
+  const tempNodes = graph.nodes.filter((n) => n.type === "temp" && n.inputVar?.trim());
+  if (!tempNodes.length) return;
+
+  const tempVarNames = new Set(tempNodes.map((n) => n.inputVar!.trim()));
+  const readVars = new Set<string>();
+  const recordRead = (name: string) => { if (tempVarNames.has(name)) readVars.add(name); };
+  const scanExpr = (expr: string) => extractExpressionNames(expr).forEach(recordRead);
+  const scanText = (text: string) => extractVariableReferences(text).forEach(recordRead);
+
+  const scanNode = (node: StoryNode) => {
+    if (node.type === "temp") return;
+    scanText(node.body ?? "");
+    scanText(node.prompt ?? "");
+    node.sets?.forEach((s) => scanExpr(s.val));
+    node.options?.forEach((opt) => {
+      scanText(opt.text);
+      scanText(opt.body ?? "");
+      if (opt.cond?.expr) scanExpr(opt.cond.expr);
+      opt.sets?.forEach((s) => scanExpr(s.val));
+    });
+    node.fakeOptions?.forEach((opt) => {
+      scanText(opt.text);
+      scanText(opt.body ?? "");
+      if (opt.cond?.expr) scanExpr(opt.cond.expr);
+      opt.sets?.forEach((s) => scanExpr(s.val));
+    });
+    node.branches?.forEach((branch) => {
+      if (branch.expr) scanExpr(branch.expr);
+      branch.sets?.forEach((s) => scanExpr(s.val));
+    });
+  };
+
+  graph.nodes.forEach(scanNode);
+  if (graph.sourceText) {
+    graph.sourceText.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      scanText(trimmed);
+      const cmd = sourceCommand(trimmed);
+      if (cmd === "if" || cmd === "elseif") {
+        scanExpr(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${cmd}`)));
+      }
+    });
+  }
+
+  for (const name of tempVarNames) {
+    if (!readVars.has(name)) {
+      const tempNode = graph.nodes.find((n) => n.type === "temp" && n.inputVar?.trim() === name);
+      issues.push({ level: "info", msg: `*temp "${name}" is declared but never read in this scene`, key: "unused_temp", params: { name }, scene: sceneName, node: tempNode?.id });
+    }
+  }
 }
 
 function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
@@ -1599,6 +1657,9 @@ function lintInputNode(
     }
     if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
       issues.push({ level: "error", msg: `${command} min bound (${minStr}) exceeds max bound (${maxStr})`, scene, node: node.id });
+    }
+    if (node.type === "rand" && !minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min === max) {
+      issues.push({ level: "warning", msg: `*rand always produces the same value (min = max = ${min})`, key: "rand_same_bounds", params: { val: String(min) }, scene, node: node.id });
     }
   }
 }

@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 112
+- **Three new linter rules: `*rand` same bounds, empty passage body, write-only `*temp`.**
+  - **Rule 1 (`rand_same_bounds`)**: Warns when `*rand` is given `min = max` as numeric literals — always produces the same value, almost certainly a mistake. Added to `lintInputNode`, fires only for `node.type === "rand"` (not `input_number`). Translated to PT/ES.
+  - **Rule 2 (`empty_passage_body`)**: Info-level flag when a `passage` node has no body text (empty or whitespace). These are usually placeholder or forgotten nodes. Added to the `lintSceneGraph` node loop. Translated to PT/ES.
+  - **Rule 3 (`unused_temp`)**: Info-level flag when a `*temp` variable is declared in a scene but never read — only set but never referenced in any text interpolation, condition, or expression value. New `lintUnusedTempVars` function mirrors the approach of `lintUnusedVariables` (global) but scoped to per-scene temp vars. Reads `graph.sourceText` if present to handle preserved-source scenes. Translated to PT/ES.
+  - **Files changed**: `choicescript.ts` (lintInputNode +2 lines, lintSceneGraph +3 lines, new lintUnusedTempVars function ~50 lines), `lintMessages.ts` (+3 translation entries), `domain.test.ts` (7 new tests).
+  - **Tests**: 179 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 111
 - **Import hardening: choice guards without parens, compound expression fix, if-without-else flow edges.**
   - **Problem 1 (choice guards)**: `parseChoiceHeader` required parens in `*if (cond) #option` and `*selectable_if (cond) #option` forms. Without parens (`*if cond > 50 #option`) the option was dropped. Same for group `*if` guards in all 4 choice block parsers.

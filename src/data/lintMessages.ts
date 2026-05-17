@@ -71,6 +71,18 @@ export const lintMessages: LintTranslations = {
     pt: "*stat_chart usa variavel nao declarada: {name}",
     es: "*stat_chart usa variable no declarada: {name}",
   },
+  rand_same_bounds: {
+    pt: "*rand produz sempre o mesmo valor (min = max = {val})",
+    es: "*rand siempre produce el mismo valor (min = max = {val})",
+  },
+  empty_passage_body: {
+    pt: "passagem sem texto de corpo",
+    es: "pasaje sin texto de cuerpo",
+  },
+  unused_temp: {
+    pt: "*temp declarado mas nunca lido nesta cena: {name}",
+    es: "*temp declarado pero nunca leido en esta escena: {name}",
+  },
 };
 
 export function translateLintMsg(
