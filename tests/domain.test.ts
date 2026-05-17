@@ -5199,6 +5199,136 @@ test("*gosub missing label in preserved source emits gosub_missing_label key and
   assert.ok(issue, "expected gosub_missing_label key on *gosub to undefined label in preserved source");
 });
 
+test("unused hidden global variable emits unused_var key and name param", () => {
+  const graph: SceneGraph = {
+    nodes: [{ id: "n1", type: "finish", x: 0, y: 0, w: 240, title: "*finish" }],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 1 }],
+    variables: [{ name: "hidden_flag", type: "boolean" as const, initial: "false", desc: "", showInStats: false }],
+    achievements: [], assets: [],
+    sceneData: { intro: graph },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "unused_var" && i.params?.name === "hidden_flag");
+  assert.ok(issue, "expected unused_var key on hidden global variable that is never read");
+});
+
+test("passage exceeding 600 words emits passage_too_long key with name and wc params", () => {
+  const longBody = Array(601).fill("word").join(" ");
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "long_passage", body: longBody },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "passage_too_long" && i.params?.name === "long_passage");
+  assert.ok(issue, "expected passage_too_long key on passage exceeding 600 words");
+  assert.equal(issue?.params?.wc, "601");
+});
+
+test("gosub_scene graph node pointing to scene without *return emits gosub_scene_no_return key", () => {
+  const callerGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 280, title: "*gosub_scene helper", target: "helper" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const helperGraph: SceneGraph = {
+    nodes: [{ id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "body", body: "Helper text." }],
+    edges: [],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "helper", name: "helper", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: callerGraph, helper: helperGraph },
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_scene_no_return" && i.params?.name === "helper");
+  assert.ok(issue, "expected gosub_scene_no_return key when target scene has no *return");
+});
+
+test("gosub_scene in preserved source pointing to scene without *return emits gosub_scene_no_return key", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [
+      { id: "intro", name: "intro", words: 0, nodes: 0, current: true },
+      { id: "helper", name: "helper", words: 0, nodes: 0 },
+    ],
+    variables: [], achievements: [], assets: [],
+    sceneData: {
+      intro: { nodes: [], edges: [], sourceText: "*gosub_scene helper" },
+      helper: { nodes: [{ id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "body", body: "Text." }], edges: [] },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_scene_no_return" && i.params?.name === "helper");
+  assert.ok(issue, "expected gosub_scene_no_return key in preserved source when target scene has no *return");
+});
+
+test("unreferenced *label graph node emits unreferenced_label key and name param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Hello." },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label dead_end_label" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n2", kind: "flow" },
+      { from: "n2", to: "n3", kind: "flow" },
+    ],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "unreferenced_label" && i.params?.name === "dead_end_label");
+  assert.ok(issue, "expected unreferenced_label key on *label node never targeted by *goto or *gosub");
+});
+
+test("unreferenced *label in preserved source emits unreferenced_label key and name param", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [], achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*label orphan_sub\n*finish" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "unreferenced_label" && i.params?.name === "orphan_sub");
+  assert.ok(issue, "expected unreferenced_label key on *label in preserved source never targeted");
+});
+
+test("scene with *gosub node but no *return node emits gosub_no_return key and scene name param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub sub" },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label sub" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [
+      { from: "n1", to: "n3", kind: "flow" },
+      { from: "n1", to: "n2", kind: "goto" },
+      { from: "n2", to: "n3", kind: "flow" },
+    ],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issues = lintProject(project);
+  const issue = issues.find((i) => i.key === "gosub_no_return" && i.params?.name === "intro");
+  assert.ok(issue, "expected gosub_no_return key when scene has *gosub node but no *return node");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
