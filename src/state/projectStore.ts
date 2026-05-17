@@ -66,6 +66,7 @@ export interface ProjectActions {
   replaceStartupText: (content: string) => void;
   replaceStatsText: (content: string) => void;
   resetProject: (language: Language) => ChoiceForgeProject;
+  newBlankProject: (title: string, author: string) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   bulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
@@ -227,6 +228,12 @@ export function useProjectStore() {
     },
     resetProject: (language) => {
       const fresh = commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects[language]))));
+      setTrackedProjectState(fresh);
+      saveProjectSnapshot(fresh);
+      return fresh;
+    },
+    newBlankProject: (title, author) => {
+      const fresh = commitProject(createBlankProject(title, author));
       setTrackedProjectState(fresh);
       saveProjectSnapshot(fresh);
       return fresh;
@@ -1435,4 +1442,32 @@ function normalizeIdentifier(value: string): string {
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/^[^a-z_]+/, "")
     .replace(/_+/g, "_");
+}
+
+function createBlankProject(title: string, author: string): ChoiceForgeProject {
+  const sceneName = "chapter_1";
+  const nodes: StoryNode[] = [
+    { id: "n1", type: "passage", x: 200, y: 120, w: 320, title: "start", body: "" },
+    { id: "n2", type: "finish", x: 200, y: 360, w: 240, title: "*finish" },
+  ];
+  const edges: StoryEdge[] = [{ from: "n1", to: "n2", kind: "flow" }];
+  const graph: SceneGraph = { nodes, edges };
+  return {
+    title: title.trim() || "Untitled",
+    author: author.trim() || "Anonymous",
+    sceneTitle: sceneName,
+    sceneSubtitle: `${sceneName}.txt`,
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: sceneName, name: sceneName, words: 0, nodes: nodes.length, current: true },
+      { id: "choicescript_stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    variables: [],
+    achievements: [],
+    assets: [],
+    nodes,
+    edges,
+    sceneData: { [sceneName]: graph },
+    lints: [],
+  };
 }

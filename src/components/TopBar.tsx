@@ -23,11 +23,11 @@ interface TopBarProps {
   onPlay: () => void;
   onImport: (files: File[]) => void;
   onExport: () => void;
-  onResetProject: () => void;
+  onNewProject: () => void;
   onSnapshots: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onResetProject, onSnapshots }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -92,7 +92,7 @@ export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, on
         <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : lang === "es" ? "Guardar" : "Save"}</button>
         <button className="ghost-btn" onClick={onSnapshots} title="Named project restore points">{lang === "pt" ? "Snapshots" : lang === "es" ? "Capturas" : "Snapshots"}</button>
         {saveStatus && <span className="save-status">{saveStatus}</span>}
-        <button className="ghost-btn" onClick={onResetProject}>Reset</button>
+        <button className="ghost-btn" onClick={onNewProject}>New</button>
         <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
           {lang === "en" ? "Import" : "Importar"}
         </button>

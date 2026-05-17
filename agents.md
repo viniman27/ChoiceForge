@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 108
+- **V1.0 gap assessment + New Project modal.**
+  - **Gap assessment**: project is functionally v1.0 ready. All 24+ node types, export, import, linting, undo/redo, snapshots, manuscript, scene map, dashboard, search, command palette, copy/paste, multi-select, keyboard shortcuts — all implemented and working (160 tests). Remaining gaps: (1) lint messages English-only despite bilingual UI, (2) no "start blank" project option (Reset always loads sample), (3) import edge cases for deeply nested patterns, (4) no UI/browser test coverage.
+  - **Fix** (highest UX impact for new users): Replaced the "Reset" button in TopBar with a "New" button that opens a `NewProjectModal`. The modal lets users type a project title and author, then choose "Start blank" (clean project with one empty passage + finish) or "Load example" (current sample behavior). Added `newBlankProject(title, author)` action to the store and `createBlankProject()` factory function. Added i18n labels (`newProject`, `projectTitleLabel`, `projectAuthorLabel`, `startBlank`, `loadExample`) in PT/EN/ES to `I18nLabels`.
+  - **Files changed**: `types.ts` (5 new I18nLabels fields), `sampleProject.ts` (i18n in PT/EN/ES), `projectStore.ts` (new action + factory), `NewProjectModal.tsx` (new component), `TopBar.tsx` (prop rename), `App.tsx` (modal state + wiring), `directions.css` (`.np-*` styles).
+  - **Tests**: 160 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 107
 - **Import: collapse preceding prose into nested `*choice`/`*fake_choice` prompt (inside `*if` branches and option bodies).**
   - **Problem**: Session 106 absorbed prose-before-choice at the top level (`createImportedSceneGraph`), but inside `buildBodyNodeChain` (used for `*if` branch bodies and `*choice` option bodies), the same situation still called `flushProse()`, creating a separate passage node.
