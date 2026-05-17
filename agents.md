@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 124
+- **Lint `*set` node with no assignments.**
+  - **Problem**: A `*set` node with an empty `sets` array (no variable assignments configured) generates no ChoiceScript output but still appears as a node in the graph, silently doing nothing. Authors may accidentally leave an empty set node behind after editing, and there was no diagnostic to catch this.
+  - **Fix**: In `lintSceneGraph`, after the existing `node.sets?.forEach(lintSet)` call, added a check for `node.type === "set" && (!node.sets || node.sets.length === 0)` and emits a `warning` with message `*set node "..." has no assignments`.
+  - **Files changed**: `choicescript.ts` (+4 lines in lintSceneGraph), `domain.test.ts` (2 new tests: empty sets → warning, populated sets → no warning).
+  - **Tests**: 212 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 123
 - **Warn when `*if` without `*else` has all branches leading to the same node as the false path (no-op condition).**
   - **Problem**: An `*if` node with no `*else` where all branch targets equal the false-path (flow edge) continuation is logically a no-op — the game reaches the same node regardless of whether the condition is true or false. The existing check in `lintIfNode` only caught the "all branches same with `*else`" case.
