@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 96
+- **Three new lint rules for structural redundancy and dead labels.**
+  - **All-same-target `*choice` warning** (`lintChoiceNode`): When all options in a `*choice` node point to the same target node (and all targets are valid), emits a `warning` — the choice is structurally inert and can be simplified. Only fires when there are 2+ valid options (skips nodes already flagged for missing targets to avoid double-warning).
+  - **All-same-target `*if` warning** (`lintIfNode`): When a `*if` node has an `*else` branch and all branches point to the same node, emits a `warning` — the condition is irrelevant. Requires `*else` to be present so that all paths are guaranteed to reach the same target (without `*else`, some paths fall through, so the warning would be misleading).
+  - **Unreferenced `*label` info** (`lintSceneGraph`): After the main node loop, collects all label names referenced by `*goto` and `*gosub` nodes, then emits an `info` issue for any `*label` node whose label text is never referenced. Helps authors find dead labels left over from refactoring.
+  - **Tests**: 6 new tests — warns on all-same-target `*choice`; warns on all-same-target `*if` with `*else`; does not warn when branches differ; does not warn on all-same-target `*if` without `*else`; reports unreferenced label as info; does not report referenced label as unreferenced. Total: **128 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 95
 - **Variable rename propagation fix + inline fake_choice guard support.**
   - **Bug fix — variable rename in option bodies** (`projectStore.ts`): `renameNodeVariable` was updating `option.cond.expr` and `option.sets` when a variable was renamed, but NOT `option.body` or `fakeOption.body` (added sessions 89-90). A rename like `strength → vigor` would leave `"Your ${strength} is high."` stale in option body text. Fixed by adding `body: option.body ? renameVariableReferences(option.body, from, to) : option.body` to both option and fakeOption maps.

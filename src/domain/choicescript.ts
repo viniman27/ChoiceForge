@@ -720,6 +720,19 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       });
     }
   });
+
+  const referencedLabels = new Set(
+    graph.nodes.flatMap((node) => {
+      if (node.type === "goto") return [stripCommandPrefix(node.title, "*goto")];
+      if (node.type === "gosub") return [gosubTarget(node.title)];
+      return [];
+    }),
+  );
+  humanLabels.forEach(({ node, label }) => {
+    if (label && !referencedLabels.has(label)) {
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, scene: sceneName, node: node.id });
+    }
+  });
 }
 
 function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: string, sceneName: string, infoMessage: string, issues: LintIssue[]) {
@@ -1284,6 +1297,12 @@ function lintChoiceNode(
     if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
     seenOptionText.add(key);
   });
+  if ((node.options?.length ?? 0) > 1) {
+    const validTargets = node.options!.filter((opt) => nodeIds.has(opt.to)).map((opt) => opt.to);
+    if (validTargets.length === node.options!.length && new Set(validTargets).size === 1) {
+      issues.push({ level: "warning", msg: `all options in *choice "${node.title}" lead to the same node — consider simplifying`, scene: sceneName, node: node.id });
+    }
+  }
 }
 
 function lintFakeChoiceNode(
@@ -1348,6 +1367,13 @@ function lintIfNode(
     lintExpression(branch.expr, variables, issues, sceneName, node.id);
     branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
   });
+  const hasElse = node.branches?.some((b) => b.kind === "else") ?? false;
+  if (hasElse && (node.branches?.length ?? 0) > 1) {
+    const validTargets = node.branches!.filter((b) => nodeIds.has(b.to)).map((b) => b.to);
+    if (validTargets.length === node.branches!.length && new Set(validTargets).size === 1) {
+      issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node — consider simplifying`, scene: sceneName, node: node.id });
+    }
+  }
 }
 
 function generateSet(set: VariableSet): string {
