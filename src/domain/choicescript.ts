@@ -631,6 +631,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     extractVariableReferences(node.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
     });
+    extractVariableReferences(node.prompt ?? "").forEach((name) => {
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
+    });
 
     lintAchievementCommands(node.body ?? "", achievements, issues, sceneName, node.id);
 
@@ -1424,6 +1427,9 @@ function lintChoiceNode(
     if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    extractVariableReferences(option.text).forEach((name) => {
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
+    });
     extractVariableReferences(option.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
@@ -1458,6 +1464,9 @@ function lintFakeChoiceNode(
     if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
+    extractVariableReferences(option.text).forEach((name) => {
+      if (!variables.has(name)) issues.push({ level: "warning", msg: `option text uses an undeclared variable: ${name}`, key: "undef_var", params: { name }, scene: sceneName, node: node.id });
+    });
     extractVariableReferences(option.body ?? "").forEach((name) => {
       if (!variables.has(name)) issues.push({ level: "warning", msg: `option body uses an undeclared variable: ${name}`, scene: sceneName, node: node.id });
     });
