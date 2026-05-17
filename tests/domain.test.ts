@@ -2297,6 +2297,37 @@ test("does not warn about unused variable when it is shown in the stats screen",
   assert.ok(!lintProject(project).some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("inlines pure prose body text directly onto choice options", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Open the door",
+    "    You open it carefully.",
+    "  #Leave",
+    "    You walk away.",
+    "After the choice.",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((node) => node.type === "choice");
+  assert.ok(choice);
+  assert.equal(choice.options?.[0]?.body, "You open it carefully.");
+  assert.equal(choice.options?.[1]?.body, "You walk away.");
+  assert.ok(!graph.nodes.some((node) => node.title === "choice_option_body"));
+});
+
+test("generates option body text inline between header and goto", () => {
+  const node: StoryNode = {
+    id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choice",
+    prompt: "Choose:",
+    options: [
+      { text: "Open the door", to: "n2", body: "You push it open.\nThe room is dark." },
+      { text: "Leave", to: "n3" },
+    ],
+  };
+  const cs = generateNodeChoiceScript(node);
+  assert.ok(cs.includes("  #Open the door\n    You push it open.\n    The room is dark.\n    *goto"));
+  assert.ok(cs.includes("  #Leave\n    *goto"));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [

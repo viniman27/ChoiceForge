@@ -304,6 +304,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
           const options = inlineChoice.options.map((option, optionIndex): ChoiceOption => ({
             text: option.text,
             to: inlineTargets[optionIndex].targetId,
+            body: inlineTargets[optionIndex].body,
             cond: option.cond ?? null,
             reuse: option.reuse,
             hideReuse: option.hideReuse,
@@ -1054,11 +1055,16 @@ function addInlineOptionNodes(
   option: InlineChoiceOption,
   addNode: (node: ImportedNodeDraft, autoFlow?: boolean) => StoryNode,
   edges: StoryEdge[],
-): { targetId: string; continuationId: string | null } {
+): { targetId: string; continuationId: string | null; body?: string } {
   const terminal = extractTerminalCommand(option.bodyLines);
   const body = terminal ? option.bodyLines.slice(0, terminal.index) : option.bodyLines;
   const bodyText = body.join("\n").trim();
   const terminalNode = terminal ? commandNodeFromTerminal(terminal.line) : null;
+
+  if (bodyText && !terminal && body.every((line) => !line.trim().startsWith("*"))) {
+    const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
+    return { targetId: emptyNode.id, continuationId: emptyNode.id, body: bodyText };
+  }
 
   if (bodyText) {
     const bodyNode = addNode({

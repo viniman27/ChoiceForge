@@ -32,6 +32,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     lines.push("*choice");
     node.options?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
+      option.body?.split("\n").filter(Boolean).forEach((line) => lines.push(`    ${line}`));
       option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
       lines.push(`    *goto ${generatedNodeLabel(option.to)}`);
     });
