@@ -482,6 +482,9 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (variable.name.trim() && !isValidChoiceScriptIdentifier(variable.name)) {
       issues.push({ level: "error", msg: `variable has an invalid identifier: ${variable.name}`, scene: null });
     }
+    if (variable.name.trim() && isValidChoiceScriptIdentifier(variable.name) && isChoiceScriptReserved(variable.name)) {
+      issues.push({ level: "error", msg: `variable name clashes with a ChoiceScript reserved word: ${variable.name}`, scene: null });
+    }
     if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, scene: null });
     if (variable.initial.trim() && !isValidVariableInitial(variable)) {
       issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, scene: null });
@@ -535,6 +538,12 @@ function isValidVariableInitial(variable: ChoiceForgeProject["variables"][number
 
 function isValidChoiceScriptIdentifier(value: string): boolean {
   return /^[a-z_][a-z0-9_]*$/.test(value);
+}
+
+const CHOICESCRIPT_RESERVED = new Set(["true", "false", "not", "and", "or", "modulo"]);
+
+function isChoiceScriptReserved(name: string): boolean {
+  return CHOICESCRIPT_RESERVED.has(name.toLowerCase());
 }
 
 function isSafeAssetPath(path: string): boolean {
@@ -769,6 +778,8 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       const varName = (node.inputVar ?? stripCommandPrefix(node.title, "*temp")).trim();
       if (!varName || !isValidChoiceScriptIdentifier(varName)) {
         issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${varName || "(empty)"}`, scene: sceneName, node: node.id });
+      } else if (isChoiceScriptReserved(varName)) {
+        issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${varName}`, scene: sceneName, node: node.id });
       } else if (project.variables.some((variable) => variable.name === varName)) {
         issues.push({ level: "warning", msg: `*temp shadows a global variable: ${varName}`, key: "temp_shadows", params: { name: varName }, scene: sceneName, node: node.id });
       }
@@ -785,6 +796,8 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       rawParams.forEach((param) => {
         if (!isValidChoiceScriptIdentifier(param)) {
           issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${param}`, scene: sceneName, node: node.id });
+        } else if (isChoiceScriptReserved(param)) {
+          issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${param}`, scene: sceneName, node: node.id });
         } else if (project.variables.some((variable) => variable.name === param)) {
           issues.push({ level: "warning", msg: `*params shadows a global variable: ${param}`, scene: sceneName, node: node.id });
         }

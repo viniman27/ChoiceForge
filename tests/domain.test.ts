@@ -4163,6 +4163,66 @@ test("does not flag *temp variable interpolated in passage body as unused", () =
   assert.ok(!issues.some((i) => i.key === "unused_temp"), "should not flag temp used in body interpolation");
 });
 
+test("lints global variable named with ChoiceScript reserved word as error", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "true", type: "boolean", initial: "true", desc: "" }],
+    achievements: [],
+    assets: [],
+    sceneData: {
+      intro: {
+        nodes: [{ id: "n1", type: "finish", x: 0, y: 0, w: 240, title: "*finish" }],
+        edges: [],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "error" && i.msg.includes("reserved word") && i.msg.includes("true")));
+});
+
+test("does not flag non-reserved global variable name", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "hero_name", type: "string", initial: "Bilbo", desc: "" }],
+    achievements: [],
+    assets: [],
+    sceneData: {
+      intro: {
+        nodes: [{ id: "n1", type: "finish", x: 0, y: 0, w: 240, title: "*finish" }],
+        edges: [],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("reserved word")));
+});
+
+test("lints *temp node named with ChoiceScript reserved word as error", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [],
+    achievements: [],
+    assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "temp", x: 0, y: 0, w: 240, title: "*temp not", inputVar: "not", body: "true" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "error" && i.node === "n1" && i.msg.includes("reserved word")));
+});
+
 test("lints set node with no assignments as warning", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
