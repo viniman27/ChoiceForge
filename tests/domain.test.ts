@@ -2558,6 +2558,83 @@ test("lints *achieve in fake_choice option body", () => {
   assert.ok(issues.some((i) => i.msg.includes("ghost_achieve") && i.msg.includes("undeclared achievement")));
 });
 
+test("imports *gosub in *if branch body as a gosub node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if courage > 50",
+    "  *gosub check_armor",
+    "  *finish",
+    "*else",
+    "  *goto flee",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+  assert.equal(ifNode.branches?.length, 2);
+
+  const ifBranchTargetId = ifNode.branches![0].to;
+  const gosubNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.ok(gosubNode, "if branch points to gosub node");
+  assert.equal(gosubNode?.type, "gosub");
+  assert.ok(gosubNode?.title.includes("check_armor"));
+
+  const finishId = graph.nodes.find((n) => n.type === "finish")?.id;
+  assert.ok(finishId, "finish node exists");
+  assert.ok(graph.edges.some((e) => e.from === gosubNode!.id && e.to === finishId), "gosub → finish edge exists");
+});
+
+test("imports *page_break in *if branch body as a page_break node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if found_clue",
+    "  You examine the evidence.",
+    "  *page_break Continue",
+    "  *goto next_scene",
+    "*else",
+    "  *goto dead_end",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const passageNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.equal(passageNode?.type, "passage");
+  assert.ok(passageNode?.body?.includes("You examine the evidence."));
+
+  const pageBreakNode = graph.nodes.find((n) => n.type === "page_break");
+  assert.ok(pageBreakNode, "page_break node exists");
+  assert.ok(pageBreakNode?.title.includes("Continue"));
+  assert.ok(graph.edges.some((e) => e.from === passageNode!.id && e.to === pageBreakNode!.id), "passage → page_break edge");
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("next_scene"));
+  assert.ok(gotoNode, "goto next_scene node exists");
+  assert.ok(graph.edges.some((e) => e.from === pageBreakNode!.id && e.to === gotoNode!.id), "page_break → goto edge");
+});
+
+test("imports *gosub in *choice option body as a gosub node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Search the room",
+    "    *gosub find_clue",
+    "    *goto next_room",
+    "  #Leave",
+    "    *ending",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+  assert.equal(choiceNode?.options?.length, 2);
+
+  const option1TargetId = choiceNode!.options![0].to;
+  const gosubNode = graph.nodes.find((n) => n.id === option1TargetId);
+  assert.ok(gosubNode, "option 1 points to gosub node");
+  assert.equal(gosubNode?.type, "gosub");
+  assert.ok(gosubNode?.title.includes("find_clue"));
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("next_room"));
+  assert.ok(gotoNode, "goto next_room node exists");
+  assert.ok(graph.edges.some((e) => e.from === gosubNode!.id && e.to === gotoNode!.id), "gosub → goto edge");
+});
+
 test("warns when all *choice options lead to the same node", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
