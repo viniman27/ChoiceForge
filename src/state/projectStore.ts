@@ -421,10 +421,13 @@ export function useProjectStore() {
           idMap.set(node.id, newId);
           newIds.push(newId);
         });
-        const minX = Math.min(...nodes.map((n) => n.x));
-        const minY = Math.min(...nodes.map((n) => n.y));
-        const maxX = Math.max(...nodes.map((n) => n.x + n.w));
-        const maxY = Math.max(...nodes.map((n) => n.y + 120));
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const n of nodes) {
+          if (n.x < minX) minX = n.x;
+          if (n.y < minY) minY = n.y;
+          if (n.x + n.w > maxX) maxX = n.x + n.w;
+          if (n.y + 120 > maxY) maxY = n.y + 120;
+        }
         const bboxCX = (minX + maxX) / 2;
         const bboxCY = (minY + maxY) / 2;
         const dx = Math.round(center.x - bboxCX);

@@ -1341,7 +1341,7 @@ input, select, textarea { font-family: inherit; color: inherit; }
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--ct); border: 1.5px solid transparent;
   padding: 0; cursor: pointer; flex-shrink: 0;
-  opacity: 0.35; transition: opacity 0.12s, border-color 0.12s;
+  opacity: 0.55; transition: opacity 0.12s, border-color 0.12s;
 }
 .zoom-color-dot:hover { opacity: 0.75; }
 .zoom-color-dot.is-active { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px color-mix(in oklch, var(--ct) 45%, transparent); }
