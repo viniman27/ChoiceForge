@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 151
+- **Align `generateStartupChoiceScript` scene filter to use `!scene.isStart` instead of `scene.name !== "startup"`.**
+  - **Problem**: `generateStartupChoiceScript` filtered scenes using `!scene.special && scene.name !== "startup"` while all other code (linter, reachability) used `!scene.isStart && !scene.special`. These diverge if the startup scene ever has a non-"startup" name or if name-based filtering is accidentally applied to a different scene.
+  - **Fix**: Changed to `!scene.isStart && !scene.special` for semantic consistency.
+  - **Files changed**: `choicescript.ts` (1 line).
+  - **Tests**: 258 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 150
 - **Align `*temp` no-initial-value lint severity: error→warning in preserved source.**
   - **Problem**: The graph linter emits a **warning** ("*temp has no initial value (defaults to 0)") for a `*temp` node with no initial value. `lintPreservedTempLine` was emitting an **error** ("*temp has an empty initial value") for the same ChoiceScript construct. In ChoiceScript, `*temp` with no initial value is valid (defaults to 0), so a warning matches the correct severity.

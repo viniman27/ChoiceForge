@@ -136,7 +136,7 @@ export function generateStartupChoiceScript(project: ChoiceForgeProject): string
     "*scene_list",
   ];
 
-  const playableScenes = project.scenes.filter((scene) => !scene.special && scene.name !== "startup");
+  const playableScenes = project.scenes.filter((scene) => !scene.isStart && !scene.special);
   playableScenes.forEach((scene) => lines.push(`  ${scene.name}`));
 
   if (project.variables.length) lines.push("");
