@@ -83,6 +83,10 @@ export const lintMessages: LintTranslations = {
     pt: "*temp declarado mas nunca lido nesta cena: {name}",
     es: "*temp declarado pero nunca leido en esta escena: {name}",
   },
+  restore_no_save: {
+    pt: "*restore_checkpoint nao encontra *save_checkpoint correspondente no projeto: {name}",
+    es: "*restore_checkpoint no encuentra *save_checkpoint correspondiente en el proyecto: {name}",
+  },
 };
 
 export function translateLintMsg(

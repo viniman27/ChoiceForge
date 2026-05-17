@@ -753,7 +753,7 @@ test("imports and exports restore checkpoint command nodes", () => {
   assert.match(generated, /\*restore_checkpoint major/);
 });
 
-test("warns about restore checkpoints without matching saves", () => {
+test("warns about restore checkpoints without matching saves anywhere in the project", () => {
   const graph: SceneGraph = {
     nodes: [
       { id: "n1", type: "restore_checkpoint", x: 0, y: 0, w: 280, title: "*restore_checkpoint missing" },
@@ -769,6 +769,38 @@ test("warns about restore checkpoints without matching saves", () => {
   const warnings = lintProject(project).filter((issue) => issue.level === "warning").map((issue) => issue.msg);
 
   assert.ok(warnings.some((message) => message.includes("no matching *save_checkpoint")));
+});
+
+test("does not warn when restore_checkpoint slot is saved in a different scene", () => {
+  const base = minimalProject();
+  const scene1: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "checkpoint", x: 0, y: 0, w: 280, title: "*save_checkpoint fight" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const scene2: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "restore_checkpoint", x: 0, y: 0, w: 280, title: "*restore_checkpoint fight" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...base,
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "s1", name: "s1", words: 0, nodes: 2 },
+      { id: "s2", name: "s2", words: 0, nodes: 2, current: true },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    nodes: scene2.nodes,
+    edges: scene2.edges,
+    sceneData: { s1: scene1, s2: scene2 },
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "restore_no_save"), "cross-scene checkpoint save should suppress the warning");
 });
 
 test("lints empty visual page break labels", () => {
@@ -3567,6 +3599,25 @@ test("lints passage with no body text as info", () => {
   };
   const issues = lintProject(project);
   assert.ok(issues.some((i) => i.level === "info" && i.key === "empty_passage_body"), "should flag empty passage");
+});
+
+test("does not flag structural routing nodes from import as empty passage", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Go left",
+    "    You go left.",
+    "  #Go right",
+    "    You go right.",
+    "*finish",
+  ].join("\n"));
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: {},
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "empty_passage_body"), "structural choice_option_empty routing nodes must not be flagged");
 });
 
 test("does not flag passage with body text as empty", () => {
