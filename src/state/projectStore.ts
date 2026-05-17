@@ -847,11 +847,13 @@ function renameNodeVariable(node: StoryNode, from: string, to: string): StoryNod
     sets: node.sets?.map(renameSet),
     options: node.options?.map((option) => ({
       ...option,
+      body: option.body ? renameVariableReferences(option.body, from, to) : option.body,
       cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
       sets: option.sets?.map(renameSet),
     })),
     fakeOptions: node.fakeOptions?.map((option) => ({
       ...option,
+      body: option.body ? renameVariableReferences(option.body, from, to) : option.body,
       cond: option.cond ? { ...option.cond, expr: renameExpressionName(option.cond.expr, from, to) } : option.cond,
       sets: option.sets?.map(renameSet),
     })),

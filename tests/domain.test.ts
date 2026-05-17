@@ -2391,6 +2391,31 @@ test("does not flag unused variable that is only used in option body", () => {
   assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("imports *if guard on inline fake_choice option group with body text", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*fake_choice",
+    "  *if (wisdom > 5)",
+    "    #Study the runes",
+    "      You decipher an ancient warning.",
+    "    #Touch the crystal",
+    "      The crystal hums as you reach out.",
+    "  #Walk away",
+    "    You leave without looking back.",
+  ].join("\n"));
+  const fakeChoice = graph.nodes.find((n) => n.type === "fake_choice");
+  assert.ok(fakeChoice, "fake_choice node should be imported");
+  assert.equal(fakeChoice?.fakeOptions?.length, 3);
+  assert.equal(fakeChoice?.fakeOptions?.[0]?.text, "Study the runes");
+  assert.equal(fakeChoice?.fakeOptions?.[0]?.cond?.type, "if");
+  assert.equal(fakeChoice?.fakeOptions?.[0]?.cond?.expr, "wisdom > 5");
+  assert.ok(fakeChoice?.fakeOptions?.[0]?.body?.includes("ancient warning"));
+  assert.equal(fakeChoice?.fakeOptions?.[1]?.cond?.expr, "wisdom > 5");
+  assert.ok(fakeChoice?.fakeOptions?.[1]?.body?.includes("crystal"));
+  assert.equal(fakeChoice?.fakeOptions?.[2]?.text, "Walk away");
+  assert.ok(!fakeChoice?.fakeOptions?.[2]?.cond, "top-level option has no condition");
+  assert.ok(fakeChoice?.fakeOptions?.[2]?.body?.includes("leave"));
+});
+
 test("imports *if guard on inline choice option group", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*choice",
