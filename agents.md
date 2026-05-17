@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 137
+- **Add fairmath range check to `*create` in preserved startup; add alignment validation to `*image` in preserved source.**
+  - **`lintPreservedCreateLine` fairmath range**: `lintProjectMetadata` already warns when a graph-based variable with `fairmath: true` has an initial value outside 0–100. `lintPreservedCreateLine` (called when startup.txt is preserved source) only checked that the initial value was a valid number, not that it was in range. Added parity check: if `projectVariable` has `fairmath: true` and the numeric initial value is outside [0, 100], emit a `fairmath_range` warning.
+  - **`lintPreservedScriptSource` image alignment**: `*image filename alignment [alt]` — the graph-node linter validates alignment as one of `none`, `left`, `right`. The preserved-source linter only extracted and checked the filename. Added extraction of the second token as alignment and validation against the same valid set.
+  - **Files changed**: `choicescript.ts` (12 lines added), `domain.test.ts` (4 new tests).
+  - **Tests**: 234 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 136
 - **Fix `*set` value-expression reads missing in three source scanners; add `*gosub_scene` checks to preserved-source linter.**
   - **`*set` value reads in source**: `lintUnusedVariables`, `computeVariableUses`, and `computeVariableLocations` all had `scanSource` functions that tallied the `*set` write target but never scanned the value expression. So `*set result score + 5` in preserved source counted `result` as written but silently skipped `score` as a read. Variables exclusively read through `*set` RHS expressions in imported scenes were falsely flagged as "declared but never read". Fixed all three functions by adding the same value-expression extraction logic (using `maybeOp`/`rest` parsing with explicit-operator detection) already present in `lintPreservedSetLine`.

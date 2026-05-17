@@ -4604,6 +4604,72 @@ test("does not warn on *gosub_scene in preserved source when target has *return"
   assert.ok(!issues.some((i) => i.scene === "intro" && i.msg.includes("no *return")));
 });
 
+test("lints *create of fairmath variable with out-of-range initial value in preserved startup", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create courage 150",
+    ].join("\n")),
+    textEntry("intro.txt", "*finish"),
+  ]);
+  project.variables = [{ name: "courage", type: "number", initial: "150", desc: "", fairmath: true, uses: 0 }];
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "fairmath_range" && i.msg.includes("courage")));
+});
+
+test("does not warn on *create of fairmath variable with in-range initial value in preserved startup", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+      "*create courage 50",
+    ].join("\n")),
+    textEntry("intro.txt", "*finish"),
+  ]);
+  project.variables = [{ name: "courage", type: "number", initial: "50", desc: "", fairmath: true, uses: 0 }];
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "fairmath_range" && i.msg.includes("courage")));
+});
+
+test("lints *image with invalid alignment in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*image hero.png center",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "warning" && i.scene === "intro" && i.msg.includes("invalid alignment")));
+});
+
+test("does not warn on *image with valid alignment in preserved source", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Test",
+      "*author A",
+      "*scene_list",
+      "  intro",
+    ].join("\n")),
+    textEntry("intro.txt", [
+      "*image hero.png left",
+      "*finish",
+    ].join("\n")),
+  ]);
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.scene === "intro" && i.msg.includes("invalid alignment")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
