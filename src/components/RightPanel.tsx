@@ -86,7 +86,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
             </select>
           </div>
         )}
-        <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span></div>
+        <div className="ip-meta"><span><code>scene:</code> {project.sceneTitle}</span><span>-</span><span><code>id:</code> {node.id}</span>{countNodeWords(node) > 0 && <><span>-</span><span>{countNodeWords(node)}w</span></>}</div>
       </div>
       {sourcePreserved && (
         <div className="ip-source-lock">
@@ -1567,4 +1567,18 @@ function buildTypeConversionPatch(node: StoryNode, to: NodeType, fallbackNodeId:
     return { type: "passage", title: "passage", body: "" };
   }
   return null;
+}
+
+function countNodeWords(node: StoryNode): number {
+  const parts = [
+    node.body ?? "",
+    node.prompt ?? "",
+    ...(node.options?.flatMap((o) => [o.text, o.body ?? ""]) ?? []),
+    ...(node.fakeOptions?.flatMap((o) => [o.text, o.body ?? ""]) ?? []),
+  ];
+  return parts.join(" ")
+    .replace(/\$\{[^}]+\}/g, " ")
+    .replace(/@\{[^}]+\}/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
