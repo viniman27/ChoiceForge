@@ -688,12 +688,14 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         const entryLabel = node.body?.trim();
         if (entryLabel) {
           const targetGraph = project.sceneData?.[target];
-          const targetLabelNames = new Set(
-            (targetGraph?.nodes ?? [])
-              .filter((n) => n.type === "label")
-              .map((n) => stripCommandPrefix(n.title, "*label"))
-              .filter(Boolean),
-          );
+          const visualLabelNames = (targetGraph?.nodes ?? [])
+            .filter((n) => n.type === "label")
+            .map((n) => stripCommandPrefix(n.title, "*label"))
+            .filter(Boolean);
+          const sourceLabelNames = targetGraph?.sourceText
+            ? [...targetGraph.sourceText.matchAll(/^\*label\s+(\S+)/gim)].map((m) => m[1].toLowerCase())
+            : [];
+          const targetLabelNames = new Set([...visualLabelNames, ...sourceLabelNames]);
           if (targetLabelNames.size > 0 && !targetLabelNames.has(entryLabel)) {
             issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, node: node.id });
           }
@@ -2042,13 +2044,35 @@ export function computeVariableLocations(project: ChoiceForgeProject): Map<strin
     }
   };
 
+  const scanSource = (text: string, sceneName: string) => {
+    text.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      extractVariableReferences(trimmed).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
+      const command = sourceCommand(trimmed);
+      if (command === "set") {
+        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, "*set").split(/\s+/)[0] ?? "");
+        if (varName) addLoc(varName, sceneName, "source", "preserved source", "write");
+      }
+      if (command === "if" || command === "elseif") {
+        extractExpressionNames(normalizeSourceExpressionIdentifiers(sourceCommandValue(trimmed, `*${command}`))).forEach((n) => addLoc(n, sceneName, "source", "preserved source", "read"));
+      }
+      if (command === "input_text" || command === "input_number" || command === "rand") {
+        const varName = normalizeSourceIdentifier(sourceCommandValue(trimmed, `*${command}`).split(/\s+/)[0] ?? "");
+        if (varName) addLoc(varName, sceneName, "source", "preserved source", "write");
+      }
+    });
+  };
+
   if (project.sceneData) {
     for (const [sceneName, graph] of Object.entries(project.sceneData)) {
       scanGraph(sceneName, graph.nodes);
+      if (graph.sourceText) scanSource(graph.sourceText, sceneName);
     }
   } else {
     scanGraph(project.sceneTitle, project.nodes);
   }
+  if (project.startupSource) scanSource(project.startupSource, "startup");
+  if (project.statsSource) scanSource(project.statsSource, "choicescript_stats");
 
   return result;
 }
