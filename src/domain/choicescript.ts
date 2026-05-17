@@ -487,6 +487,12 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     if (variable.initial.trim() && !isValidVariableInitial(variable)) {
       issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, scene: null });
     }
+    if (variable.type === "number" && variable.fairmath) {
+      const initial = Number(variable.initial.trim());
+      if (Number.isFinite(initial) && (initial < 0 || initial > 100)) {
+        issues.push({ level: "warning", msg: `fairmath variable "${variable.name}" has an initial value outside 0–100: ${initial}`, key: "fairmath_range", params: { name: variable.name }, scene: null });
+      }
+    }
   });
   project.achievements.forEach((achievement) => {
     if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", scene: null });

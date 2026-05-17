@@ -87,6 +87,10 @@ export const lintMessages: LintTranslations = {
     pt: "*restore_checkpoint nao encontra *save_checkpoint correspondente no projeto: {name}",
     es: "*restore_checkpoint no encuentra *save_checkpoint correspondiente en el proyecto: {name}",
   },
+  fairmath_range: {
+    pt: "variavel fairmath com valor inicial fora de 0–100: {name}",
+    es: "variable fairmath con valor inicial fuera de 0–100: {name}",
+  },
 };
 
 export function translateLintMsg(

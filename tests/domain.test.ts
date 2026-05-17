@@ -3616,6 +3616,66 @@ test("*if group guard on choice block without parentheses applies to options", (
   assert.equal(hideOption!.cond, null);
 });
 
+test("roundtrip: *if without *else produces valid code with false-path goto", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*if courage > 50",
+    "  You are brave.",
+    "  *finish",
+    "You continue regardless.",
+    "*finish",
+  ].join("\n"));
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const code = generateSceneChoiceScript(project, "intro");
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  const continuationNode = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You continue regardless."));
+  assert.ok(ifNode && continuationNode, "should have both if and continuation nodes");
+  assert.ok(
+    code.includes(`*goto cf_${continuationNode!.id}`),
+    "exported code should include goto for false-path continuation"
+  );
+});
+
+test("warns when fairmath variable has initial value above 100", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "strength", type: "number", initial: "150", desc: "Strength", fairmath: true, showInStats: false }],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "fairmath_range" && i.msg.includes("strength")), "should warn about out-of-range fairmath initial");
+});
+
+test("warns when fairmath variable has negative initial value", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "courage", type: "number", initial: "-10", desc: "Courage", fairmath: true, showInStats: false }],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.key === "fairmath_range" && i.msg.includes("courage")));
+});
+
+test("does not warn when fairmath variable is within 0–100", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "luck", type: "number", initial: "50", desc: "Luck", fairmath: true, showInStats: false }],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "fairmath_range"));
+});
+
+test("does not warn about non-fairmath variable initial value range", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "gold", type: "number", initial: "500", desc: "Gold", fairmath: false, showInStats: false }],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "fairmath_range"), "non-fairmath variable should not be range-checked");
+});
+
 test("warns when *rand min equals max", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),

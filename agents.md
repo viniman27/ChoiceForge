@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 116
+- **Fairmath initial value range check + roundtrip test for *if without *else.**
+  - **Fairmath range check**: Added `fairmath_range` warning when a variable has `fairmath: true` but its initial value is outside 0–100. ChoiceScript fairmath operators clamp results, but the initial value itself is not clamped — an out-of-range initial is almost always a mistake. Translated to PT/ES. 4 new tests.
+  - **Roundtrip test**: Added end-to-end test: imports `*if without *else` ChoiceScript, then calls `generateSceneChoiceScript` and verifies the exported code contains `*goto cf_<continuation>` for the false path. Confirms the session-115 code generation fix works end-to-end.
+  - **Files changed**: `choicescript.ts` (+6 lines in lintProjectMetadata), `lintMessages.ts` (+fairmath_range entry), `domain.test.ts` (5 new tests: 4 fairmath range tests + 1 roundtrip test).
+  - **Tests**: 190 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 115
 - **Fix code generation bug: `*if` without `*else` missing false-path `*goto`.**
   - **Problem**: The code generator excluded `*if` nodes from the auto-flow `*goto` emission. When an `*if` node had no `*else` branch but a flow edge (the continuation node), the generated ChoiceScript had no `*goto` after the `*if` block. The false path silently fell through to whatever was next in the sorted node array — typically the TRUE branch target node. This caused the false path to execute the true branch content.
