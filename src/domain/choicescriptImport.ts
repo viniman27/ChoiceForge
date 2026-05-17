@@ -434,6 +434,11 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
       }
     }
 
+    if (command === "line_break") {
+      pending.push("");
+      continue;
+    }
+
     const simpleNode = simpleCommandNode(command, line, nodes.length + 1);
     if (simpleNode) {
       flushPassage();
@@ -718,7 +723,10 @@ function simpleCommandNode(command: string, line: string, index: number): (Omit<
   const value = commandValue(line, `*${command}`);
   if (command === "label") return { type: "label", title: `*label ${normalizeIdentifier(value || `label_${index}`)}` };
   if (command === "goto") return { type: "goto", title: `*goto ${normalizeIdentifier(value || "label")}` };
-  if (command === "goto_scene") return { type: "goto_scene", title: `*goto_scene ${normalizeIdentifier(value || "scene")}`, target: normalizeIdentifier(value || "scene") };
+  if (command === "goto_scene") {
+    const sceneName = normalizeIdentifier(value.trim().split(/\s+/)[0] || "scene");
+    return { type: "goto_scene", title: `*goto_scene ${sceneName}`, target: sceneName };
+  }
   if (command === "gosub") return { type: "gosub", title: `*gosub ${normalizeGosubValue(value || "subroutine")}` };
   if (command === "return") return { type: "return", title: "*return" };
   if (command === "ending") return { type: "ending", title: "*ending" };
@@ -1249,6 +1257,7 @@ function buildBodyNodeChain(
     if (!trimmed) { proseBuf.push(""); continue; }
     const command = commandName(trimmed);
     if (command === "comment") continue;
+    if (command === "line_break") { proseBuf.push(""); continue; }
 
     if (command && BODY_TERMINAL_COMMANDS.has(command)) {
       flushProse();
@@ -1398,7 +1407,9 @@ function addInlineOptionNodes(
   });
 
   if (isPureProse) {
-    const bodyText = option.bodyLines.join("\n").trim();
+    const bodyText = option.bodyLines
+      .map((line) => commandName(line.trim()) === "line_break" ? "" : line)
+      .join("\n").trim();
     if (bodyText) {
       const emptyNode = addNode({ type: "passage", title: "choice_option_empty", body: "", w: 320 }, false);
       return { targetId: emptyNode.id, continuationId: emptyNode.id, body: bodyText };

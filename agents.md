@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 104
+- **Import: fix `*goto_scene` optional label + `*line_break` paragraph handling.**
+  - **`*goto_scene` target bug** (`choicescriptImport.ts`, `simpleCommandNode`): `*goto_scene scene_name starting_label` was calling `normalizeIdentifier(value)` on the full remaining text, converting `"scene_name starting_label"` to `"scene_name_starting_label"`. Fixed to split on whitespace and take only the first token as the scene name.
+  - **`*line_break` in top-level prose** (`createImportedSceneGraph`): Unrecognized `*line_break` fell through to `pending.push(line)`, inserting the literal string `*line_break` into the passage body. Added a dedicated case before `simpleCommandNode`: pushes an empty string to `pending`, creating a paragraph break when the passage is assembled.
+  - **`*line_break` in `buildBodyNodeChain`**: Same fix — `command === "line_break"` now pushes `""` to `proseBuf` instead of falling through to the literal push at the bottom of the loop.
+  - **`*line_break` in pure-prose option bodies** (`addInlineOptionNodes`): When assembling `bodyText` from `bodyLines` via the pure-prose fast path, `*line_break` lines are now mapped to `""` before joining, so they create paragraph breaks in `option.body` without literal text.
+  - **Tests**: 3 new tests — `*goto_scene` with optional label uses only the scene name as target; `*line_break` in top-level prose becomes a paragraph break (not literal); `*line_break` in choice option body becomes a blank line in `option.body`. Total: **155 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 103
 - **Import: merge consecutive top-level `*set` and `*comment` commands into single nodes.**
   - **Problem**: Each `*set` or `*comment` line at top-level created its own separate graph node. Three `*set` lines in a row produced three nodes cluttering the canvas.

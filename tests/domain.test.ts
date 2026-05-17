@@ -3184,6 +3184,53 @@ test("merges consecutive top-level *comment lines into a single comment node", (
   assert.ok(commentNodes[0].body?.includes("Third line of notes"));
 });
 
+test("*goto_scene with optional starting label uses only the scene name as target", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*goto_scene fighting scene_choice",
+  ].join("\n"));
+
+  const gotoScene = graph.nodes.find((n) => n.type === "goto_scene");
+  assert.ok(gotoScene, "should create a goto_scene node");
+  assert.equal(gotoScene!.target, "fighting", "target should be scene name only, not scene_name_label");
+  assert.ok(gotoScene!.title?.includes("fighting"), "title should include scene name");
+  assert.ok(!gotoScene!.title?.includes("scene_choice"), "title should not include the optional starting label");
+});
+
+test("*line_break in top-level prose becomes a paragraph break in the passage body", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "First paragraph.",
+    "*line_break",
+    "Second paragraph.",
+    "*finish",
+  ].join("\n"));
+
+  const passage = graph.nodes.find((n) => n.type === "passage");
+  assert.ok(passage, "should create a passage node");
+  assert.ok(passage!.body?.includes("First paragraph."), "body should have first paragraph");
+  assert.ok(passage!.body?.includes("Second paragraph."), "body should have second paragraph");
+  assert.ok(!passage!.body?.includes("*line_break"), "body should not contain literal *line_break text");
+});
+
+test("*line_break in choice option body becomes a blank line, not literal text", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  #Read slowly",
+    "    First part.",
+    "    *line_break",
+    "    Second part.",
+    "After the choice.",
+    "*finish",
+  ].join("\n"));
+
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice);
+  const opt = choice!.options?.[0];
+  assert.ok(opt?.body, "option should have a body");
+  assert.ok(opt!.body!.includes("First part."), "option body should have first part");
+  assert.ok(opt!.body!.includes("Second part."), "option body should have second part");
+  assert.ok(!opt!.body!.includes("*line_break"), "option body should not contain literal *line_break");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
