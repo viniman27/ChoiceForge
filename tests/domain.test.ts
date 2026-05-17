@@ -4802,6 +4802,30 @@ test("lints *set node with empty value expression as error", () => {
   assert.ok(issues.some((i) => i.level === "error" && i.msg.includes("empty value") && i.msg.includes("score")));
 });
 
+test("does not flag uppercase ChoiceScript reserved words as undeclared variables in expressions", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          {
+            id: "n1", type: "if", x: 0, y: 0, w: 300, title: "*if",
+            branches: [{ kind: "if", expr: "score MODULO 2 = 0 AND NOT score = 0", to: "n2" }],
+          },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "if" }, { from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("MODULO") || i.msg.includes("AND") || i.msg.includes("NOT")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
