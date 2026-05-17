@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 144
+- **Backfill i18n `key`/`params` on five more lint issues.**
+  - **Problem**: Five lint paths were emitting issues without the `key`/`params` fields needed for `translateLintMsg` to produce localized messages:
+    1. `*params` shadow in graph linter (line ~828) — missing `key: "temp_shadows"` unlike the `*temp` node path.
+    2. `*achieve` undeclared in preserved source — missing `key: "undef_ach"`.
+    3. `*goto_scene` pointing to a missing scene in preserved source — missing `key: "goto_scene_missing"`.
+    4. Duplicate `*label` in preserved source (`lintPreservedLabelLine`) — missing `key: "duplicate_label"`.
+    5. Jump-to-missing-label in preserved source — emitted a generic message; now correctly emits `goto_missing_label` for `*goto` and `gosub_missing_label` for `*gosub`. Required adding `command` field to the `referencedLabels` tracking array and updating `lintPreservedJumpLine`'s array type.
+  - **Files changed**: `choicescript.ts` (5 targeted edits), `domain.test.ts` (6 new tests).
+  - **Tests**: 248 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 143
 - **Fix `extractExpressionNames` to match EXPRESSION_RESERVED case-insensitively.**
   - **Problem**: `EXPRESSION_RESERVED` holds lowercase tokens (`"and"`, `"or"`, `"not"`, `"modulo"`, etc.), but `extractExpressionNames` compared the raw matched token directly, so uppercase forms like `MODULO`, `AND`, `NOT` would not be filtered and could be reported as undeclared variables.
