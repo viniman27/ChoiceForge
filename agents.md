@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 98
+- **Import: full structured intermediate command coverage in branch/option bodies + per-node word count in inspector.**
+  - **`BODY_STRUCTURED_COMMANDS` extended** (`choicescriptImport.ts`): Added `gosub_scene`, `rand`, `input_text`, `input_number`, `save_checkpoint`, `temp`, `image`, `sound` to the set. All of these are handled by `simpleCommandNode`, so any of these commands appearing inside a `*if` branch body or `*choice` option body now create the correct graph node in the chain instead of ending up as raw text in a passage body.
+  - **Per-node word count in inspector** (`RightPanel.tsx`): Added a `{N}w` badge to the `ip-meta` line when the selected node has any text content. Word count covers `body`, `prompt`, option texts, and option bodies; strips ChoiceScript variable substitution syntax (`${…}`, `@{…}`) before counting. Only shown when count > 0, so purely structural nodes (goto, finish, label, etc.) stay clean.
+  - **Tests**: 3 new tests — `*rand` in `*if` branch body creates rand node; `*image` in `*if` branch body creates image node (chained to passage); `*save_checkpoint` in `*choice` option body creates checkpoint node (chained to goto). Total: **134 tests, all passing**.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 97
 - **Import: `*gosub` and `*page_break` in branch/option bodies become structured nodes.**
   - **Problem**: `addInlineBranchNodes` and `addInlineOptionNodes` previously created a single passage node for ALL body lines before the terminal, so `*gosub subroutine` or `*page_break Label` inside a branch body ended up as literal raw text inside the passage body — incorrect and invisible to the graph.

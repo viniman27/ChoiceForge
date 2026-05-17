@@ -2635,6 +2635,74 @@ test("imports *gosub in *choice option body as a gosub node", () => {
   assert.ok(graph.edges.some((e) => e.from === gosubNode!.id && e.to === gotoNode!.id), "gosub → goto edge");
 });
 
+test("imports *rand in *if branch body as a rand node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if lucky",
+    "  *rand result 1 100",
+    "  *goto check_result",
+    "*else",
+    "  *goto default_path",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const randNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.equal(randNode?.type, "rand");
+  assert.ok(randNode?.title.includes("result"));
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("check_result"));
+  assert.ok(gotoNode, "goto check_result node exists");
+  assert.ok(graph.edges.some((e) => e.from === randNode!.id && e.to === gotoNode!.id), "rand → goto edge");
+});
+
+test("imports *image in *if branch body as an image node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if portrait_unlocked",
+    "  *image portrait.jpg center",
+    "  You see the portrait.",
+    "  *finish",
+    "*else",
+    "  *goto no_portrait",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node exists");
+
+  const ifBranchTargetId = ifNode!.branches![0].to;
+  const imageNode = graph.nodes.find((n) => n.id === ifBranchTargetId);
+  assert.equal(imageNode?.type, "image");
+  assert.ok(imageNode?.target?.includes("portrait.jpg"));
+
+  const passageNode = graph.nodes.find((n) => n.type === "passage" && n.body?.includes("You see the portrait."));
+  assert.ok(passageNode, "passage node with body exists");
+  assert.ok(graph.edges.some((e) => e.from === imageNode!.id && e.to === passageNode!.id), "image → passage edge");
+});
+
+test("imports *save_checkpoint in *choice option body as a checkpoint node", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Save progress and continue",
+    "    *save_checkpoint before_boss",
+    "    *goto boss_fight",
+    "  #Skip save",
+    "    *goto boss_fight",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+
+  const option1TargetId = choiceNode!.options![0].to;
+  const checkpointNode = graph.nodes.find((n) => n.id === option1TargetId);
+  assert.equal(checkpointNode?.type, "checkpoint");
+  assert.ok(checkpointNode?.title.includes("before_boss"));
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("boss_fight"));
+  assert.ok(gotoNode, "goto boss_fight node exists");
+  assert.ok(graph.edges.some((e) => e.from === checkpointNode!.id && e.to === gotoNode!.id), "checkpoint → goto edge");
+});
+
 test("warns when all *choice options lead to the same node", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
