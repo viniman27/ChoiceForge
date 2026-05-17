@@ -891,9 +891,9 @@ function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNod
 
     if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed)) {
       if (current) { options.push(current); current = null; }
-      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      const m = trimmed.match(/^\*(if|elseif)\s+(.+)$/i);
       if (!m) return null;
-      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(m[2].trim())) };
       continue;
     }
     if (isTopLevel && /^\*else$/i.test(trimmed)) {
@@ -955,9 +955,9 @@ function parseInlineChoiceBlock(block: string[], index: number): { node: Importe
 
     if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
       if (current) { options.push(cleanInlineOption(current)); current = null; }
-      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      const m = trimmed.match(/^\*(if|elseif)\s+(.+)$/i);
       if (!m) return null;
-      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(m[2].trim())) };
       guardActive = true;
       currentIsDeep = false;
       continue;
@@ -1023,9 +1023,9 @@ function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, 
 
     if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
       if (current) { options.push(current); current = null; }
-      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      const m = trimmed.match(/^\*(if|elseif)\s+(.+)$/i);
       if (!m) return null;
-      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(m[2].trim())) };
       continue;
     }
     if (isTopLevel && /^\*else$/i.test(trimmed)) {
@@ -1080,9 +1080,9 @@ function parseInlineFakeChoiceBlock(block: string[], index: number): (Omit<Story
 
     if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
       if (current) { options.push(flushInlineFakeOption(current)); current = null; }
-      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      const m = trimmed.match(/^\*(if|elseif)\s+(.+)$/i);
       if (!m) return null;
-      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(m[2].trim())) };
       guardActive = true;
       currentIsDeep = false;
       continue;
@@ -1513,11 +1513,11 @@ function parseChoiceHeader(trimmed: string): Pick<ImportedChoiceOption, "text" |
 
   if (optionText.startsWith("#")) return { text: optionText.replace(/^#+/, "").trim(), cond: null, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
-  const selectable = optionText.match(/^\*selectable_if\s+\((.+)\)\s+#(.+)$/i);
-  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: normalizeExpressionIdentifiers(selectable[1].trim()) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
+  const selectable = optionText.match(/^\*selectable_if\s+(.*\S)\s+#(.+)$/i);
+  if (selectable) return { text: selectable[2].trim(), cond: { type: "selectable_if", expr: normalizeExpressionIdentifiers(stripOuterParens(selectable[1].trim())) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
-  const conditional = optionText.match(/^\*if\s+\((.+)\)\s+#(.+)$/i);
-  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: normalizeExpressionIdentifiers(conditional[1].trim()) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
+  const conditional = optionText.match(/^\*if\s+(.*\S)\s+#(.+)$/i);
+  if (conditional) return { text: conditional[2].trim(), cond: { type: "if", expr: normalizeExpressionIdentifiers(stripOuterParens(conditional[1].trim())) }, reuse: reuseMode, hideReuse: reuseMode === "hide" };
 
   return null;
 }

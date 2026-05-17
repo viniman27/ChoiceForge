@@ -3400,6 +3400,65 @@ test("multiple consecutive *set after prose in *if branch body merge into single
   assert.equal(setNode!.sets?.[1].var, "strength");
 });
 
+test("*if guard on choice option without parentheses is parsed correctly", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *if courage > 50 #Be brave",
+    "    You step forward.",
+    "    *finish",
+    "  #Run",
+    "    You flee.",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  const option = choice!.options?.find((o) => o.cond?.expr === "courage > 50");
+  assert.ok(option, "should have option with courage > 50 condition");
+  assert.equal(option!.text, "Be brave");
+  assert.equal(option!.cond?.type, "if");
+});
+
+test("*selectable_if guard on choice option without parentheses is parsed correctly", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *selectable_if courage > 50 #Be brave",
+    "    You step forward.",
+    "    *finish",
+    "  #Run",
+    "    You flee.",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  const option = choice!.options?.find((o) => o.cond?.expr === "courage > 50");
+  assert.ok(option, "should have option with courage > 50 condition");
+  assert.equal(option!.cond?.type, "selectable_if");
+});
+
+test("*if group guard on choice block without parentheses applies to options", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *if courage > 50",
+    "    #Charge",
+    "      *goto brave",
+    "  *else",
+    "    #Hide",
+    "      *goto coward",
+    "*label brave",
+    "*finish",
+    "*label coward",
+    "*finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "should have a choice node");
+  const chargeOption = choice!.options?.find((o) => o.text === "Charge");
+  assert.ok(chargeOption, "should have Charge option");
+  assert.deepEqual(chargeOption!.cond, { type: "if", expr: "courage > 50" });
+  const hideOption = choice!.options?.find((o) => o.text === "Hide");
+  assert.ok(hideOption, "should have Hide option");
+  assert.equal(hideOption!.cond, null);
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
