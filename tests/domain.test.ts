@@ -5011,6 +5011,58 @@ test("lintSet does not flag *set on a temp variable as undeclared", () => {
   assert.ok(!issues.some((i) => i.msg.includes("undeclared") && i.msg.includes("counter")), "counter is a temp variable and must not be flagged as undeclared");
 });
 
+test("variable used as rand bound in a graph node is not flagged as unused", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [
+      { name: "result", type: "number", initial: "0", desc: "", uses: 0, showInStats: false },
+      { name: "min_val", type: "number", initial: "1", desc: "", uses: 0, showInStats: false },
+      { name: "max_val", type: "number", initial: "10", desc: "", uses: 0, showInStats: false },
+    ],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "rand", x: 0, y: 0, w: 300, title: "*rand", inputVar: "result", inputMin: "min_val", inputMax: "max_val" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.msg.includes("min_val") && i.msg.includes("never read")), "min_val used as rand bound must not be flagged as unused");
+  assert.ok(!issues.some((i) => i.msg.includes("max_val") && i.msg.includes("never read")), "max_val used as rand bound must not be flagged as unused");
+});
+
+test("computeVariableUses counts variables used as rand bounds", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [
+      { name: "result", type: "number", initial: "0", desc: "", uses: 0 },
+      { name: "lo", type: "number", initial: "1", desc: "", uses: 0 },
+      { name: "hi", type: "number", initial: "10", desc: "", uses: 0 },
+    ],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "rand", x: 0, y: 0, w: 300, title: "*rand", inputVar: "result", inputMin: "lo", inputMax: "hi" },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const uses = computeVariableUses(project);
+  assert.ok((uses.get("lo") ?? 0) > 0, "lo used as rand min bound should have a use count");
+  assert.ok((uses.get("hi") ?? 0) > 0, "hi used as rand max bound should have a use count");
+});
+
 test("subtraction expression in preserved source does not falsely flag operand as undeclared", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
