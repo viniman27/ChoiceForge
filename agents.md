@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 95
+- **Variable rename propagation fix + inline fake_choice guard support.**
+  - **Bug fix — variable rename in option bodies** (`projectStore.ts`): `renameNodeVariable` was updating `option.cond.expr` and `option.sets` when a variable was renamed, but NOT `option.body` or `fakeOption.body` (added sessions 89-90). A rename like `strength → vigor` would leave `"Your ${strength} is high."` stale in option body text. Fixed by adding `body: option.body ? renameVariableReferences(option.body, from, to) : option.body` to both option and fakeOption maps.
+  - **`parseInlineFakeChoiceBlock` guard support** (`choicescriptImport.ts`): Completes the `*if`/`*elseif`/`*else` guard support across all four choice parsers. Tracks `guardCond`, `guardActive`, and `currentIsDeep`. Deep options (4+ spaces under a guard) inherit the guard condition and have their body lines double-stripped. Top-level options clear the guard state. Same pattern as session 94's `parseInlineChoiceBlock` update.
+  - **Test**: "imports `*if` guard on inline fake_choice option group with body text" — 3 options, guarded options get condition and body text, top-level option has no condition. Total: 122 tests, all passing.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 94
 - **`*if` guards in inline choice + fake_choice parsers.**
   - **`parseInlineChoiceBlock`** (`choicescriptImport.ts`): Extends session 93's label-based guard support to the inline variant (options with body text, no `*goto`). Tracks `guardCond`, `guardActive`, and `currentIsDeep`. Deep options (inside a guard, at 4-5 spaces indent) inherit the guard condition. Body lines of deep options are double-stripped (`removeChoiceOptionIndent` applied twice, handling the extra 2-space indent from the guard level). `*else` clears the guard condition. Top-level options (`isNormalHeader`) clear guard state entirely.

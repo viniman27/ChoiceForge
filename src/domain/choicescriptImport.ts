@@ -1010,6 +1010,9 @@ function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, 
 function parseInlineFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
   const options: FakeChoiceOption[] = [];
   let current: { option: FakeChoiceOption; bodyLines: string[] } | null = null;
+  let currentIsDeep = false;
+  let guardCond: ChoiceCondition | null = null;
+  let guardActive = false;
 
   for (const line of block.slice(1)) {
     const trimmed = line.trim();
@@ -1017,14 +1020,43 @@ function parseInlineFakeChoiceBlock(block: string[], index: number): (Omit<Story
       if (current) current.bodyLines.push("");
       continue;
     }
-    const header = parseChoiceHeader(trimmed);
-    if (header && isChoiceOptionHeaderLine(line)) {
-      if (current) options.push(flushInlineFakeOption(current));
-      current = { option: { text: header.text, cond: header.cond ?? null, reuse: header.reuse, hideReuse: header.hideReuse, sets: [] }, bodyLines: [] };
+    const indent = line.length - line.trimStart().length;
+    const isTopLevel = indent <= 3;
+
+    if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
+      if (current) { options.push(flushInlineFakeOption(current)); current = null; }
+      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      if (!m) return null;
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardActive = true;
+      currentIsDeep = false;
       continue;
     }
+    if (isTopLevel && /^\*else$/i.test(trimmed)) {
+      if (current) { options.push(flushInlineFakeOption(current)); current = null; }
+      guardCond = null;
+      guardActive = true;
+      currentIsDeep = false;
+      continue;
+    }
+
+    const header = parseChoiceHeader(trimmed);
+    const isNormalHeader = header && isChoiceOptionHeaderLine(line);
+    const isDeepHeader = header && guardActive && !isTopLevel;
+
+    if (isNormalHeader || isDeepHeader) {
+      if (current) options.push(flushInlineFakeOption(current));
+      const isDeep = !!isDeepHeader;
+      current = { option: { text: header.text, cond: header.cond ?? (isDeep ? guardCond : null), reuse: header.reuse, hideReuse: header.hideReuse, sets: [] }, bodyLines: [] };
+      currentIsDeep = isDeep;
+      if (isNormalHeader) { guardCond = null; guardActive = false; }
+      continue;
+    }
+
     if (!current) return null;
-    const bodyLine = removeChoiceOptionIndent(line);
+    const bodyLine = currentIsDeep
+      ? removeChoiceOptionIndent(removeChoiceOptionIndent(line))
+      : removeChoiceOptionIndent(line);
     const bodyCommand = commandName(bodyLine);
     if (bodyCommand === "set") {
       const set = parseSet(commandValue(bodyLine.trim(), "*set"));
