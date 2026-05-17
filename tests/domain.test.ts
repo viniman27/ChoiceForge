@@ -2391,6 +2391,51 @@ test("does not flag unused variable that is only used in option body", () => {
   assert.ok(!issues.some((i) => i.msg.includes('"strength"') && i.msg.includes("never read")));
 });
 
+test("imports *if guard on inline choice option group", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*choice",
+    "  *if (speed > 5)",
+    "    #Run away",
+    "      You sprint through the door.",
+    "      *finish",
+    "    #Dodge",
+    "      You duck under the swing.",
+    "      *finish",
+    "  #Stand your ground",
+    "    You face them bravely.",
+    "    *finish",
+  ].join("\n"));
+  const choice = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choice, "choice node should be imported");
+  assert.equal(choice?.options?.length, 3);
+  assert.equal(choice?.options?.[0]?.text, "Run away");
+  assert.equal(choice?.options?.[0]?.cond?.type, "if");
+  assert.equal(choice?.options?.[0]?.cond?.expr, "speed > 5");
+  assert.equal(choice?.options?.[1]?.text, "Dodge");
+  assert.equal(choice?.options?.[1]?.cond?.expr, "speed > 5");
+  assert.equal(choice?.options?.[2]?.text, "Stand your ground");
+  assert.ok(!choice?.options?.[2]?.cond, "top-level option should have no condition");
+  const runBody = graph.nodes.find((n) => n.body?.includes("sprint"));
+  assert.ok(runBody, "option body passage should exist");
+});
+
+test("imports *if guard on fake_choice option group", () => {
+  const graph = importChoiceScriptSceneText("scene", [
+    "*fake_choice",
+    "  *if (courage > 3)",
+    "    #Inspect the altar",
+    "  *else",
+    "    #Cower in the corner",
+    "  #Leave the room",
+  ].join("\n"));
+  const fakeChoice = graph.nodes.find((n) => n.type === "fake_choice");
+  assert.ok(fakeChoice, "fake_choice node should be imported");
+  assert.equal(fakeChoice?.fakeOptions?.length, 3);
+  assert.equal(fakeChoice?.fakeOptions?.[0]?.cond?.expr, "courage > 3");
+  assert.ok(!fakeChoice?.fakeOptions?.[1]?.cond, "*else branch options have no condition");
+  assert.ok(!fakeChoice?.fakeOptions?.[2]?.cond, "top-level option has no condition");
+});
+
 test("imports *if guard on option group in choice block", () => {
   const graph = importChoiceScriptSceneText("scene", [
     "*choice",

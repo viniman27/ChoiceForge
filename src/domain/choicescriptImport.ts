@@ -884,6 +884,9 @@ function parseChoiceBlock(block: string[], index: number): { node: Omit<StoryNod
 function parseInlineChoiceBlock(block: string[], index: number): { node: ImportedNodeDraft; options: InlineChoiceOption[] } | null {
   const options: InlineChoiceOption[] = [];
   let current: InlineChoiceOption | null = null;
+  let currentIsDeep = false;
+  let guardCond: ChoiceCondition | null = null;
+  let guardActive = false;
 
   for (const line of block.slice(1)) {
     const trimmed = line.trim();
@@ -891,14 +894,43 @@ function parseInlineChoiceBlock(block: string[], index: number): { node: Importe
       if (current) current.bodyLines.push("");
       continue;
     }
-    const header = parseChoiceHeader(trimmed);
-    if (header && isChoiceOptionHeaderLine(line)) {
-      if (current) options.push(cleanInlineOption(current));
-      current = { ...header, bodyLines: [], sets: [] };
+    const indent = line.length - line.trimStart().length;
+    const isTopLevel = indent <= 3;
+
+    if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
+      if (current) { options.push(cleanInlineOption(current)); current = null; }
+      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      if (!m) return null;
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      guardActive = true;
+      currentIsDeep = false;
       continue;
     }
+    if (isTopLevel && /^\*else$/i.test(trimmed)) {
+      if (current) { options.push(cleanInlineOption(current)); current = null; }
+      guardCond = null;
+      guardActive = true;
+      currentIsDeep = false;
+      continue;
+    }
+
+    const header = parseChoiceHeader(trimmed);
+    const isNormalHeader = header && isChoiceOptionHeaderLine(line);
+    const isDeepHeader = header && guardActive && !isTopLevel;
+
+    if (isNormalHeader || isDeepHeader) {
+      if (current) options.push(cleanInlineOption(current));
+      const isDeep = !!isDeepHeader;
+      current = { ...header, cond: header.cond ?? (isDeep ? guardCond : null), bodyLines: [], sets: [] };
+      currentIsDeep = isDeep;
+      if (isNormalHeader) { guardCond = null; guardActive = false; }
+      continue;
+    }
+
     if (!current) return null;
-    const bodyLine = removeChoiceOptionIndent(line);
+    const bodyLine = currentIsDeep
+      ? removeChoiceOptionIndent(removeChoiceOptionIndent(line))
+      : removeChoiceOptionIndent(line);
     const bodyCommand = commandName(bodyLine);
     if (bodyCommand === "set") {
       const set = parseSet(commandValue(bodyLine.trim(), "*set"));
@@ -926,14 +958,32 @@ function parseInlineChoiceBlock(block: string[], index: number): { node: Importe
 function parseFakeChoiceBlock(block: string[], index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
   const options: FakeChoiceOption[] = [];
   let current: FakeChoiceOption | null = null;
+  let guardCond: ChoiceCondition | null = null;
 
   for (const line of block.slice(1)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+    const indent = line.length - line.trimStart().length;
+    const isTopLevel = indent <= 3;
+
+    if (isTopLevel && /^\*(if|elseif)\s/i.test(trimmed) && !trimmed.includes("#")) {
+      if (current) { options.push(current); current = null; }
+      const m = trimmed.match(/^\*(if|elseif)\s+\((.+)\)$/i);
+      if (!m) return null;
+      guardCond = { type: "if", expr: normalizeExpressionIdentifiers(m[2].trim()) };
+      continue;
+    }
+    if (isTopLevel && /^\*else$/i.test(trimmed)) {
+      if (current) { options.push(current); current = null; }
+      guardCond = null;
+      continue;
+    }
+
     const header = parseChoiceHeader(trimmed);
     if (header) {
       if (current) options.push(current);
-      current = { text: header.text, cond: header.cond ?? null, reuse: header.reuse, hideReuse: header.hideReuse, sets: [] };
+      current = { text: header.text, cond: header.cond ?? (!isTopLevel ? guardCond : null), reuse: header.reuse, hideReuse: header.hideReuse, sets: [] };
+      if (isTopLevel) guardCond = null;
       continue;
     }
     if (!current) return null;

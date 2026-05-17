@@ -343,6 +343,12 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 94
+- **`*if` guards in inline choice + fake_choice parsers.**
+  - **`parseInlineChoiceBlock`** (`choicescriptImport.ts`): Extends session 93's label-based guard support to the inline variant (options with body text, no `*goto`). Tracks `guardCond`, `guardActive`, and `currentIsDeep`. Deep options (inside a guard, at 4-5 spaces indent) inherit the guard condition. Body lines of deep options are double-stripped (`removeChoiceOptionIndent` applied twice, handling the extra 2-space indent from the guard level). `*else` clears the guard condition. Top-level options (`isNormalHeader`) clear guard state entirely.
+  - **`parseFakeChoiceBlock`** (`choicescriptImport.ts`): Same guard logic applied to pure-header `*fake_choice` blocks (no inline body). Options inside `*if`/`*elseif` guards get the condition; `*else` and top-level options do not.
+  - **Tests**: 2 new tests — inline `*choice` with `*if` guard (3 options, body text, passage created), `*fake_choice` with `*if`/`*else` guard (3 options, conditions verified). Total: 121 tests, all passing.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 93
 - **`*if` guard on choice option groups + option body → NodeBodyEditor.**
   - **`parseChoiceBlock` guard support** (`choicescriptImport.ts`): Extended the label-based choice block parser to handle `*if (cond)` / `*elseif (cond)` / `*else` lines at option-level indent (≤ 3 spaces). Options indented inside the guard (4+ spaces) inherit the guard's `ChoiceCondition`. `*else` clears the guard (options after it get no condition). Top-level `#option` lines also clear the guard. Key fix: guard is NOT applied to top-level options even if one was active — `!isTopLevel ? guardCond : null`.
