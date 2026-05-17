@@ -912,6 +912,23 @@ test("generates lint-clean ChoiceScript for a minimal project", () => {
   assert.equal(lintProject(project).filter((issue) => issue.level === "error").length, 0);
 });
 
+test("generateStartupChoiceScript always goto_scenes the first playable scene regardless of active scene", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 1 },
+      { id: "chapter_2", name: "chapter_2", words: 0, nodes: 1 },
+      { id: "epilogue", name: "epilogue", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneTitle: "epilogue",
+  };
+  const startup = generateStartupChoiceScript(project);
+  assert.ok(startup.includes("*goto_scene intro"), "should go to first playable scene, not the active editor scene");
+  assert.ok(!startup.includes("*goto_scene epilogue"), "should not use the active editor scene as the jump target");
+});
+
 test("keeps bundled sample projects lint-clean", () => {
   Object.values(sampleProjects).forEach((project) => {
     const errors = lintProject(project).filter((issue) => issue.level === "error");

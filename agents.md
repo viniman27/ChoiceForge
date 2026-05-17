@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 121
+- **Fix bug: `generateStartupChoiceScript` always goto_scenes the first playable scene.**
+  - **Problem**: `generateStartupChoiceScript` ended with `*goto_scene ${project.sceneTitle}`. `project.sceneTitle` tracks the currently active editor scene, not necessarily the first playable scene. If the user was editing scene 3 ("epilogue") and exported, the generated `startup.txt` would have `*goto_scene epilogue`, skipping scenes 1 and 2. Since ChoiceScript executes startup.txt top-to-bottom and `*goto_scene` immediately jumps there, this caused the game to start mid-story.
+  - **Fix**: Extracted `playableScenes` from the already-computed filter (`!special && name !== "startup"`). Used `playableScenes[0]?.name` as the goto target, falling back to `project.sceneTitle` only if no playable scenes exist (degenerate case). The `*scene_list` now uses the same `playableScenes` array, eliminating duplication.
+  - **Files changed**: `choicescript.ts` (~3 lines changed in generateStartupChoiceScript), `domain.test.ts` (1 new test demonstrating the bug scenario).
+  - **Tests**: 206 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 120
 - **Implement `image_unknown` lint and add `sound_unknown` lint; check asset references.**
   - **Problem**: The `image_unknown` key already existed in `lintMessages.ts` (translated to PT/ES) but the corresponding lint check was never implemented — `*image` and `*sound` nodes referencing files not in `project.assets` passed validation silently. If an author writes `*image ghost.png` but that file isn't registered as an asset, the exported zip will be broken.
