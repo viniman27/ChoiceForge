@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 117
+- **Lint preserved source prose for undeclared variable interpolations.**
+  - **Problem**: `lintPreservedScriptSource` validated commands (label, goto, set, if, etc.) but never scanned prose text lines for `${var}` / `@{var}` interpolation references. An imported scene with `${undeclared}` in its narrative text went undetected.
+  - **Fix**: Added a pre-scan pass at the start of `lintPreservedScriptSource` to collect all `*temp` and `*params` variable names declared anywhere in the source file (forward-declared or not). Then, in the main line loop, for lines where `sourceCommand` returns null (pure prose / option text / body text), extract variable references via `extractVariableReferences` and emit a `warning` for any name not in the global + local variable set. Reuses the existing `undef_var` key for consistent i18n.
+  - **Why pre-scan**: A `*temp` declared on line 10 is in scope for prose on line 3 in the ChoiceScript runtime. Checking against `localVariables` (which grows sequentially) would produce false positives for forward-declared temps. The pre-scan collects the final declared set first.
+  - **Files changed**: `choicescript.ts` (~20 new lines in `lintPreservedScriptSource`), `domain.test.ts` (4 new tests).
+  - **Tests**: 194 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 116
 - **Fairmath initial value range check + roundtrip test for *if without *else.**
   - **Fairmath range check**: Added `fairmath_range` warning when a variable has `fairmath: true` but its initial value is outside 0–100. ChoiceScript fairmath operators clamp results, but the initial value itself is not clamped — an out-of-range initial is almost always a mistake. Translated to PT/ES. 4 new tests.
