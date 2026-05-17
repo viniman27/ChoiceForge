@@ -1007,13 +1007,18 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       }
     }
     if (command === "image") {
-      const filename = sourceCommandValue(trimmed, "*image").split(/\s+/)[0] ?? "";
+      const imageParts = sourceCommandValue(trimmed, "*image").split(/\s+/);
+      const filename = imageParts[0] ?? "";
+      const alignment = imageParts[1] ?? "";
       if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
       if (filename && !IMAGE_EXTENSIONS.has(fileExtension(filename))) {
         issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${filename}`, scene: sceneName, line: lineNumber });
       }
       if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
         issues.push({ level: "warning", msg: `*image references an unknown asset file: ${filename}`, key: "image_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
+      }
+      if (alignment && !["none", "left", "right"].includes(alignment)) {
+        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${alignment}" — use none, left, or right`, scene: sceneName, line: lineNumber });
       }
     }
     if (command === "sound") {
@@ -1387,6 +1392,12 @@ function lintPreservedCreateLine(
   const projectVariable = projectVariables.get(normalizedName);
   if (projectVariable && initial.trim() && !isValidVariableInitial({ ...projectVariable, initial })) {
     issues.push({ level: "error", msg: `*create ${normalizedName} has an invalid ${projectVariable.type} initial value: ${initial}`, scene: "startup", line: lineNumber });
+  }
+  if (projectVariable?.type === "number" && projectVariable.fairmath && initial.trim()) {
+    const initialNum = Number(initial.trim());
+    if (Number.isFinite(initialNum) && (initialNum < 0 || initialNum > 100)) {
+      issues.push({ level: "warning", msg: `fairmath variable "${normalizedName}" has an initial value outside 0–100: ${initialNum}`, key: "fairmath_range", params: { name: normalizedName }, scene: "startup", line: lineNumber });
+    }
   }
   if (declaredVariables.has(normalizedName)) {
     issues.push({ level: "error", msg: `startup.txt repeats *create variable: ${normalizedName}`, scene: "startup", line: lineNumber });
