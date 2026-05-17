@@ -438,6 +438,56 @@
 }
 .word-goal-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
 
+/* ─── New Project modal ──────────────────────── */
+.np-backdrop {
+  position: fixed; inset: 0; z-index: 300;
+  background: oklch(0% 0 0 / 0.45);
+  display: flex; align-items: center; justify-content: center;
+}
+.np-panel {
+  background: var(--paper-2);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-3);
+  box-shadow: 0 16px 48px oklch(0% 0 0 / 0.25);
+  width: 420px; max-width: calc(100vw - 32px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.np-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--paper-edge);
+}
+.np-title { font-family: var(--ff-mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+.np-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-mute); font-size: 16px; padding: 2px 6px;
+  border-radius: var(--r-1); line-height: 1;
+}
+.np-close:hover { background: var(--paper-3); color: var(--ink); }
+.np-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.np-field { display: flex; flex-direction: column; gap: 4px; }
+.np-label { font-size: 11px; font-weight: 600; color: var(--ink-mute); text-transform: uppercase; letter-spacing: .04em; }
+.np-input {
+  background: var(--paper-1); border: 1px solid var(--paper-edge);
+  color: var(--ink); border-radius: var(--r-2);
+  padding: 7px 10px; font-size: 13px; font-family: var(--ff-mono);
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.np-input:focus { border-color: var(--accent-1); }
+.np-actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--paper-edge);
+}
+.np-btn { border: none; cursor: pointer; font-size: 12px; font-family: var(--ff-mono); border-radius: var(--r-2); padding: 6px 14px; white-space: nowrap; }
+.np-btn-ghost { background: none; color: var(--ink-mute); margin-right: auto; }
+.np-btn-ghost:hover { background: var(--paper-3); color: var(--ink); }
+.np-btn-secondary { background: var(--paper-3); color: var(--ink); border: 1px solid var(--paper-edge); }
+.np-btn-secondary:hover { background: var(--paper-edge); }
+.np-btn-primary { background: var(--accent-1); color: #fff; }
+.np-btn-primary:hover { filter: brightness(1.1); }
+
 /* ─── Keyboard shortcut overlay ──────────────── */
 .ks-backdrop {
   position: fixed; inset: 0; z-index: 200;

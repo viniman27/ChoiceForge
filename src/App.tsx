@@ -5,6 +5,7 @@ import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
 import { ManuscriptView } from "./components/ManuscriptView";
+import { NewProjectModal } from "./components/NewProjectModal";
 import { SnapshotPanel } from "./components/SnapshotPanel";
 import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
@@ -52,6 +53,7 @@ export default function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const { lintedProject, actions, snapshotIndex } = useProjectStore();
 
   useEffect(() => {
@@ -251,21 +253,7 @@ export default function App() {
           downloadGeneratedProject(lintedProject);
         }}
         onSnapshots={() => setSnapshotsOpen(true)}
-        onResetProject={() => {
-          const confirmed = window.confirm(
-            lang === "pt" ? "Resetar substitui o projeto salvo localmente pelo exemplo inicial. Deseja continuar?"
-            : lang === "es" ? "Restablecer reemplaza el proyecto guardado localmente con el ejemplo inicial. ¿Continuar?"
-            : "Reset replaces the locally saved project with the starter sample. Continue?"
-          );
-          if (!confirmed) return;
-          actions.resetProject(lang);
-          setSaveStatus(formatSaveStatus(lang));
-          setGeneratedDocumentId(null);
-          setGeneratedDocumentLine(null);
-          setPlayOpen(false);
-          setSelectedId("n1");
-          resetViewport(setPan, setZoom);
-        }}
+        onNewProject={() => setNewProjectOpen(true)}
       />
       <LeftPanel
         data={lintedProject}
@@ -499,6 +487,32 @@ export default function App() {
         />
       )}
       {shortcutsOpen && <KeyboardShortcutOverlay onClose={() => setShortcutsOpen(false)} />}
+      {newProjectOpen && (
+        <NewProjectModal
+          labels={i18n[lang]}
+          onBlank={(title, author) => {
+            actions.newBlankProject(title, author);
+            setSaveStatus(formatSaveStatus(lang));
+            setGeneratedDocumentId(null);
+            setGeneratedDocumentLine(null);
+            setPlayOpen(false);
+            setSelectedId("n1");
+            resetViewport(setPan, setZoom);
+            setNewProjectOpen(false);
+          }}
+          onExample={() => {
+            actions.resetProject(lang);
+            setSaveStatus(formatSaveStatus(lang));
+            setGeneratedDocumentId(null);
+            setGeneratedDocumentLine(null);
+            setPlayOpen(false);
+            setSelectedId("n1");
+            resetViewport(setPan, setZoom);
+            setNewProjectOpen(false);
+          }}
+          onClose={() => setNewProjectOpen(false)}
+        />
+      )}
       {paletteOpen && (
         <CommandPalette
           project={lintedProject}

@@ -215,4 +215,9 @@ export interface I18nLabels {
   nodeTypes: Record<NodeType, string>;
   inspectorTabs: [string, string, string];
   leftTabs: [string, string, string, string];
+  newProject: string;
+  projectTitleLabel: string;
+  projectAuthorLabel: string;
+  startBlank: string;
+  loadExample: string;
 }
