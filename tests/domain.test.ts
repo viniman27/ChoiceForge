@@ -4781,6 +4781,27 @@ test("does not flag *temp as unused when read in *if condition in preserved sour
   assert.ok(!issues.some((i) => i.key === "unused_temp" && i.msg.includes("shield")));
 });
 
+test("lints *set node with empty value expression as error", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: {
+      intro: {
+        nodes: [
+          { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set score", sets: [{ var: "score", op: "=", val: "" }] },
+          { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+        ],
+        edges: [{ from: "n1", to: "n2", kind: "flow" }],
+      },
+    },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.some((i) => i.level === "error" && i.msg.includes("empty value") && i.msg.includes("score")));
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
