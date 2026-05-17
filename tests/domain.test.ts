@@ -5011,6 +5011,20 @@ test("lintSet does not flag *set on a temp variable as undeclared", () => {
   assert.ok(!issues.some((i) => i.msg.includes("undeclared") && i.msg.includes("counter")), "counter is a temp variable and must not be flagged as undeclared");
 });
 
+test("subtraction expression in preserved source does not falsely flag operand as undeclared", () => {
+  const project: ChoiceForgeProject = {
+    title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",
+    scenes: [{ id: "intro", name: "intro", words: 0, nodes: 0, current: true }],
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", uses: 0 }],
+    achievements: [], assets: [],
+    sceneData: { intro: { nodes: [], edges: [], sourceText: "*if score-5 > 0\n  *finish\n*finish" } },
+    lints: [],
+  };
+  const issues = lintProject(project);
+  assert.ok(!issues.some((i) => i.key === "undef_var" && i.params?.name === "score_5"), "score-5 should not be normalized to score_5 and flagged as undeclared");
+  assert.ok(!issues.some((i) => i.key === "undef_var" && i.params?.name === "score"), "score should not be flagged as undeclared in score-5 expression");
+});
+
 test("*temp with no initial value in preserved source emits a warning not an error", () => {
   const project: ChoiceForgeProject = {
     title: "T", author: "A", sceneTitle: "intro", sceneSubtitle: "intro.txt",

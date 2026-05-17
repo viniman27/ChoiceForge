@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 152
+- **Fix `normalizeSourceExpressionIdentifiers` regex including hyphen in identifier character class.**
+  - **Problem**: The regex `[a-zA-Z_][a-zA-Z0-9_-]*` (note the `-` in the character class) matched hyphenated tokens like `score-5` as a single identifier. `normalizeSourceIdentifier("score-5")` would return `"score_5"`. This means `*if score-5 > 0` would have `score-5` tokenized as `score_5`, causing a false "undeclared variable: score_5" warning even when `score` is declared.
+  - **Fix**: Removed the hyphen from the character class: `[a-zA-Z_][a-zA-Z0-9_]*`. Hyphens are arithmetic operators in ChoiceScript, not valid identifier characters. This makes the tokenizer correctly treat `score-5` as identifier `score` followed by operator `-` and literal `5`.
+  - **Files changed**: `choicescript.ts` (1 character), `domain.test.ts` (1 new test).
+  - **Tests**: 259 passing, no regressions.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 151
 - **Align `generateStartupChoiceScript` scene filter to use `!scene.isStart` instead of `scene.name !== "startup"`.**
   - **Problem**: `generateStartupChoiceScript` filtered scenes using `!scene.special && scene.name !== "startup"` while all other code (linter, reachability) used `!scene.isStart && !scene.special`. These diverge if the startup scene ever has a non-"startup" name or if name-based filtering is accidentally applied to a different scene.

@@ -2005,7 +2005,7 @@ function sourceConditionExpression(line: string, command: string): string {
 
 function normalizeSourceExpressionIdentifiers(expression: string): string {
   const reserved = new Set(["and", "or", "not", "true", "false"]);
-  return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[a-zA-Z_][a-zA-Z0-9_-]*/g, (match) => {
+  return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[a-zA-Z_][a-zA-Z0-9_]*/g, (match) => {
     if (match.startsWith("\"") || match.startsWith("'")) return match;
     const lower = match.toLowerCase();
     return reserved.has(lower) ? lower : normalizeSourceIdentifier(match);
