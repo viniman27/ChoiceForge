@@ -38,8 +38,10 @@ export function importChoiceScriptArchive(entries: ChoiceScriptArchiveEntry[]): 
   const activeScene = sceneNames[0];
   const sceneData = Object.fromEntries(sceneNames.map((sceneName) => {
     const sourceText = sceneFileMap.get(sceneName) ?? "";
+    if (!sourceText) return [sceneName, createImportedSceneGraph(sceneName, sourceText)];
+    if (sceneName !== activeScene) return [sceneName, { nodes: [], edges: [], sourceText }];
     const graph = createImportedSceneGraph(sceneName, sourceText);
-    return [sceneName, sourceText ? { ...graph, sourceText } : graph];
+    return [sceneName, { ...graph, sourceText }];
   }));
   const scenes = createSceneSummaries(sceneNames, activeScene, sceneData);
 

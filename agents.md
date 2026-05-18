@@ -343,6 +343,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 159
+- **Fix CSS specificity bug making tag-filter color dots invisible.**
+  - **Root cause**: `.zoom-controls button` (specificity 0,1,1) overrode `.zoom-color-dot` (0,1,0), setting `background: transparent` on the dots and wiping out `background: var(--ct)`. No color was visible at any zoom/opacity/scale.
+  - **Fix**: Changed `.zoom-controls button` selector to `.zoom-controls button:not(.zoom-color-dot)` (and same for hover state). This exempts dots from the reset and lets their own rule apply.
+  - **Files changed**: `styles.css` (lines 1330-1334).
+- **Viewport culling for large scenes (performance fix).**
+  - **Problem**: `GraphCanvas.tsx` rendered `NodeCard` for every node in the scene, even those far off-screen. A scene with 1000+ nodes rendered 1000+ React components on every frame, freezing the browser.
+  - **Fix**: Added inline viewport culling filter before the `NodeCard` map. Nodes outside viewport + 350px buffer are skipped. During active drag or selection-box operations, culling is disabled to avoid nodes popping in/out during move.
+  - **Files changed**: `GraphCanvas.tsx` (1 line change at the `data.nodes.map` call, line 510).
+- **Lazy scene parsing on navigation (import performance fix).**
+  - **Problem**: `importChoiceScriptArchive` called `createImportedSceneGraph` for all N scenes, even though only the first scene was displayed. Large projects with many or large scenes were slow/frozen during import.
+  - **Fix**: Import now only calls `createImportedSceneGraph` for the active (first) scene. All other scenes are stored as `{ nodes: [], edges: [], sourceText }` — a shell with the raw text preserved. When the user navigates to a scene (`selectScene`), it detects the empty-but-sourced shell and parses+lays out that scene on demand. Word counts and scene list still work because they use `sourceText`.
+  - **Files changed**: `choicescriptImport.ts` (importChoiceScriptArchive eager parse → active-only), `projectStore.ts` (selectScene adds lazy parse branch).
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 158
 - **Tag-filter dots: replace opacity with scale-transform; add "tag" label.**
   - **Problem**: At 0.55 opacity, small 12px circles vanish visually — the user saw a single gray blob in the toolbar. Using opacity to indicate "inactive" is a bad approach for small colored elements.
