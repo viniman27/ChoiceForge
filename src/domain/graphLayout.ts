@@ -30,17 +30,19 @@ export function layoutProjectGraphs(project: ChoiceForgeProject): ChoiceForgePro
 
 function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): StoryNode[] {
   const horizontalGap = 150;
-  const verticalGap = 90;
+  const verticalGap = 100;
   const startX = 70;
   const startY = 70;
   const nodeIds = new Set(nodes.map((node) => node.id));
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
+  const predecessors = new Map(nodes.map((node) => [node.id, [] as string[]]));
 
   layoutEdges(nodes, edges).forEach((edge) => {
     if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return;
     outgoing.get(edge.from)?.push(edge.to);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
+    predecessors.get(edge.to)?.push(edge.from);
   });
 
   const roots = nodes.filter((node) => node.id === "n1" || (incoming.get(node.id) ?? 0) === 0);
@@ -74,22 +76,28 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
   const orderedColumns = [...columns.entries()].sort(([a], [b]) => a - b);
   const positions = new Map<string, { x: number; y: number }>();
 
-  const sortGroup = (groupNodes: StoryNode[]) =>
-    [...groupNodes].sort((a, b) => {
-      if (a.id === "n1") return -1;
-      if (b.id === "n1") return 1;
-      return a.y - b.y || a.x - b.x;
-    });
-
   let columnX = startX;
   orderedColumns.forEach(([, columnNodes]) => {
-    const sorted = sortGroup(columnNodes);
+    // Barycenter sort: order nodes by mean Y of their already-placed predecessors
+    // to minimise edge crossings between adjacent columns.
+    const withBc = columnNodes.map((node) => {
+      if (node.id === "n1") return { node, bc: -Infinity };
+      const predYs = (predecessors.get(node.id) ?? [])
+        .map((p) => positions.get(p)?.y)
+        .filter((y): y is number => y !== undefined);
+      const bc = predYs.length === 0
+        ? node.y
+        : predYs.reduce((a, b) => a + b, 0) / predYs.length;
+      return { node, bc };
+    });
+    withBc.sort((a, b) => a.bc - b.bc);
+
     let nodeY = startY;
-    sorted.forEach((node) => {
+    withBc.forEach(({ node }) => {
       positions.set(node.id, { x: columnX, y: nodeY });
       nodeY += estimateLayoutNodeHeight(node) + verticalGap;
     });
-    const maxWidth = sorted.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
+    const maxWidth = columnNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
     columnX += maxWidth + horizontalGap;
   });
 
@@ -160,8 +168,9 @@ function gosubTarget(value: string): string {
 }
 
 function estimateLayoutNodeHeight(node: StoryNode): number {
-  let height = 58 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
-  if (node.body) height += 90;
+  const charsPerLine = Math.max(12, Math.floor(node.w / 13));
+  let height = 58 + Math.max(0, Math.ceil(node.title.length / charsPerLine) - 1) * 18;
+  if (node.body) height += Math.max(60, Math.ceil(node.body.length / charsPerLine) * 18);
   if (node.prompt) height += 28;
   if (node.options) height += node.options.length * 38 + 8;
   if (node.fakeOptions) height += node.fakeOptions.length * 38 + 8;
