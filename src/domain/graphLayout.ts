@@ -78,21 +78,27 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
 
   let columnX = startX;
   orderedColumns.forEach(([, columnNodes]) => {
-    // Barycenter sort: order nodes by mean Y of their already-placed predecessors
-    // to minimise edge crossings between adjacent columns.
+    // Barycenter sort: order nodes by mean Y of already-placed predecessors.
     const withBc = columnNodes.map((node) => {
-      if (node.id === "n1") return { node, bc: -Infinity };
+      if (node.id === "n1") return { node, bc: startY };
       const predYs = (predecessors.get(node.id) ?? [])
         .map((p) => positions.get(p)?.y)
         .filter((y): y is number => y !== undefined);
       const bc = predYs.length === 0
-        ? node.y
+        ? startY
         : predYs.reduce((a, b) => a + b, 0) / predYs.length;
       return { node, bc };
     });
     withBc.sort((a, b) => a.bc - b.bc);
 
-    let nodeY = startY;
+    // Vertically centre the column around the mean predecessor Y so that
+    // edges flow roughly horizontally instead of sharply up/down.
+    const totalColHeight = withBc.reduce(
+      (sum, { node }) => sum + estimateLayoutNodeHeight(node) + verticalGap, 0,
+    ) - verticalGap;
+    const meanBc = withBc.reduce((sum, { bc }) => sum + bc, 0) / withBc.length;
+    let nodeY = Math.max(startY, Math.round(meanBc - totalColHeight / 2));
+
     withBc.forEach(({ node }) => {
       positions.set(node.id, { x: columnX, y: nodeY });
       nodeY += estimateLayoutNodeHeight(node) + verticalGap;
