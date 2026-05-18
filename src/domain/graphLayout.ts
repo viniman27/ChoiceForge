@@ -73,21 +73,67 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
 
   const orderedColumns = [...columns.entries()].sort(([a], [b]) => a - b);
   const positions = new Map<string, { x: number; y: number }>();
-  let columnX = startX;
-  orderedColumns.forEach(([, columnNodes]) => {
-    const sortedNodes = [...columnNodes].sort((a, b) => {
+
+  const WRAP_COLS = 8;
+  const ROW_GAP = 200;
+  const shouldWrap = orderedColumns.length > WRAP_COLS;
+
+  const sortColumn = (columnNodes: StoryNode[]) =>
+    [...columnNodes].sort((a, b) => {
       if (a.id === "n1") return -1;
       if (b.id === "n1") return 1;
       return a.y - b.y || a.x - b.x;
     });
-    let nodeY = startY;
-    sortedNodes.forEach((node) => {
-      positions.set(node.id, { x: columnX, y: nodeY });
-      nodeY += estimateLayoutNodeHeight(node) + verticalGap;
+
+  if (!shouldWrap) {
+    let columnX = startX;
+    orderedColumns.forEach(([, columnNodes]) => {
+      const sortedNodes = sortColumn(columnNodes);
+      let nodeY = startY;
+      sortedNodes.forEach((node) => {
+        positions.set(node.id, { x: columnX, y: nodeY });
+        nodeY += estimateLayoutNodeHeight(node) + verticalGap;
+      });
+      const maxWidth = sortedNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
+      columnX += maxWidth + horizontalGap;
     });
-    const maxWidth = sortedNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
-    columnX += maxWidth + horizontalGap;
-  });
+  } else {
+    // Compute column widths and heights for each ordered index
+    const colWidths = orderedColumns.map(([, columnNodes]) =>
+      columnNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260));
+    const colHeights = orderedColumns.map(([, columnNodes]) =>
+      columnNodes.reduce((acc, node) => acc + estimateLayoutNodeHeight(node) + verticalGap, 0));
+
+    // Compute X offset for each column within its row group (0..WRAP_COLS-1)
+    const groupColX: number[] = [];
+    let curX = startX;
+    for (let c = 0; c < WRAP_COLS; c++) {
+      groupColX.push(curX);
+      const maxWInGroup = colWidths.filter((_, i) => i % WRAP_COLS === c).reduce((a, b) => b > a ? b : a, 260);
+      curX += maxWInGroup + horizontalGap;
+    }
+
+    // Compute Y start for each row group
+    const numRows = Math.ceil(orderedColumns.length / WRAP_COLS);
+    const rowYStart: number[] = [startY];
+    for (let r = 1; r < numRows; r++) {
+      const prevRowMaxH = colHeights
+        .slice((r - 1) * WRAP_COLS, r * WRAP_COLS)
+        .reduce((a, b) => b > a ? b : a, 0);
+      rowYStart.push(rowYStart[r - 1]! + prevRowMaxH + ROW_GAP);
+    }
+
+    orderedColumns.forEach(([, columnNodes], i) => {
+      const gridRow = Math.floor(i / WRAP_COLS);
+      const gridCol = i % WRAP_COLS;
+      const sortedNodes = sortColumn(columnNodes);
+      let nodeY = rowYStart[gridRow] ?? startY;
+      sortedNodes.forEach((node) => {
+        positions.set(node.id, { x: groupColX[gridCol] ?? startX, y: nodeY });
+        nodeY += estimateLayoutNodeHeight(node) + verticalGap;
+      });
+    });
+  }
 
   return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
 }
