@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 179
+- **Additional key-coverage tests for graph-node validators (14 new tests).**
+  - Added tests for: `page_break_no_label`, `checkpoint_no_name`, `goto_scene_no_target`, `goto_scene_invalid_id`, `gosub_scene_no_target`, `gosub_scene_invalid_id`, `temp_invalid_id`, `temp_no_initial`, `orphan_node`, `dead_end`, `duplicate_option_text`, `params_no_names`, `params_invalid_id`, `if_noop`.
+  - Caught a subtle logic constraint: `if_noop` only fires when there is NO `*else` branch (a no-op occurs when all explicit branches land on the flow target and the fallthrough also does). With an `*else` branch, `if_all_same_target` covers the redundant case instead.
+  - **Files changed**: `domain.test.ts`.
+  - **Tests**: 325 passing (14 new).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 178
 - **Bug fixes discovered while adding tests: regex cross-line boundary bug + cond_empty param mismatch.**
   - **`extractAchievementCommandTargets` regex bug**: `/^\s*\*achieve(?:\s+(.+?))?\s*$/gim` used `\s+` which matches newlines. For body text like `"*achieve\n*achieve bad-id"`, the regex would match the two-line string as a single `*achieve bad-id` call, silently dropping the empty-argument `*achieve`. Fixed to `/^[ \t]*\*achieve(?:[ \t]+(\S[^\n]*?))?[ \t]*$/gim` (horizontal whitespace only). Same bug in `stripAchieveCommands` — same fix applied.
