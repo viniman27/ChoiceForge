@@ -3452,6 +3452,91 @@ test("imports nested *if inside *choice option body — prose continues after if
   assert.ok(graph.edges.some((e) => e.from === afterPassage!.id && e.to === finishNode!.id), "prose → finish edge");
 });
 
+test("imports *gosub inside choice option body", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Ask for help",
+    "    *gosub ask_helper",
+    "    *finish",
+    "  #Go alone",
+    "    *finish",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+  assert.equal(choiceNode!.options?.length, 2);
+
+  const gosubNode = graph.nodes.find((n) => n.type === "gosub");
+  assert.ok(gosubNode, "gosub node created inside option body");
+  assert.ok(gosubNode!.title.includes("ask_helper"), "gosub points to correct label");
+
+  const finishNodes = graph.nodes.filter((n) => n.type === "finish");
+  assert.equal(finishNodes.length, 2, "two finish nodes created");
+});
+
+test("imports *label inside choice option body", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*choice",
+    "  #Fight",
+    "    *label fight_start",
+    "    You swing your sword.",
+    "    *finish",
+    "  #Flee",
+    "    *finish",
+  ].join("\n"));
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node exists");
+
+  const labelNode = graph.nodes.find((n) => n.type === "label");
+  assert.ok(labelNode, "label node created inside option body");
+  assert.ok(labelNode!.title.includes("fight_start"), "label has correct name");
+});
+
+test("imports *if block containing nested *choice in branch body", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if courage > 50",
+    "  You feel brave.",
+    "  *choice",
+    "    #Attack",
+    "      *finish",
+    "    #Defend",
+    "      *finish",
+    "*else",
+    "  *goto flee",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node created");
+  assert.equal(ifNode!.branches?.length, 2, "if has two branches");
+
+  const choiceNode = graph.nodes.find((n) => n.type === "choice");
+  assert.ok(choiceNode, "choice node created inside if branch");
+  assert.equal(choiceNode!.options?.length, 2, "choice has two options");
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("flee"));
+  assert.ok(gotoNode, "goto flee in else branch");
+});
+
+test("imports *if block where branch has *goto_scene terminal", () => {
+  const graph = importChoiceScriptSceneText("startup", [
+    "*if chapter > 1",
+    "  *goto_scene chapter2",
+    "*else",
+    "  *goto begin",
+  ].join("\n"));
+
+  const ifNode = graph.nodes.find((n) => n.type === "if");
+  assert.ok(ifNode, "if node created");
+  assert.equal(ifNode!.branches?.length, 2, "if has two branches");
+
+  const gotoScene = graph.nodes.find((n) => n.type === "goto_scene");
+  assert.ok(gotoScene, "goto_scene node in if branch");
+
+  const gotoNode = graph.nodes.find((n) => n.type === "goto" && n.title.includes("begin"));
+  assert.ok(gotoNode, "goto begin in else branch");
+});
+
 test("does not lint *rand with variable bounds as invalid", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),

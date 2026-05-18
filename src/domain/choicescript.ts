@@ -473,17 +473,17 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   const generatedExportPaths = generatedChoiceScriptExportPaths(project);
 
   findDuplicates(project.scenes.map((scene) => scene.name))
-    .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, scene: null }));
+    .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, key: "duplicate_scene_name", params: { name }, scene: null }));
   findDuplicates(project.variables.map((variable) => variable.name))
-    .forEach((name) => issues.push({ level: "error", msg: `duplicate variable name: ${name}`, scene: null }));
+    .forEach((name) => issues.push({ level: "error", msg: `duplicate variable name: ${name}`, key: "duplicate_var_name", params: { name }, scene: null }));
   findDuplicates(project.achievements.map((achievement) => achievement.id))
-    .forEach((id) => issues.push({ level: "error", msg: `duplicate achievement id: ${id}`, scene: null }));
+    .forEach((id) => issues.push({ level: "error", msg: `duplicate achievement id: ${id}`, key: "duplicate_ach_id", params: { name: id }, scene: null }));
   findDuplicates((project.assets ?? []).map((asset) => asset.id))
-    .forEach((id) => issues.push({ level: "warning", msg: `duplicate asset id: ${id}`, scene: null }));
+    .forEach((id) => issues.push({ level: "warning", msg: `duplicate asset id: ${id}`, key: "duplicate_asset_id", params: { name: id }, scene: null }));
   findDuplicates((project.assets ?? []).map((asset) => asset.path))
-    .forEach((path) => issues.push({ level: "warning", msg: `duplicate asset path: ${path}`, scene: null }));
+    .forEach((path) => issues.push({ level: "warning", msg: `duplicate asset path: ${path}`, key: "duplicate_asset_path", params: { name: path }, scene: null }));
   findDuplicates((project.assets ?? []).filter((asset) => asset.dataUrl).map((asset) => asset.path))
-    .forEach((path) => issues.push({ level: "error", msg: `duplicate exported asset path: ${path}`, scene: null }));
+    .forEach((path) => issues.push({ level: "error", msg: `duplicate exported asset path: ${path}`, key: "duplicate_exported_asset", params: { name: path }, scene: null }));
 
   project.scenes.forEach((scene) => {
     if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", scene: null });
@@ -838,7 +838,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
       });
       const duplicateParams = findDuplicates(rawParams);
       duplicateParams.forEach((param) => {
-        issues.push({ level: "error", msg: `*params has a duplicate parameter name: ${param}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*params has a duplicate parameter name: ${param}`, key: "duplicate_params", params: { name: param }, scene: sceneName, node: node.id });
       });
     }
 
@@ -1528,12 +1528,12 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
     }
     const [chartType = "", rawVariable = ""] = trimmed.split(/\s+/, 2);
     if (!["percent", "text", "opposed_pair"].includes(chartType)) {
-      issues.push({ level: "error", msg: `*stat_chart has an invalid row type: ${chartType || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "error", msg: `*stat_chart has an invalid row type: ${chartType || "(empty)"}`, key: "stat_chart_invalid_type", params: { type: chartType || "(empty)" }, scene: "choicescript_stats", line: lineNumber });
       return;
     }
     const variable = normalizeSourceIdentifier(rawVariable);
     if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
-      issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, key: "stat_chart_invalid_var", params: { name: rawVariable || "(empty)" }, scene: "choicescript_stats", line: lineNumber });
       return;
     }
     if (chartType === "opposed_pair") {
@@ -1544,13 +1544,13 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
       issues.push({ level: "warning", msg: `*stat_chart uses an undeclared variable: ${variable}`, key: "stat_undef_var", params: { name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
     if ((chartType === "percent" || chartType === "opposed_pair") && projectVariable && projectVariable.type !== "number") {
-      issues.push({ level: "error", msg: `*stat_chart ${chartType} requires a number variable: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "error", msg: `*stat_chart ${chartType} requires a number variable: ${variable}`, key: "stat_chart_needs_number", params: { type: chartType, name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
     if (chartType === "percent" && projectVariable?.type === "number" && !projectVariable.fairmath) {
-      issues.push({ level: "warning", msg: `*stat_chart percent uses a number variable without percent stat format: ${variable}`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "warning", msg: `*stat_chart percent uses a number variable without percent stat format: ${variable}`, key: "stat_chart_nonpercent", params: { name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
     if (chartType === "text" && projectVariable && projectVariable.type === "number") {
-      issues.push({ level: "warning", msg: `*stat_chart text displays ${variable} as a raw number — use percent or opposed_pair for a bar chart`, scene: "choicescript_stats", line: lineNumber });
+      issues.push({ level: "warning", msg: `*stat_chart text displays ${variable} as a raw number — use percent or opposed_pair for a bar chart`, key: "stat_chart_raw_number", params: { name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
   });
 }
@@ -1628,7 +1628,7 @@ function lintChoiceNode(
     });
     lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();
-    if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
+    if (key && seenOptionText.has(key)) issues.push({ level: "warning", msg: `duplicate option text "${option.text.trim()}" in "${node.title}"`, key: "duplicate_option_text", params: { text: option.text.trim(), title: node.title }, scene: sceneName, node: node.id });
     seenOptionText.add(key);
   });
   if ((node.options?.length ?? 0) > 1) {
@@ -1665,7 +1665,7 @@ function lintFakeChoiceNode(
     });
     lintAchievementCommands(option.body ?? "", achievements, issues, sceneName, node.id);
     const key = option.text.trim().toLowerCase();
-    if (key && seenFakeText.has(key)) issues.push({ level: "warning", msg: `duplicate fake_choice option text "${option.text.trim()}" in "${node.title}"`, scene: sceneName, node: node.id });
+    if (key && seenFakeText.has(key)) issues.push({ level: "warning", msg: `duplicate fake_choice option text "${option.text.trim()}" in "${node.title}"`, key: "duplicate_option_text", params: { text: option.text.trim(), title: node.title }, scene: sceneName, node: node.id });
     seenFakeText.add(key);
   });
 }

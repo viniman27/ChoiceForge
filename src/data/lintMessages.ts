@@ -119,6 +119,58 @@ export const lintMessages: LintTranslations = {
     pt: "passagem \"{name}\" e muito longa ({wc} palavras)",
     es: "pasaje \"{name}\" es muy largo ({wc} palabras)",
   },
+  duplicate_scene_name: {
+    pt: "nome de cena duplicado: {name}",
+    es: "nombre de escena duplicado: {name}",
+  },
+  duplicate_var_name: {
+    pt: "nome de variavel duplicado: {name}",
+    es: "nombre de variable duplicado: {name}",
+  },
+  duplicate_ach_id: {
+    pt: "id de conquista duplicado: {name}",
+    es: "id de logro duplicado: {name}",
+  },
+  duplicate_asset_id: {
+    pt: "id de asset duplicado: {name}",
+    es: "id de asset duplicado: {name}",
+  },
+  duplicate_asset_path: {
+    pt: "caminho de asset duplicado: {name}",
+    es: "ruta de asset duplicada: {name}",
+  },
+  duplicate_exported_asset: {
+    pt: "caminho de asset exportado duplicado: {name}",
+    es: "ruta de asset exportado duplicada: {name}",
+  },
+  duplicate_params: {
+    pt: "*params tem parametro duplicado: {name}",
+    es: "*params tiene parametro duplicado: {name}",
+  },
+  duplicate_option_text: {
+    pt: "texto de opcao duplicado \"{text}\" em \"{title}\"",
+    es: "texto de opcion duplicado \"{text}\" en \"{title}\"",
+  },
+  stat_chart_invalid_type: {
+    pt: "*stat_chart tem tipo de linha invalido: {type}",
+    es: "*stat_chart tiene tipo de fila invalido: {type}",
+  },
+  stat_chart_invalid_var: {
+    pt: "*stat_chart tem identificador de variavel invalido: {name}",
+    es: "*stat_chart tiene identificador de variable invalido: {name}",
+  },
+  stat_chart_needs_number: {
+    pt: "*stat_chart {type} requer variavel numerica: {name}",
+    es: "*stat_chart {type} requiere variable numerica: {name}",
+  },
+  stat_chart_nonpercent: {
+    pt: "*stat_chart percent usa variavel numerica sem formato percent: {name}",
+    es: "*stat_chart percent usa variable numerica sin formato percent: {name}",
+  },
+  stat_chart_raw_number: {
+    pt: "*stat_chart text exibe {name} como numero bruto — use percent ou opposed_pair para barra",
+    es: "*stat_chart text muestra {name} como numero bruto — usa percent u opposed_pair para barra",
+  },
 };
 
 export function translateLintMsg(
