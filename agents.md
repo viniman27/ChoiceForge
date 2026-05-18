@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 170
+- **Fix root cause of visual overlap: column y-centering around predecessor positions.**
+  - **Root cause identified**: every column started placing nodes at `y = startY = 70` regardless of where predecessors were. A node at y=800 in column 5 had its successor placed at y=70 in column 6 → edge goes sharply upward, crossing everything. This looked like "overlap" and created masses of crossing arrows.
+  - **Fix**: After computing barycenters, compute the total height of all nodes in the column, then start the column at `max(startY, round(meanBc - totalColHeight/2))` so the column is vertically centered around its predecessors' mean y. For a linear chain every node stays near y=70 as before. For a branched column (e.g. merge node with predecessors spread from y=70 to y=800), the column centers at y≈435 instead of y=70.
+  - **Files changed**: `graphLayout.ts` (centering logic in position assignment loop).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 169
 - **Recalibrate height estimation from actual NodeCard CSS.**
   - Read `NodeCard.tsx` + `styles.css` and discovered:
