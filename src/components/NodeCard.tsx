@@ -140,6 +140,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
 
   return (
     <div
+      data-node-id={node.id}
       className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${hasWarning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""} ${(node.type === "goto_scene" || node.type === "gosub_scene") && node.target && onNavigateToScene ? "is-navigable" : ""}`}
       style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {

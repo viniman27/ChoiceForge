@@ -284,7 +284,7 @@ function createImportedSceneGraph(sceneName: string, content: string): SceneGrap
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const command = commandName(line);
-    if (!command || /^\s+\S/.test(line)) {
+    if (!command) {
       pending.push(line);
       continue;
     }
