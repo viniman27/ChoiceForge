@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 167
+- **Revert to always-horizontal layout — user prefers wide over tall.**
+  - User explicitly rejected comic-strip/vertical approaches. Horizontal layout (depth = columns, left→right) is the priority even for 200-node linear chains. Wide canvas is acceptable; vertical is not.
+  - Removed all `isDeep` / `COMIC_COLS` / grid-wrap branching from `layoutStoryNodes`. Now always uses the single horizontal layout for all scene sizes.
+  - **Files changed**: `graphLayout.ts` (removed comic-strip block, layout is always horizontal).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 166
 - **Comic-strip layout for deep imported scenes (replaces vertical-only layout).**
   - **Problem**: Single-column vertical layout for 200-node linear files is "muito confuso, nada intuitivo" — 100,000px tall, one node wide.
