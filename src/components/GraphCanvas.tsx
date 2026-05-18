@@ -584,6 +584,7 @@ export function GraphCanvas({
           <SnapIcon />
         </button>
         <span className="zoom-divider" />
+        <span className="zoom-tag-label">tag</span>
         {COLOR_TAG_KEYS.map((tag) => (
           <button
             key={tag}
