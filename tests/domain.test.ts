@@ -5414,6 +5414,183 @@ test("scene with *gosub node but no *return node emits gosub_no_return key and s
   assert.ok(issue, "expected gosub_no_return key when scene has *gosub node but no *return node");
 });
 
+test("empty *title in preserved startup emits startup_empty_title key", () => {
+  const project = { ...minimalProject(), startupSource: "*title\n*author Author\n*scene_list\n  intro" };
+  const issue = lintProject(project).find((i) => i.key === "startup_empty_title");
+  assert.ok(issue, "expected startup_empty_title key");
+  assert.equal(issue!.scene, "startup");
+  assert.equal(issue!.level, "error");
+});
+
+test("empty *author in preserved startup emits startup_empty_author key", () => {
+  const project = { ...minimalProject(), startupSource: "*title Test\n*author\n*scene_list\n  intro" };
+  const issue = lintProject(project).find((i) => i.key === "startup_empty_author");
+  assert.ok(issue, "expected startup_empty_author key");
+  assert.equal(issue!.scene, "startup");
+  assert.equal(issue!.level, "error");
+});
+
+test("missing *scene_list in preserved startup emits startup_needs_scene_list key", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*goto_scene intro" };
+  const issue = lintProject(project).find((i) => i.key === "startup_needs_scene_list");
+  assert.ok(issue, "expected startup_needs_scene_list key");
+  assert.equal(issue!.scene, "startup");
+  assert.equal(issue!.level, "error");
+});
+
+test("invalid scene id in *scene_list emits scene_list_invalid_id key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  bad-scene" };
+  const issue = lintProject(project).find((i) => i.key === "scene_list_invalid_id");
+  assert.ok(issue, "expected scene_list_invalid_id key");
+  assert.equal(issue!.params?.name, "bad-scene");
+});
+
+test("duplicate scene in *scene_list emits scene_list_repeat key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n  intro" };
+  const issue = lintProject(project).find((i) => i.key === "scene_list_repeat");
+  assert.ok(issue, "expected scene_list_repeat key");
+  assert.equal(issue!.params?.name, "intro");
+});
+
+test("missing scene in *scene_list emits scene_list_missing_scene key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  noexist" };
+  const issue = lintProject(project).find((i) => i.key === "scene_list_missing_scene");
+  assert.ok(issue, "expected scene_list_missing_scene key");
+  assert.equal(issue!.params?.name, "noexist");
+});
+
+test("*scene_list omitting a project scene emits scene_list_omits_scene key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n" };
+  const issue = lintProject(project).find((i) => i.key === "scene_list_omits_scene");
+  assert.ok(issue, "expected scene_list_omits_scene key");
+  assert.equal(issue!.params?.name, "intro");
+});
+
+test("preserved startup omitting a project variable emits startup_omits_var key and name param", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "Score", fairmath: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro",
+  };
+  const issue = lintProject(project).find((i) => i.key === "startup_omits_var");
+  assert.ok(issue, "expected startup_omits_var key");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("preserved startup omitting a project achievement emits startup_omits_ach key and name param", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "Desc", points: 10, hidden: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro",
+  };
+  const issue = lintProject(project).find((i) => i.key === "startup_omits_ach");
+  assert.ok(issue, "expected startup_omits_ach key");
+  assert.equal(issue!.params?.name, "hero");
+});
+
+test("invalid *create identifier emits create_invalid_id key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create bad-name 0" };
+  const issue = lintProject(project).find((i) => i.key === "create_invalid_id");
+  assert.ok(issue, "expected create_invalid_id key");
+  assert.equal(issue!.params?.name, "bad-name");
+});
+
+test("*create with reserved word emits create_reserved key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create modulo 0" };
+  const issue = lintProject(project).find((i) => i.key === "create_reserved");
+  assert.ok(issue, "expected create_reserved key");
+  assert.equal(issue!.params?.name, "modulo");
+});
+
+test("*create with empty initial value emits create_empty_value key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create score" };
+  const issue = lintProject(project).find((i) => i.key === "create_empty_value");
+  assert.ok(issue, "expected create_empty_value key");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("repeated *create variable emits create_repeat key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create score 0\n*create score 1" };
+  const issue = lintProject(project).find((i) => i.key === "create_repeat");
+  assert.ok(issue, "expected create_repeat key");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("*create for variable absent from project metadata emits create_extra_var key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create ghost 0" };
+  const issue = lintProject(project).find((i) => i.key === "create_extra_var");
+  assert.ok(issue, "expected create_extra_var key");
+  assert.equal(issue!.params?.name, "ghost");
+});
+
+test("invalid *achievement identifier emits ach_src_invalid_id key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement bad-id visible 10 Title" };
+  const issue = lintProject(project).find((i) => i.key === "ach_src_invalid_id");
+  assert.ok(issue, "expected ach_src_invalid_id key");
+  assert.equal(issue!.params?.name, "bad-id");
+});
+
+test("*achievement with invalid visibility emits ach_invalid_vis key and value param", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "Desc", points: 10, hidden: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement hero secret 10 Hero",
+  };
+  const issue = lintProject(project).find((i) => i.key === "ach_invalid_vis");
+  assert.ok(issue, "expected ach_invalid_vis key");
+  assert.equal(issue!.params?.value, "secret");
+});
+
+test("*achievement with invalid points emits ach_invalid_points_src key and value param", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "Desc", points: 10, hidden: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement hero visible -5 Hero",
+  };
+  const issue = lintProject(project).find((i) => i.key === "ach_invalid_points_src");
+  assert.ok(issue, "expected ach_invalid_points_src key");
+  assert.equal(issue!.params?.value, "-5");
+});
+
+test("*achievement with empty title emits ach_src_empty_title key and name param", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "Desc", points: 10, hidden: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement hero visible 10",
+  };
+  const issue = lintProject(project).find((i) => i.key === "ach_src_empty_title");
+  assert.ok(issue, "expected ach_src_empty_title key");
+  assert.equal(issue!.params?.name, "hero");
+});
+
+test("repeated *achievement emits ach_src_repeat key and name param", () => {
+  const project = {
+    ...minimalProject(),
+    achievements: [{ id: "hero", title: "Hero", desc: "Desc", points: 10, hidden: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement hero visible 10 Hero\n*achievement hero visible 10 Hero",
+  };
+  const issue = lintProject(project).find((i) => i.key === "ach_src_repeat");
+  assert.ok(issue, "expected ach_src_repeat key");
+  assert.equal(issue!.params?.name, "hero");
+});
+
+test("*achievement absent from project metadata emits ach_src_extra key and name param", () => {
+  const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*achievement ghost visible 10 Ghost" };
+  const issue = lintProject(project).find((i) => i.key === "ach_src_extra");
+  assert.ok(issue, "expected ach_src_extra key");
+  assert.equal(issue!.params?.name, "ghost");
+});
+
+test("empty *if condition in preserved source emits cond_empty key and command param", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", "*title T\n*author A\n*scene_list\n  ch1"),
+    textEntry("ch1.txt", "*if \n  Yes\n*else\n  No\n*ending"),
+  ]);
+  const issue = lintProject(project).find((i) => i.key === "cond_empty");
+  assert.ok(issue, "expected cond_empty key");
+  assert.equal(issue!.params?.command, "if");
+});
+
 function minimalProject(): ChoiceForgeProject {
   const graph: SceneGraph = {
     nodes: [
