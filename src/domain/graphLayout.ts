@@ -179,9 +179,16 @@ function estimateLayoutNodeHeight(node: StoryNode): number {
   // option text width: node width minus opt-num col (22px) + opts padding (16px) + opt padding (16px) + gap (6px)
   const optCharsPerLine = Math.max(12, Math.floor((node.w - 60) / 7));
 
+  const promptCharsPerLine = Math.max(10, Math.floor((node.w - 24) / 7));
+
   let height = 58 + Math.max(0, Math.ceil(node.title.length / titleCharsPerLine) - 1) * 14;
   if (node.body) height += 56; // always 2-line clamp: 2×(13px×1.5) + 14px padding
-  if (node.prompt) height += 40;
+  if (node.prompt) {
+    const promptLines = node.prompt.split("\n").reduce(
+      (sum, l) => sum + Math.max(1, Math.ceil((l.length || 1) / promptCharsPerLine)), 0,
+    );
+    height += 12 + promptLines * 20;
+  }
   if (node.options) {
     height += 8;
     node.options.forEach((opt) => {

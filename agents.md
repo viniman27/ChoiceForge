@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 173
+- **Fix prompt height underestimation (root cause of remaining overlap after import).**
+  - **Root cause**: `estimateLayoutNodeHeight` used a flat 40 px for any prompt. But `.node-prompt` has `white-space: pre-wrap` at 13 px / 1.5 line-height — a 4-line prompt actually renders at ~90 px. With `verticalGap = 100`, two such nodes in the same column could easily overlap.
+  - **Fix**: proportional calculation: count explicit `\n` line breaks in `node.prompt`, then estimate wrapping at `(node.w - 24) / 7` chars/line. Result: `12 + lineCount × 20` px.
+  - **Files changed**: `graphLayout.ts`.
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 172
 - **DOM-measured layout + fix indented command import.**
   - **Layout: DOM measurement on manual re-layout.**
