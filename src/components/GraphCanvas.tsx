@@ -70,6 +70,7 @@ export function GraphCanvas({
 
   const lastSetIdRef = useRef<string | null>(selectedId);
   const clipboardRef = useRef<{ nodes: StoryNode[]; edges: StoryEdge[] } | null>(null);
+  const pendingFitRef = useRef(false);
   const [pendingConnect, setPendingConnect] = useState<{ from: string; screenX: number; screenY: number; worldX: number; worldY: number } | null>(null);
   const [canvasFilter, setCanvasFilter] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -119,6 +120,11 @@ export function GraphCanvas({
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
   const warnNodeIds = new Set(data.lints.filter((lint) => lint.level === "warning" && lint.node).map((lint) => lint.node));
 
+  useEffect(() => {
+    if (!pendingFitRef.current) return;
+    pendingFitRef.current = false;
+    fitNodesToViewport(data.nodes, density, viewport, setZoom, onPan);
+  }, [data.nodes]);
 
   useEffect(() => {
     const element = canvasRef.current;
@@ -446,6 +452,7 @@ export function GraphCanvas({
             const id = el.getAttribute("data-node-id");
             if (id) heights[id] = el.offsetHeight;
           });
+          pendingFitRef.current = true;
           onLayoutNodes(Object.keys(heights).length > 0 ? heights : undefined);
         }} title={labels.autoLayout}>
           {labels.autoLayout}
@@ -472,7 +479,7 @@ export function GraphCanvas({
         </div>
       )}
       <div className="canvas-inner" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
-        <svg className="edges" width="3000" height="2000">
+        <svg className="edges" width={Math.max(3000, data.nodes.reduce((acc, n) => Math.max(acc, n.x + n.w + 300), 300))} height={Math.max(2000, data.nodes.reduce((acc, n) => Math.max(acc, n.y + nodeHeightEstimate(n, density) + 300), 300))}>
           <defs>
             {["flow", "choice", "goto", "if"].map((kind) => (
               <marker key={kind} id={`arrow-${kind}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -919,13 +926,13 @@ function fitNodesToViewport(
 ) {
   if (!nodes.length) return;
   const padding = 90;
-  const nodeH = density === "minimal" ? 44 : 120;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n of nodes) {
+    const h = nodeHeightEstimate(n, density);
     if (n.x < minX) minX = n.x;
     if (n.y < minY) minY = n.y;
     if (n.x + n.w > maxX) maxX = n.x + n.w;
-    if (n.y + nodeH > maxY) maxY = n.y + nodeH;
+    if (n.y + h > maxY) maxY = n.y + h;
   }
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
@@ -957,11 +964,11 @@ function nodeMatchesFilter(node: StoryNode, filter: string, errorIds: Set<string
   );
 }
 
-function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
-  const node = project.nodes.find((candidate) => candidate.id === nodeId);
-  if (!node || density === "minimal") return 44;
+function nodeHeightEstimate(node: StoryNode, density: Density): number {
+  if (density === "minimal") return 44;
   const isRich = density === "rich";
   const optCharsPerLine = Math.max(12, Math.floor((node.w - 60) / 7));
+  const promptCharsPerLine = Math.max(10, Math.floor((node.w - 24) / 7));
   const optRowHeight = (opt: { text: string; cond?: unknown; reuse?: unknown; hideReuse?: unknown; body?: string }) => {
     let h = 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
     if (isRich && opt.cond) h += 26;
@@ -970,8 +977,14 @@ function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density
     return h;
   };
   let height = 50 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
-  if (node.body) height += isRich ? 90 : 56;
-  if (node.prompt) height += 40;
+  if (node.body) height += 56;
+  if (isRich && node.type === "passage" && node.body) height += 24;
+  if (node.prompt) {
+    const lines = node.prompt.split("\n").reduce(
+      (sum, l) => sum + Math.max(1, Math.ceil((l.length || 1) / promptCharsPerLine)), 0,
+    );
+    height += 12 + lines * 20;
+  }
   if (node.options) height += node.options.reduce((acc, opt) => acc + optRowHeight(opt), 8);
   if (node.fakeOptions) height += node.fakeOptions.reduce((acc, opt) => acc + optRowHeight(opt), 8);
   if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (isRich ? (branch.sets?.length ?? 0) * 22 : 0), 8);
@@ -979,6 +992,12 @@ function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density
   if (isRich && node.target) height += 22;
   if (isRich && node.inputVar) height += 22;
   return height;
+}
+
+function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
+  const node = project.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node) return 44;
+  return nodeHeightEstimate(node, density);
 }
 
 function edgePath(project: ChoiceForgeProject, from: string, to: string, density: Density) {
