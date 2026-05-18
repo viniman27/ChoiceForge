@@ -5488,6 +5488,19 @@ test("preserved startup omitting a project achievement emits startup_omits_ach k
   assert.equal(issue!.params?.name, "hero");
 });
 
+test("*create with invalid type initial value emits create_invalid_value key with name, type, and value params", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [{ name: "flag", type: "boolean", initial: "false", desc: "", fairmath: false }],
+    startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create flag maybe",
+  };
+  const issue = lintProject(project).find((i) => i.key === "create_invalid_value");
+  assert.ok(issue, "expected create_invalid_value key");
+  assert.equal(issue!.params?.name, "flag");
+  assert.equal(issue!.params?.type, "boolean");
+  assert.equal(issue!.params?.value, "maybe");
+});
+
 test("invalid *create identifier emits create_invalid_id key and name param", () => {
   const project = { ...minimalProject(), startupSource: "*title T\n*author A\n*scene_list\n  intro\n*create bad-name 0" };
   const issue = lintProject(project).find((i) => i.key === "create_invalid_id");
