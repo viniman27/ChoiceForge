@@ -1841,7 +1841,7 @@ function checkpointSlot(value: string, command: "*save_checkpoint" | "*restore_c
 function lintCondition(condition: ChoiceCondition | null | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!condition) return;
   if (!condition.expr.trim()) {
-    issues.push({ level: "error", msg: `*${condition.type} condition is empty`, key: "cond_empty", params: { kind: condition.type }, scene, node });
+    issues.push({ level: "error", msg: `*${condition.type} condition is empty`, key: "cond_empty", params: { command: condition.type }, scene, node });
     return;
   }
   lintExpression(condition.expr, variables, issues, scene, node);
@@ -1973,11 +1973,11 @@ function extractVariableReferences(text: string): string[] {
 }
 
 export function extractAchievementCommandTargets(text: string): string[] {
-  return [...text.matchAll(/^\s*\*achieve(?:\s+(.+?))?\s*$/gim)].map((match) => match[1]?.trim() ?? "");
+  return [...text.matchAll(/^[ \t]*\*achieve(?:[ \t]+(\S[^\n]*?))?[ \t]*$/gim)].map((match) => match[1]?.trim() ?? "");
 }
 
 export function stripAchieveCommands(text: string): string {
-  return text.replace(/^\s*\*achieve(?:\s+.+?)?\s*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
+  return text.replace(/^[ \t]*\*achieve(?:[ \t]+\S[^\n]*?)?[ \t]*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 const EXPRESSION_RESERVED = new Set(["and", "or", "not", "true", "false", "modulo", "round", "round_down", "log", "abs", "length", "auto"]);
