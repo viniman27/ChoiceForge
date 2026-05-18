@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 174
+- **Canvas quality improvements: edge midpoints, fit-view bounds, SVG overflow, auto-fit after layout.**
+  - **Edge midpoints**: `estimateNodeHeight` in `GraphCanvas.tsx` used flat 40 px for prompt and wrong 90/56 body (body is always 2-line clamped). Refactored into `nodeHeightEstimate(node, density)` helper with the same proportional prompt formula as `graphLayout.ts` and correct `node-wc` (~24 px only for `passage` + rich). `estimateNodeHeight` becomes a thin wrapper.
+  - **Fit-view bounds**: `fitNodesToViewport` used `const nodeH = density === "minimal" ? 44 : 120` — fixed 120 px for all non-minimal nodes, cutting off tall choice/if nodes. Now calls `nodeHeightEstimate(n, density)` per node for an accurate bounding box.
+  - **SVG overflow**: edges SVG was a fixed `3000×2000` canvas — any node outside that area had invisible arrows. Now dynamically sized to `max(3000, maxNodeX + 300) × max(2000, maxNodeH + 300)`.
+  - **Auto-fit after layout**: clicking "Auto Layout" now auto-fits the viewport after the store state propagates. Uses a `pendingFitRef` that is set in the button handler and consumed in a `useEffect` that watches `data.nodes`.
+  - **Files changed**: `GraphCanvas.tsx`.
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 173
 - **Fix prompt height underestimation (root cause of remaining overlap after import).**
   - **Root cause**: `estimateLayoutNodeHeight` used a flat 40 px for any prompt. But `.node-prompt` has `white-space: pre-wrap` at 13 px / 1.5 line-height — a 4-line prompt actually renders at ~90 px. With `verticalGap = 100`, two such nodes in the same column could easily overlap.
