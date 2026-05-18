@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 164
+- **Wrap layout for linear imported scenes (layout fix for chap1.txt-style files).**
+  - **Problem**: chap1.txt (4722 lines, 60+ `*fake_choice` blocks) produces a linear chain of 200+ nodes via flow edges. The layout algorithm assigns each node its own depth column → 200 columns → canvas 100,000px wide. Completely unusable.
+  - **Analysis**: `canAutoFlow(fake_choice) = true`, so every fake_choice → next-passage flow edge is created. The depth BFS correctly assigns depth 0,1,2,...,N-1 to a linear chain. But N columns at 530px each = enormous width.
+  - **Fix**: Added wrapping to `layoutStoryNodes`. When `orderedColumns.length > WRAP_COLS` (8), columns are placed in a grid: 8 per row, rows stacked vertically with a 200px gap. Column X-positions are computed from the max width of all columns sharing the same grid column index. Row Y-starts are computed from the max height of the previous row's columns. For branching projects (depth ≤ 8), behavior is unchanged.
+  - **Files changed**: `graphLayout.ts` (new shouldWrap logic in layoutStoryNodes).
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 163
 - **Fix lintProject freezing the main thread on 213KB sourceText files.**
   - **Root cause 1 (primary)**: `lintProject` runs via `useMemo` on every state change. It does 4+ separate `.split(/\r?\n/).forEach(...)` passes over every scene's `sourceText`. A 213KB file = ~6000 lines being scanned by regex multiple times on every keystroke or UI interaction.
