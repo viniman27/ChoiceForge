@@ -272,6 +272,8 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
   };
 }
 
+const LARGE_SOURCE_LINT_LIMIT = 40_000;
+
 export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   const issues: LintIssue[] = [];
   const sceneNames = project.scenes
@@ -288,7 +290,11 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
   sceneNames.forEach((sceneName) => {
     const graph = getSceneGraph(project, sceneName);
     if (graph.sourceText !== undefined) {
-      lintPreservedScriptSource(project, graph.sourceText, sceneName, "scene exports preserved ChoiceScript source", issues);
+      if (graph.sourceText.length > LARGE_SOURCE_LINT_LIMIT) {
+        issues.push({ level: "info", msg: `scene "${sceneName}" source is too large to lint in-browser (${Math.round(graph.sourceText.length / 1024)} KB)`, scene: sceneName });
+      } else {
+        lintPreservedScriptSource(project, graph.sourceText, sceneName, "scene exports preserved ChoiceScript source", issues);
+      }
       return;
     }
     lintSceneGraph(project, graph, sceneName, issues);
@@ -355,7 +361,7 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
   const graphs = project.sceneData ? Object.values(project.sceneData) : [{ nodes: project.nodes, edges: project.edges }];
   graphs.forEach((graph) => {
     graph.nodes.forEach(scanNode);
-    if (graph.sourceText) scanSource(graph.sourceText);
+    if (graph.sourceText && graph.sourceText.length <= LARGE_SOURCE_LINT_LIMIT) scanSource(graph.sourceText);
   });
   if (project.startupSource) scanSource(project.startupSource);
   if (project.statsSource) scanSource(project.statsSource);
@@ -375,7 +381,7 @@ function lintCheckpoints(project: ChoiceForgeProject, sceneNames: string[], issu
     graph.nodes.forEach((node) => {
       if (node.type === "checkpoint") savedSlots.add(checkpointSlot(node.title, "*save_checkpoint"));
     });
-    if (graph.sourceText) {
+    if (graph.sourceText && graph.sourceText.length <= LARGE_SOURCE_LINT_LIMIT) {
       graph.sourceText.split(/\r?\n/).forEach((line) => {
         if (sourceCommand(line.trim()) === "save_checkpoint") savedSlots.add(sourceCommandValue(line.trim(), "*save_checkpoint").trim());
       });
@@ -383,7 +389,7 @@ function lintCheckpoints(project: ChoiceForgeProject, sceneNames: string[], issu
   });
   sceneNames.forEach((sceneName) => {
     const graph = getSceneGraph(project, sceneName);
-    if (graph.sourceText) {
+    if (graph.sourceText && graph.sourceText.length <= LARGE_SOURCE_LINT_LIMIT) {
       graph.sourceText.split(/\r?\n/).forEach((line, index) => {
         if (sourceCommand(line.trim()) !== "restore_checkpoint") return;
         const slot = sourceCommandValue(line.trim(), "*restore_checkpoint").trim();
@@ -423,7 +429,7 @@ function lintSceneReachability(project: ChoiceForgeProject, sceneNames: string[]
     if (hasFinish && index + 1 < sceneNames.length) {
       addRef(sceneName, sceneNames[index + 1]!);
     }
-    if (graph.sourceText) {
+    if (graph.sourceText && graph.sourceText.length <= LARGE_SOURCE_LINT_LIMIT) {
       let sourceHasFinish = false;
       graph.sourceText.split(/\r?\n/).forEach((line) => {
         const cmd = sourceCommand(line.trim());
