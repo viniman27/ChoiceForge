@@ -1857,6 +1857,17 @@ input, select, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-mute); font-size: 14px; line-height: 1; padding: 0 2px;
 }
 .canvas-filter-close:hover { color: var(--ink); }
+.canvas-parse-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  gap: 10px; background: color-mix(in oklch, var(--paper) 85%, transparent);
+  font-size: 13px; color: var(--ink-2); z-index: 40; pointer-events: none;
+}
+.canvas-parse-spinner {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2.5px solid var(--paper-edge); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .stat-node-note {
   display: inline-flex;
   align-items: center;
