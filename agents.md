@@ -343,6 +343,18 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 162
+- **Fix large scene white screen: never auto-parse sourceText scenes on navigation.**
+  - **Root cause**: The Worker was being spawned on every navigation to a sourceText (imported) scene, even though the text editor view (`GeneratedDocumentView`) was already shown for those scenes — no graph parse needed. A 213KB file was OOM-crashing the tab even in the Worker.
+  - **Architectural fix**: sourceText scenes are NEVER parsed automatically. Navigation is instant — the text view is shown immediately from raw `sourceText`. Parsing only happens when the user explicitly clicks "Convert to visual editing", and only then via the Worker (so the main thread stays responsive even for large files).
+  - **Changes**:
+    - `selectScene`: plain navigation, no parse triggered
+    - `convertCurrentSceneToVisual`: uses Worker when scene has unparsed sourceText; clears sourceText after Worker resolves
+    - `GeneratedDocumentView`: new `isConverting` prop shows "Converting…" on the button while Worker runs
+    - `App.tsx`: `useEffect` closes text view when conversion completes; `isConvertingScene` passed to both views
+    - `GraphCanvas`: overlay shows "Converting scene…" (replaces "Loading scene…")
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 161
 - **Move lazy scene parse to Web Worker (real fix for white screen / freeze).**
   - **Problem**: `setTimeout(0)` didn't help — the browser still can't paint before a sync multi-second parse blocks the main thread. The only real fix is a Worker.

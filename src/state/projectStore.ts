@@ -112,7 +112,7 @@ export function useProjectStore() {
   const historyRef = useRef<ChoiceForgeProject[]>([]);
   const futureRef = useRef<ChoiceForgeProject[]>([]);
   const [snapshotIndex, setSnapshotIndex] = useState<SnapshotMeta[]>(loadSnapshotIndex);
-  const [isParsingScene, setIsParsingScene] = useState(false);
+  const [isConvertingScene, setIsConvertingScene] = useState(false);
   const projectRef = useRef(project);
   projectRef.current = project;
 
@@ -155,27 +155,27 @@ export function useProjectStore() {
   }, [project]);
 
   useEffect(() => {
-    if (!isParsingScene) return;
+    if (!isConvertingScene) return;
     const current = projectRef.current;
-    const graph = current.sceneData?.[current.sceneTitle];
-    if (!graph?.sourceText || graph.nodes.length > 0) { setIsParsingScene(false); return; }
+    const sourceText = current.sceneData?.[current.sceneTitle]?.sourceText ?? current.startupSource;
+    if (!sourceText) { setIsConvertingScene(false); return; }
     const worker = new Worker(new URL("../workers/sceneParser.ts", import.meta.url), { type: "module" });
     worker.onmessage = (event: MessageEvent<{ ok: boolean; graph?: import("../domain/types").SceneGraph; error?: string }>) => {
       worker.terminate();
-      if (!event.data.ok || !event.data.graph) { setIsParsingScene(false); return; }
+      if (!event.data.ok || !event.data.graph) { setIsConvertingScene(false); return; }
       const parsed = event.data.graph;
-      setProjectState((cur) => commitProject({
+      setProjectState((cur) => commitProject(clearActiveSceneSource({
         ...cur,
         nodes: parsed.nodes,
         edges: parsed.edges,
-        sceneData: { ...(cur.sceneData ?? {}), [cur.sceneTitle]: parsed },
-      }));
-      setIsParsingScene(false);
+        sceneData: { ...(cur.sceneData ?? {}), [cur.sceneTitle]: { nodes: parsed.nodes, edges: parsed.edges } },
+      })));
+      setIsConvertingScene(false);
     };
-    worker.onerror = () => { worker.terminate(); setIsParsingScene(false); };
-    worker.postMessage({ sceneName: current.sceneTitle, sourceText: graph.sourceText });
+    worker.onerror = () => { worker.terminate(); setIsConvertingScene(false); };
+    worker.postMessage({ sceneName: current.sceneTitle, sourceText });
     return () => worker.terminate();
-  }, [isParsingScene]);
+  }, [isConvertingScene]);
 
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);
 
@@ -242,7 +242,12 @@ export function useProjectStore() {
       });
     },
     convertCurrentSceneToVisual: () => {
-      setTrackedProjectState((current) => commitProject(clearActiveSceneSource(current)));
+      const graph = projectRef.current.sceneData?.[projectRef.current.sceneTitle];
+      if (graph?.sourceText && graph.nodes.length === 0) {
+        setIsConvertingScene(true);
+      } else {
+        setTrackedProjectState((current) => commitProject(clearActiveSceneSource(current)));
+      }
     },
     replaceStartupText: (content) => {
       setTrackedProjectState((current) => commitProject({ ...applyStartupText(current, content), startupSource: content }));
@@ -268,8 +273,6 @@ export function useProjectStore() {
         const scene = current.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special) return current;
         const graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
-        const needsLazyParse = graph.sourceText !== undefined && graph.nodes.length === 0;
-        if (needsLazyParse) setIsParsingScene(true);
         return commitProject({
           ...saved,
           sceneTitle: scene.name,
@@ -841,7 +844,7 @@ export function useProjectStore() {
     },
   }), [historyLength, setTrackedProjectState]);
 
-  return { project, lintedProject, actions, snapshotIndex, isParsingScene };
+  return { project, lintedProject, actions, snapshotIndex, isConvertingScene };
 }
 
 function renameVariableReferences(text: string, from: string, to: string): string {

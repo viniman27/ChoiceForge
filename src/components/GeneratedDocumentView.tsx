@@ -9,12 +9,13 @@ interface GeneratedDocumentViewProps {
   editable?: boolean;
   targetLine?: number | null;
   sourcePreserved?: boolean;
+  isConverting?: boolean;
   onSave?: (content: string) => string | void;
   onConvertSource?: () => void;
   onClose?: () => void;
 }
 
-export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, onSave, onConvertSource, onClose }: GeneratedDocumentViewProps) {
+export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, isConverting = false, onSave, onConvertSource, onClose }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
   const [saveStatus, setSaveStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
@@ -90,8 +91,8 @@ export function GeneratedDocumentView({ title, path, description, content, edita
             </button>
           )}
           {sourcePreserved && onConvertSource && (
-            <button className="ghost-btn" disabled={dirty} title={dirty ? "Save changes before converting." : "Convert this imported source into visual graph editing."} onClick={onConvertSource}>
-              {dirty ? "Save before convert" : "Convert to visual editing"}
+            <button className="ghost-btn" disabled={dirty || isConverting} title={dirty ? "Save changes before converting." : "Convert this imported source into visual graph editing."} onClick={onConvertSource}>
+              {isConverting ? "Converting…" : dirty ? "Save before convert" : "Convert to visual editing"}
             </button>
           )}
           {editable && (

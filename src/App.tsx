@@ -54,7 +54,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const { lintedProject, actions, snapshotIndex, isParsingScene } = useProjectStore();
+  const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -187,11 +187,19 @@ export default function App() {
     );
     if (!confirmed) return;
     actions.convertCurrentSceneToVisual();
-    setGeneratedDocumentId(null);
-    setGeneratedDocumentLine(null);
     setPlayOpen(false);
     setSelectedId("n1");
   };
+
+  useEffect(() => {
+    if (!isConvertingScene) {
+      const graph = lintedProject.sceneData?.[lintedProject.sceneTitle];
+      if (graph && !graph.sourceText && generatedDocumentId === "scene") {
+        setGeneratedDocumentId(null);
+        setGeneratedDocumentLine(null);
+      }
+    }
+  }, [isConvertingScene]);
 
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
@@ -326,6 +334,7 @@ export default function App() {
             editable
             targetLine={generatedDocumentLine}
             sourcePreserved={generatedDocumentId === "scene" && currentSceneSourcePreserved}
+            isConverting={isConvertingScene}
             onConvertSource={confirmVisualConversion}
             onClose={() => {
               setGeneratedDocumentId(null);
@@ -395,7 +404,7 @@ export default function App() {
             const scene = lintedProject.scenes.find((s) => s.name === sceneName);
             if (scene) navigateToScene(scene.id);
           }}
-          isParsingScene={isParsingScene}
+          isConvertingScene={isConvertingScene}
         />
       )}
       <button
