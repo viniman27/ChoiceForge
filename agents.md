@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 163
+- **Fix lintProject freezing the main thread on 213KB sourceText files.**
+  - **Root cause 1 (primary)**: `lintProject` runs via `useMemo` on every state change. It does 4+ separate `.split(/\r?\n/).forEach(...)` passes over every scene's `sourceText`. A 213KB file = ~6000 lines being scanned by regex multiple times on every keystroke or UI interaction.
+  - **Fix**: Added `LARGE_SOURCE_LINT_LIMIT = 40_000` (40KB) constant. All line-by-line sourceText scans in `lintUnusedVariables`, `lintCheckpoints`, and `lintSceneReachability` are skipped if `sourceText.length > limit`. The `lintPreservedScriptSource` call is also skipped (replaces with a single info issue: "scene too large to lint in-browser").
+  - **Root cause 2**: `saveProjectSnapshot` has no try-catch; a `QuotaExceededError` from a large project would crash unhandled. Also, large sourceTexts (>30KB) included in `JSON.stringify` make localStorage writes very slow.
+  - **Fix**: Added `stripLargeSourceTexts` to remove sourceTexts > 30KB before serializing to localStorage. Wrapped `localStorage.setItem` in try-catch.
+  - **Files changed**: `choicescript.ts` (LARGE_SOURCE_LINT_LIMIT constant + 4 guards), `projectStore.ts` (stripLargeSourceTexts + try-catch in saveProjectSnapshot).
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 162
 - **Fix large scene white screen: never auto-parse sourceText scenes on navigation.**
   - **Root cause**: The Worker was being spawned on every navigation to a sourceText (imported) scene, even though the text editor view (`GeneratedDocumentView`) was already shown for those scenes — no graph parse needed. A 213KB file was OOM-crashing the tab even in the Worker.

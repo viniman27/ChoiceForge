@@ -49,8 +49,30 @@ function loadInitialProject(): ChoiceForgeProject {
   }
 }
 
+const LARGE_SOURCE_STORAGE_LIMIT = 30_000;
+
+function stripLargeSourceTexts(project: ChoiceForgeProject): ChoiceForgeProject {
+  if (!project.sceneData) return project;
+  const sceneData = { ...project.sceneData };
+  let changed = false;
+  for (const [key, graph] of Object.entries(sceneData)) {
+    if (graph.sourceText && graph.sourceText.length > LARGE_SOURCE_STORAGE_LIMIT) {
+      sceneData[key] = { nodes: graph.nodes, edges: graph.edges };
+      changed = true;
+    }
+  }
+  if (!changed) return project;
+  const nodes = project.sceneData[project.sceneTitle]?.sourceText && project.sceneData[project.sceneTitle]!.sourceText!.length > LARGE_SOURCE_STORAGE_LIMIT ? [] : project.nodes;
+  const edges = nodes.length === 0 ? [] : project.edges;
+  return { ...project, nodes, edges, sceneData };
+}
+
 function saveProjectSnapshot(project: ChoiceForgeProject) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stripLargeSourceTexts(project)));
+  } catch {
+    // QuotaExceededError — silently skip
+  }
 }
 
 export interface ProjectActions {
