@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 165
+- **Replace grid-wrap with top-to-bottom layout for deep scenes.**
+  - **Problem**: The previous grid wrap (8 cols × N rows) caused node overlap because `estimateLayoutNodeHeight` underestimates tall fakeOptions nodes. The grid strategy required cross-row height comparison, which amplified estimation error.
+  - **New approach**: When depth levels > 8 (`isDeep`), switch to a **vertical layout** where depth becomes the row axis (top→bottom) rather than the column axis (left→right). Nodes at the same depth spread horizontally within their row (for branching), and for linear chains (1 node per depth) it produces a clean single column. Row spacing = `rowHeight × 1.5 + verticalGap` to absorb estimation inaccuracy.
+  - **Result for chap1.txt**: 200 nodes in a single vertical column, flowing top to bottom like reading the story. Width ≈ 380px, height ≈ 100,000px (navigable via minimap).
+  - **Files changed**: `graphLayout.ts` (replaced grid-wrap logic with vertical layout).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 164
 - **Wrap layout for linear imported scenes (layout fix for chap1.txt-style files).**
   - **Problem**: chap1.txt (4722 lines, 60+ `*fake_choice` blocks) produces a linear chain of 200+ nodes via flow edges. The layout algorithm assigns each node its own depth column → 200 columns → canvas 100,000px wide. Completely unusable.
