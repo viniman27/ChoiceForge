@@ -171,6 +171,390 @@ export const lintMessages: LintTranslations = {
     pt: "*stat_chart text exibe {name} como numero bruto — use percent ou opposed_pair para barra",
     es: "*stat_chart text muestra {name} como numero bruto — usa percent u opposed_pair para barra",
   },
+  set_no_assignments: {
+    pt: "no *set \"{name}\" nao tem atribuicoes",
+    es: "nodo *set \"{name}\" no tiene asignaciones",
+  },
+  if_noop: {
+    pt: "todos os ramos de *if \"{name}\" levam ao mesmo no do caminho falso — condicao e redundante",
+    es: "todas las ramas de *if \"{name}\" llevan al mismo nodo del camino falso — condicion es redundante",
+  },
+  goto_scene_no_target: {
+    pt: "*goto_scene precisa de uma cena de destino",
+    es: "*goto_scene necesita una escena de destino",
+  },
+  goto_scene_invalid_id: {
+    pt: "*goto_scene tem identificador de cena invalido: {name}",
+    es: "*goto_scene tiene identificador de escena invalido: {name}",
+  },
+  gosub_scene_no_target: {
+    pt: "*gosub_scene precisa de uma cena de destino",
+    es: "*gosub_scene necesita una escena de destino",
+  },
+  gosub_scene_invalid_id: {
+    pt: "*gosub_scene tem identificador de cena invalido: {name}",
+    es: "*gosub_scene tiene identificador de escena invalido: {name}",
+  },
+  gosub_scene_entry_missing: {
+    pt: "*gosub_scene: rotulo de entrada \"{label}\" nao encontrado na cena {scene}",
+    es: "*gosub_scene: etiqueta de entrada \"{label}\" no encontrada en la escena {scene}",
+  },
+  gosub_scene_no_flow: {
+    pt: "*gosub_scene nao tem continuacao de fluxo para o retorno",
+    es: "*gosub_scene no tiene continuacion de flujo para el retorno",
+  },
+  image_no_filename: {
+    pt: "*image precisa de um nome de arquivo",
+    es: "*image necesita un nombre de archivo",
+  },
+  image_unsupported_ext: {
+    pt: "*image referencia arquivo com extensao nao suportada: {name}",
+    es: "*image referencia archivo con extension no soportada: {name}",
+  },
+  image_invalid_alignment: {
+    pt: "*image tem alinhamento invalido: \"{val}\" — use none, left ou right",
+    es: "*image tiene alineacion invalida: \"{val}\" — usa none, left o right",
+  },
+  sound_no_filename: {
+    pt: "*sound precisa de um nome de arquivo",
+    es: "*sound necesita un nombre de archivo",
+  },
+  sound_unsupported_ext: {
+    pt: "*sound referencia arquivo com extensao nao suportada: {name}",
+    es: "*sound referencia archivo con extension no soportada: {name}",
+  },
+  goto_no_target: {
+    pt: "*goto precisa de um rotulo de destino",
+    es: "*goto necesita una etiqueta de destino",
+  },
+  goto_invalid_id: {
+    pt: "*goto tem identificador de rotulo invalido: {name}",
+    es: "*goto tiene identificador de etiqueta invalido: {name}",
+  },
+  gosub_no_target: {
+    pt: "*gosub precisa de um rotulo de destino",
+    es: "*gosub necesita una etiqueta de destino",
+  },
+  gosub_invalid_id: {
+    pt: "*gosub tem identificador de rotulo invalido: {name}",
+    es: "*gosub tiene identificador de etiqueta invalido: {name}",
+  },
+  gosub_no_flow: {
+    pt: "*gosub nao tem continuacao de fluxo para *return",
+    es: "*gosub no tiene continuacion de flujo para *return",
+  },
+  return_no_gosub: {
+    pt: "*return aparece em uma cena sem nos *gosub",
+    es: "*return aparece en una escena sin nodos *gosub",
+  },
+  page_break_no_label: {
+    pt: "*page_break precisa de um rotulo de botao",
+    es: "*page_break necesita una etiqueta de boton",
+  },
+  checkpoint_no_name: {
+    pt: "*save_checkpoint precisa de um nome de checkpoint",
+    es: "*save_checkpoint necesita un nombre de checkpoint",
+  },
+  temp_invalid_id: {
+    pt: "*temp tem identificador de variavel invalido: {name}",
+    es: "*temp tiene identificador de variable invalido: {name}",
+  },
+  temp_no_initial: {
+    pt: "*temp \"{name}\" nao tem valor inicial (padrao e 0)",
+    es: "*temp \"{name}\" no tiene valor inicial (el valor predeterminado es 0)",
+  },
+  name_reserved: {
+    pt: "nome \"{name}\" conflita com palavra reservada do ChoiceScript",
+    es: "nombre \"{name}\" conflicta con palabra reservada de ChoiceScript",
+  },
+  params_no_names: {
+    pt: "*params nao tem nomes de parametros",
+    es: "*params no tiene nombres de parametros",
+  },
+  params_invalid_id: {
+    pt: "*params tem identificador de parametro invalido: {name}",
+    es: "*params tiene identificador de parametro invalido: {name}",
+  },
+  achieve_no_id: {
+    pt: "*achieve precisa de um id de conquista",
+    es: "*achieve necesita un id de logro",
+  },
+  achieve_invalid_id: {
+    pt: "*achieve tem identificador de conquista invalido: {name}",
+    es: "*achieve tiene identificador de logro invalido: {name}",
+  },
+  label_no_name: {
+    pt: "*label precisa de um nome",
+    es: "*label necesita un nombre",
+  },
+  label_invalid_id: {
+    pt: "*label tem identificador invalido: {name}",
+    es: "*label tiene identificador invalido: {name}",
+  },
+  temp_repeat: {
+    pt: "variavel local redeclarada: {name}",
+    es: "variable local redeclarada: {name}",
+  },
+  set_invalid_id: {
+    pt: "*set tem identificador de variavel invalido: {name}",
+    es: "*set tiene identificador de variable invalido: {name}",
+  },
+  set_empty_value: {
+    pt: "*set sem valor para: {name}",
+    es: "*set sin valor para: {name}",
+  },
+  set_invalid_op: {
+    pt: "*set {name} usa operador invalido para {type}: {op}",
+    es: "*set {name} usa operador invalido para {type}: {op}",
+  },
+  set_fairmath_nopercent: {
+    pt: "*set {name} usa fairmath sem formato percent",
+    es: "*set {name} usa fairmath sin formato percent",
+  },
+  scene_empty_name: {
+    pt: "cena tem nome vazio",
+    es: "la escena tiene nombre vacio",
+  },
+  scene_invalid_id: {
+    pt: "cena tem identificador invalido: {name}",
+    es: "la escena tiene identificador invalido: {name}",
+  },
+  var_empty_name: {
+    pt: "variavel tem nome vazio",
+    es: "la variable tiene nombre vacio",
+  },
+  var_invalid_id: {
+    pt: "variavel tem identificador invalido: {name}",
+    es: "la variable tiene identificador invalido: {name}",
+  },
+  var_empty_initial: {
+    pt: "variavel \"{name}\" tem valor inicial vazio",
+    es: "la variable \"{name}\" tiene valor inicial vacio",
+  },
+  var_invalid_initial: {
+    pt: "variavel \"{name}\" tem valor inicial invalido para {type}: {val}",
+    es: "la variable \"{name}\" tiene valor inicial invalido para {type}: {val}",
+  },
+  ach_empty_id: {
+    pt: "conquista tem id vazio",
+    es: "el logro tiene id vacio",
+  },
+  ach_invalid_id: {
+    pt: "conquista tem identificador invalido: {name}",
+    es: "el logro tiene identificador invalido: {name}",
+  },
+  ach_empty_title: {
+    pt: "conquista \"{name}\" tem titulo vazio",
+    es: "el logro \"{name}\" tiene titulo vacio",
+  },
+  ach_empty_locked_desc: {
+    pt: "conquista \"{name}\" tem descricao bloqueada vazia",
+    es: "el logro \"{name}\" tiene descripcion bloqueada vacia",
+  },
+  ach_empty_unlocked_desc: {
+    pt: "conquista \"{name}\" tem descricao desbloqueada vazia",
+    es: "el logro \"{name}\" tiene descripcion desbloqueada vacia",
+  },
+  ach_invalid_points: {
+    pt: "conquista \"{name}\" tem pontos invalidos",
+    es: "el logro \"{name}\" tiene puntos invalidos",
+  },
+  asset_empty_path: {
+    pt: "asset \"{name}\" tem caminho vazio",
+    es: "el asset \"{name}\" tiene ruta vacia",
+  },
+  asset_unsafe_path: {
+    pt: "asset \"{name}\" tem caminho de exportacao inseguro",
+    es: "el asset \"{name}\" tiene ruta de exportacion insegura",
+  },
+  asset_path_conflict: {
+    pt: "asset \"{name}\" tem caminho que conflita com arquivo gerado",
+    es: "el asset \"{name}\" tiene ruta que conflicta con archivo generado",
+  },
+  asset_data_issue: {
+    pt: "asset \"{name}\" tem problema nos dados",
+    es: "el asset \"{name}\" tiene problema en los datos",
+  },
+  input_invalid_id: {
+    pt: "identificador de variavel invalido: {name}",
+    es: "identificador de variable invalido: {name}",
+  },
+  input_text_needs_string: {
+    pt: "*input_text requer variavel do tipo texto: {name}",
+    es: "*input_text requiere variable de tipo texto: {name}",
+  },
+  input_needs_number: {
+    pt: "comando requer variavel numerica: {name}",
+    es: "el comando requiere variable numerica: {name}",
+  },
+  input_empty_min: {
+    pt: "limite minimo vazio",
+    es: "limite minimo vacio",
+  },
+  input_empty_max: {
+    pt: "limite maximo vazio",
+    es: "limite maximo vacio",
+  },
+  input_invalid_min: {
+    pt: "limite minimo invalido: {val}",
+    es: "limite minimo invalido: {val}",
+  },
+  input_invalid_max: {
+    pt: "limite maximo invalido: {val}",
+    es: "limite maximo invalido: {val}",
+  },
+  input_bounds_order: {
+    pt: "limite minimo ({min}) e maior que o maximo ({max})",
+    es: "limite minimo ({min}) es mayor que el maximo ({max})",
+  },
+  label_node_empty: {
+    pt: "no *label \"{name}\" tem rotulo vazio",
+    es: "nodo *label \"{name}\" tiene etiqueta vacia",
+  },
+  label_collision: {
+    pt: "*label \"{name}\" conflita com rotulo gerado pelo ChoiceForge",
+    es: "*label \"{name}\" conflicta con etiqueta generada por ChoiceForge",
+  },
+  choice_single_option: {
+    pt: "no *choice \"{name}\" tem apenas uma opcao — ChoiceScript requer pelo menos duas",
+    es: "nodo *choice \"{name}\" tiene solo una opcion — ChoiceScript requiere al menos dos",
+  },
+  option_empty: {
+    pt: "opcao #{num} esta vazia em \"{name}\"",
+    es: "opcion #{num} esta vacia en \"{name}\"",
+  },
+  option_missing_target: {
+    pt: "opcao #{num} aponta para no inexistente em \"{name}\"",
+    es: "opcion #{num} apunta a nodo inexistente en \"{name}\"",
+  },
+  option_self_loop: {
+    pt: "opcao #{num} volta para o proprio no *choice em \"{name}\"",
+    es: "opcion #{num} vuelve al propio nodo *choice en \"{name}\"",
+  },
+  choice_all_same_target: {
+    pt: "todas as opcoes de *choice \"{name}\" levam ao mesmo no — considere simplificar",
+    es: "todas las opciones de *choice \"{name}\" llevan al mismo nodo — considera simplificar",
+  },
+  if_must_start_if: {
+    pt: "no *if \"{name}\" deve comecar com um ramo *if",
+    es: "nodo *if \"{name}\" debe comenzar con una rama *if",
+  },
+  if_branch_after_else: {
+    pt: "no *if \"{name}\" tem ramo depois do *else",
+    es: "nodo *if \"{name}\" tiene rama despues del *else",
+  },
+  if_multiple_else: {
+    pt: "no *if \"{name}\" tem multiplos ramos *else",
+    es: "nodo *if \"{name}\" tiene multiples ramas *else",
+  },
+  if_else_has_cond: {
+    pt: "ramo *else nao pode ter condicao",
+    es: "rama *else no puede tener condicion",
+  },
+  if_branch_no_cond: {
+    pt: "ramo *{kind} precisa de uma condicao",
+    es: "rama *{kind} necesita una condicion",
+  },
+  if_branch_missing_target: {
+    pt: "ramo *{kind} aponta para no inexistente",
+    es: "rama *{kind} apunta a nodo inexistente",
+  },
+  if_branch_self_loop: {
+    pt: "ramo *{kind} volta para o proprio no *if",
+    es: "rama *{kind} vuelve al propio nodo *if",
+  },
+  if_all_same_target: {
+    pt: "todos os ramos de *if \"{name}\" levam ao mesmo no — considere simplificar",
+    es: "todas las ramas de *if \"{name}\" llevan al mismo nodo — considera simplificar",
+  },
+  cond_empty: {
+    pt: "condicao de *{command} esta vazia",
+    es: "la condicion de *{command} esta vacia",
+  },
+  startup_empty_title: {
+    pt: "startup.txt tem *title vazio",
+    es: "startup.txt tiene *title vacio",
+  },
+  startup_empty_author: {
+    pt: "startup.txt tem *author vazio",
+    es: "startup.txt tiene *author vacio",
+  },
+  scene_list_invalid_id: {
+    pt: "*scene_list tem identificador de cena invalido: {name}",
+    es: "*scene_list tiene identificador de escena invalido: {name}",
+  },
+  scene_list_repeat: {
+    pt: "*scene_list repete cena: {name}",
+    es: "*scene_list repite escena: {name}",
+  },
+  scene_list_missing_scene: {
+    pt: "*scene_list aponta para cena inexistente: {name}",
+    es: "*scene_list apunta a escena inexistente: {name}",
+  },
+  startup_needs_scene_list: {
+    pt: "startup.txt precisa de um *scene_list",
+    es: "startup.txt necesita un *scene_list",
+  },
+  scene_list_omits_scene: {
+    pt: "*scene_list omite cena do projeto: {name}",
+    es: "*scene_list omite escena del proyecto: {name}",
+  },
+  startup_omits_var: {
+    pt: "startup.txt omite variavel do projeto: {name}",
+    es: "startup.txt omite variable del proyecto: {name}",
+  },
+  startup_omits_ach: {
+    pt: "startup.txt omite conquista do projeto: {name}",
+    es: "startup.txt omite logro del proyecto: {name}",
+  },
+  create_invalid_id: {
+    pt: "*create tem identificador de variavel invalido: {name}",
+    es: "*create tiene identificador de variable invalido: {name}",
+  },
+  create_reserved: {
+    pt: "*create usa palavra reservada do ChoiceScript: {name}",
+    es: "*create usa palabra reservada de ChoiceScript: {name}",
+  },
+  create_empty_value: {
+    pt: "*create tem valor inicial vazio: {name}",
+    es: "*create tiene valor inicial vacio: {name}",
+  },
+  create_invalid_value: {
+    pt: "*create {name} tem valor inicial {type} invalido: {value}",
+    es: "*create {name} tiene valor inicial {type} invalido: {value}",
+  },
+  create_repeat: {
+    pt: "startup.txt repete *create para variavel: {name}",
+    es: "startup.txt repite *create para variable: {name}",
+  },
+  create_extra_var: {
+    pt: "*create declara variavel ausente nos metadados do projeto: {name}",
+    es: "*create declara variable ausente en los metadatos del proyecto: {name}",
+  },
+  ach_src_invalid_id: {
+    pt: "*achievement tem identificador invalido: {name}",
+    es: "*achievement tiene identificador invalido: {name}",
+  },
+  ach_invalid_vis: {
+    pt: "*achievement tem visibilidade invalida: {value}",
+    es: "*achievement tiene visibilidad invalida: {value}",
+  },
+  ach_invalid_points_src: {
+    pt: "*achievement tem pontos invalidos: {value}",
+    es: "*achievement tiene puntos invalidos: {value}",
+  },
+  ach_src_empty_title: {
+    pt: "*achievement tem titulo vazio: {name}",
+    es: "*achievement tiene titulo vacio: {name}",
+  },
+  ach_src_repeat: {
+    pt: "startup.txt repete *achievement: {name}",
+    es: "startup.txt repite *achievement: {name}",
+  },
+  ach_src_extra: {
+    pt: "*achievement declara conquista ausente nos metadados do projeto: {name}",
+    es: "*achievement declara logro ausente en los metadatos del proyecto: {name}",
+  },
 };
 
 export function translateLintMsg(
