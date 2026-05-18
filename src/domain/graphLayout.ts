@@ -168,15 +168,28 @@ function gosubTarget(value: string): string {
 }
 
 function estimateLayoutNodeHeight(node: StoryNode): number {
-  const charsPerLine = Math.max(12, Math.floor(node.w / 13));
-  let height = 58 + Math.max(0, Math.ceil(node.title.length / charsPerLine) - 1) * 18;
-  if (node.body) height += Math.max(60, Math.ceil(node.body.length / charsPerLine) * 18);
-  if (node.prompt) height += 28;
-  if (node.options) height += node.options.length * 38 + 8;
-  if (node.fakeOptions) height += node.fakeOptions.length * 38 + 8;
-  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (branch.sets?.length ?? 0) * 22, 8);
+  const titleCharsPerLine = Math.max(12, Math.floor(node.w / 13));
+  // option text width: node width minus opt-num col (22px) + opts padding (16px) + opt padding (16px) + gap (6px)
+  const optCharsPerLine = Math.max(12, Math.floor((node.w - 60) / 7));
+
+  let height = 58 + Math.max(0, Math.ceil(node.title.length / titleCharsPerLine) - 1) * 14;
+  if (node.body) height += 56; // always 2-line clamp: 2×(13px×1.5) + 14px padding
+  if (node.prompt) height += 40;
+  if (node.options) {
+    height += 8;
+    node.options.forEach((opt) => {
+      height += 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
+    });
+  }
+  if (node.fakeOptions) {
+    height += 8;
+    node.fakeOptions.forEach((opt) => {
+      height += 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
+    });
+  }
+  if (node.branches) height += node.branches.reduce((total, branch) => total + 26 + (branch.sets?.length ?? 0) * 22, 8);
   if (node.sets?.length) height += 30;
   if (node.target) height += 22;
   if (node.inputVar) height += 22;
-  return Math.max(80, height);
+  return Math.max(80, Math.ceil(height * 1.15));
 }

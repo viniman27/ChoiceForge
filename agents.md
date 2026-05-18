@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 169
+- **Recalibrate height estimation from actual NodeCard CSS.**
+  - Read `NodeCard.tsx` + `styles.css` and discovered:
+    1. `.narrative-clip` uses `-webkit-line-clamp: 2` — body always renders as exactly 2 lines (~56px with padding), not proportional to body length. Previous proportional formula massively overestimated long bodies.
+    2. `.opt` / `.opts` item height depends on `opt.text` wrapping: old `38px flat` assumed 1 line; option texts can be 30–100 chars wrapping to 2–3 lines at `font-size:12px` in the option's inner width.
+  - New formula: body fixed at 56px; options iterate per-item with `15 + ceil(text.length / optCharsPerLine) * 16px`; overall ×1.15 safety margin.
+  - **Files changed**: `graphLayout.ts` (`estimateLayoutNodeHeight` rewrite).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 168
 - **Fix node overlap and edge crossings in horizontal layout.**
   - **Overlap root cause**: `estimateLayoutNodeHeight` used a fixed 90px for `node.body` regardless of content length. Long narrative passages (200–1000 chars) render 200–500px tall, so nodes in the same column were placed on top of each other. Fix: body height is now proportional — `ceil(body.length / charsPerLine) * 18`, min 60px.
