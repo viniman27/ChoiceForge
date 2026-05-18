@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 171
+- **Fix option/fakeOption height: account for rich-density extras (opt.body, opt.cond, reuse tag).**
+  - **Root cause**: default density is "rich" (`useState<Density>("rich")`). In rich mode, each option/fakeOption row shows extra elements not in the height estimator: `opt-body` (~20px/opt when body exists), `cond-badge` (~26px/opt when condition), reuse tag (~16px/opt). For a fake_choice with 12 options all having body text, that's 240px unaccounted — more than the 100px vertical gap → overlap.
+  - **Secondary bug**: `estimateNodeHeight` in GraphCanvas.tsx had no `fakeOptions` handling at all (always 0 for fake_choice nodes), causing wrong edge midpoints and fit-view behavior.
+  - **Fix in graphLayout.ts**: per-option loop now adds `opt.cond` (+26px), `opt.reuse/hideReuse` (+16px), `opt.body` (+20px) for both options and fakeOptions.
+  - **Fix in GraphCanvas.tsx**: rewrote `estimateNodeHeight` with full per-option calculation matching the layout estimator, density-aware, including fakeOptions.
+  - **Files changed**: `graphLayout.ts`, `GraphCanvas.tsx`.
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 170
 - **Fix root cause of visual overlap: column y-centering around predecessor positions.**
   - **Root cause identified**: every column started placing nodes at `y = startY = 70` regardless of where predecessors were. A node at y=800 in column 5 had its successor placed at y=70 in column 6 → edge goes sharply upward, crossing everything. This looked like "overlap" and created masses of crossing arrows.

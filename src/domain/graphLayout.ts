@@ -185,12 +185,18 @@ function estimateLayoutNodeHeight(node: StoryNode): number {
     height += 8;
     node.options.forEach((opt) => {
       height += 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
+      if (opt.cond) height += 26;
+      if (opt.reuse || opt.hideReuse) height += 16;
+      if (opt.body) height += 20;
     });
   }
   if (node.fakeOptions) {
     height += 8;
     node.fakeOptions.forEach((opt) => {
       height += 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
+      if (opt.cond) height += 26;
+      if (opt.reuse || opt.hideReuse) height += 16;
+      if (opt.body) height += 20;
     });
   }
   if (node.branches) height += node.branches.reduce((total, branch) => total + 26 + (branch.sets?.length ?? 0) * 22, 8);
