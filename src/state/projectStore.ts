@@ -156,21 +156,25 @@ export function useProjectStore() {
 
   useEffect(() => {
     if (!isParsingScene) return;
-    const handle = window.setTimeout(() => {
-      setProjectState((current) => {
-        const graph = current.sceneData?.[current.sceneTitle];
-        if (!graph?.sourceText || graph.nodes.length > 0) { setIsParsingScene(false); return current; }
-        const parsed = layoutSceneGraph({ ...importChoiceScriptSceneText(current.sceneTitle, graph.sourceText), sourceText: graph.sourceText });
-        setIsParsingScene(false);
-        return commitProject({
-          ...current,
-          nodes: parsed.nodes,
-          edges: parsed.edges,
-          sceneData: { ...(current.sceneData ?? {}), [current.sceneTitle]: parsed },
-        });
-      });
-    }, 0);
-    return () => window.clearTimeout(handle);
+    const current = projectRef.current;
+    const graph = current.sceneData?.[current.sceneTitle];
+    if (!graph?.sourceText || graph.nodes.length > 0) { setIsParsingScene(false); return; }
+    const worker = new Worker(new URL("../workers/sceneParser.ts", import.meta.url), { type: "module" });
+    worker.onmessage = (event: MessageEvent<{ ok: boolean; graph?: import("../domain/types").SceneGraph; error?: string }>) => {
+      worker.terminate();
+      if (!event.data.ok || !event.data.graph) { setIsParsingScene(false); return; }
+      const parsed = event.data.graph;
+      setProjectState((cur) => commitProject({
+        ...cur,
+        nodes: parsed.nodes,
+        edges: parsed.edges,
+        sceneData: { ...(cur.sceneData ?? {}), [cur.sceneTitle]: parsed },
+      }));
+      setIsParsingScene(false);
+    };
+    worker.onerror = () => { worker.terminate(); setIsParsingScene(false); };
+    worker.postMessage({ sceneName: current.sceneTitle, sourceText: graph.sourceText });
+    return () => worker.terminate();
   }, [isParsingScene]);
 
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);

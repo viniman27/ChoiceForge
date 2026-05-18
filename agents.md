@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 161
+- **Move lazy scene parse to Web Worker (real fix for white screen / freeze).**
+  - **Problem**: `setTimeout(0)` didn't help — the browser still can't paint before a sync multi-second parse blocks the main thread. The only real fix is a Worker.
+  - **Fix**: Created `src/workers/sceneParser.ts`. When `isParsingScene` is true, a Worker is spawned, does `importChoiceScriptSceneText` + `layoutSceneGraph` on a background thread, then posts the result back. The main thread is free throughout, the loading spinner stays visible, and the canvas populates when the worker responds. Worker is terminated after use.
+  - **Files changed**: `src/workers/sceneParser.ts` (new), `projectStore.ts` (replaced setTimeout with Worker in `isParsingScene` effect).
+  - **Tests**: 269 passing, build clean (Vite bundles worker as separate chunk).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 160
 - **Show loading spinner while large scenes parse (two-phase lazy load).**
   - **Problem**: The lazy scene parse (`createImportedSceneGraph` + `layoutSceneGraph`) runs synchronously on the JS main thread. Clicking a large scene froze the browser for several seconds with a blank/white canvas — no indication it was loading.
