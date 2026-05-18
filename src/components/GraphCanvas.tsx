@@ -952,13 +952,24 @@ function nodeMatchesFilter(node: StoryNode, filter: string, errorIds: Set<string
 function estimateNodeHeight(project: ChoiceForgeProject, nodeId: string, density: Density) {
   const node = project.nodes.find((candidate) => candidate.id === nodeId);
   if (!node || density === "minimal") return 44;
+  const isRich = density === "rich";
+  const optCharsPerLine = Math.max(12, Math.floor((node.w - 60) / 7));
+  const optRowHeight = (opt: { text: string; cond?: unknown; reuse?: unknown; hideReuse?: unknown; body?: string }) => {
+    let h = 15 + Math.max(1, Math.ceil(opt.text.length / optCharsPerLine)) * 16;
+    if (isRich && opt.cond) h += 26;
+    if (isRich && (opt.reuse || opt.hideReuse)) h += 16;
+    if (isRich && opt.body) h += 20;
+    return h;
+  };
   let height = 50 + Math.max(0, Math.ceil(node.title.length / Math.max(12, node.w / 13)) - 1) * 14;
-  if (node.body) height += density === "rich" ? 90 : 50;
-  if (node.prompt) height += 28;
-  if (node.options) height += node.options.length * (density === "rich" ? 38 : 26) + 8;
-  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (density === "rich" ? (branch.sets?.length ?? 0) * 22 : 0), 8);
-  if (density === "rich" && node.sets?.length) height += 30;
-  if (density === "rich" && node.target) height += 22;
+  if (node.body) height += isRich ? 90 : 56;
+  if (node.prompt) height += 40;
+  if (node.options) height += node.options.reduce((acc, opt) => acc + optRowHeight(opt), 8);
+  if (node.fakeOptions) height += node.fakeOptions.reduce((acc, opt) => acc + optRowHeight(opt), 8);
+  if (node.branches) height += node.branches.reduce((total, branch) => total + 24 + (isRich ? (branch.sets?.length ?? 0) * 22 : 0), 8);
+  if (isRich && node.sets?.length) height += 30;
+  if (isRich && node.target) height += 22;
+  if (isRich && node.inputVar) height += 22;
   return height;
 }
 
