@@ -349,7 +349,8 @@ When you see something in the spec that sounds implemented but isn't in the code
   - Each test verifies that the `key` field and relevant `params` entries are correctly emitted.
   - **Files changed**: `domain.test.ts`.
   - Also added `create_invalid_value` test (boolean type mismatch, verifies name/type/value params).
-  - **Tests**: 295 passing (22 new).
+  - Added 10 more tests for schema/graph-node validator keys: `var_empty_name`, `var_invalid_id`, `var_empty_initial`, `var_invalid_initial`, `ach_empty_id`, `ach_invalid_id`, `ach_empty_title`, `ach_empty_locked_desc`, `ach_empty_unlocked_desc`, `ach_invalid_points`, `scene_empty_name`, `scene_invalid_id`, `duplicate_scene_name`, `duplicate_var_name`, `duplicate_ach_id`, `set_no_assignments`, `choice_single_option`, `option_missing_target`, `label_node_empty`, `goto_no_target`, `if_branch_no_cond`.
+  - **Tests**: 305 passing (32 new total).
 
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 176
 - **Completed full lint message localization pass (second batch).**
