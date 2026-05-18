@@ -5414,6 +5414,164 @@ test("scene with *gosub node but no *return node emits gosub_no_return key and s
   assert.ok(issue, "expected gosub_no_return key when scene has *gosub node but no *return node");
 });
 
+test("variable schema validation emits correct keys", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    variables: [
+      { name: "", type: "number", initial: "0", desc: "", fairmath: false },
+      { name: "bad-name", type: "number", initial: "0", desc: "", fairmath: false },
+      { name: "score", type: "number", initial: "", desc: "", fairmath: false },
+      { name: "flag", type: "boolean", initial: "maybe", desc: "", fairmath: false },
+    ],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "var_empty_name"), "expected var_empty_name");
+  assert.ok(issues.find((i) => i.key === "var_invalid_id" && i.params?.name === "bad-name"), "expected var_invalid_id");
+  assert.ok(issues.find((i) => i.key === "var_empty_initial" && i.params?.name === "score"), "expected var_empty_initial");
+  assert.ok(issues.find((i) => i.key === "var_invalid_initial" && i.params?.name === "flag" && i.params?.type === "boolean"), "expected var_invalid_initial");
+});
+
+test("achievement schema validation emits correct keys", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    achievements: [
+      { id: "", title: "T", desc: "D", points: 10, hidden: false },
+      { id: "bad-id", title: "T", desc: "D", points: 10, hidden: false },
+      { id: "notitle", title: "", desc: "D", points: 10, hidden: false },
+      { id: "nodesc", title: "T", desc: "", points: 10, hidden: false },
+      { id: "badpoints", title: "T", desc: "D", points: -1, hidden: false },
+    ],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "ach_empty_id"), "expected ach_empty_id");
+  assert.ok(issues.find((i) => i.key === "ach_invalid_id" && i.params?.name === "bad-id"), "expected ach_invalid_id");
+  assert.ok(issues.find((i) => i.key === "ach_empty_title" && i.params?.name === "notitle"), "expected ach_empty_title");
+  assert.ok(issues.find((i) => i.key === "ach_empty_locked_desc" && i.params?.name === "nodesc"), "expected ach_empty_locked_desc");
+  assert.ok(issues.find((i) => i.key === "ach_empty_unlocked_desc" && i.params?.name === "nodesc"), "expected ach_empty_unlocked_desc");
+  assert.ok(issues.find((i) => i.key === "ach_invalid_points" && i.params?.name === "badpoints"), "expected ach_invalid_points");
+});
+
+test("scene schema validation emits scene_empty_name and scene_invalid_id keys", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "s1", name: "", words: 0, nodes: 0 },
+      { id: "s2", name: "bad-name", words: 0, nodes: 0 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "scene_empty_name"), "expected scene_empty_name");
+  assert.ok(issues.find((i) => i.key === "scene_invalid_id" && i.params?.name === "bad-name"), "expected scene_invalid_id");
+});
+
+test("duplicate project metadata emits duplicate_scene_name, duplicate_var_name, duplicate_ach_id keys", () => {
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2, current: true },
+      { id: "intro2", name: "intro", words: 0, nodes: 0 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    variables: [
+      { name: "score", type: "number", initial: "0", desc: "", fairmath: false },
+      { name: "score", type: "number", initial: "0", desc: "", fairmath: false },
+    ],
+    achievements: [
+      { id: "hero", title: "Hero", desc: "D", points: 10, hidden: false },
+      { id: "hero", title: "Hero", desc: "D", points: 10, hidden: false },
+    ],
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "duplicate_scene_name" && i.params?.name === "intro"), "expected duplicate_scene_name");
+  assert.ok(issues.find((i) => i.key === "duplicate_var_name" && i.params?.name === "score"), "expected duplicate_var_name");
+  assert.ok(issues.find((i) => i.key === "duplicate_ach_id" && i.params?.name === "hero"), "expected duplicate_ach_id");
+});
+
+test("graph node validators emit set_no_assignments for empty set node", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set", sets: [] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "set_no_assignments");
+  assert.ok(issue, "expected set_no_assignments");
+});
+
+test("graph node validators emit choice_single_option for one-option choice", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [{ text: "Only option", to: "n2" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "choice", label: "#1" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "choice_single_option");
+  assert.ok(issue, "expected choice_single_option");
+  assert.equal(issue!.level, "warning");
+});
+
+test("graph node validators emit option_missing_target for broken choice target", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [{ text: "A", to: "n2" }, { text: "B", to: "missing" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "choice", label: "#1" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "option_missing_target");
+  assert.ok(issue, "expected option_missing_target");
+});
+
+test("graph node validators emit label_node_empty for label node with no label name", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "start", body: "Hi." },
+      { id: "n2", type: "label", x: 0, y: 160, w: 240, title: "*label" },
+      { id: "n3", type: "finish", x: 0, y: 320, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }, { from: "n2", to: "n3", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "label_node_empty");
+  assert.ok(issue, "expected label_node_empty");
+});
+
+test("graph node validators emit goto_no_target for goto node with no label", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "goto", x: 0, y: 0, w: 240, title: "*goto" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "goto_no_target");
+  assert.ok(issue, "expected goto_no_target");
+});
+
+test("graph node validators emit if_branch_no_cond for elseif with empty condition", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [
+        { kind: "if", expr: "score > 0", to: "n2" },
+        { kind: "elseif", expr: "", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }], nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "if_branch_no_cond" && i.params?.kind === "elseif");
+  assert.ok(issue, "expected if_branch_no_cond for elseif branch");
+});
+
 test("empty *title in preserved startup emits startup_empty_title key", () => {
   const project = { ...minimalProject(), startupSource: "*title\n*author Author\n*scene_list\n  intro" };
   const issue = lintProject(project).find((i) => i.key === "startup_empty_title");
