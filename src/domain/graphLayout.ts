@@ -11,7 +11,9 @@ export function layoutProjectGraphs(project: ChoiceForgeProject): ChoiceForgePro
     .filter((scene) => !scene.isStart && !scene.special)
     .forEach((scene) => {
       const graph = sceneData[scene.name] ?? (scene.name === project.sceneTitle ? { nodes: project.nodes, edges: project.edges } : undefined);
-      if (graph) sceneData[scene.name] = layoutSceneGraph(graph);
+      if (graph && (scene.name === project.sceneTitle || !graph.sourceText)) {
+      sceneData[scene.name] = layoutSceneGraph(graph);
+    }
     });
 
   const activeGraph = sceneData[project.sceneTitle] ?? layoutSceneGraph({ nodes: project.nodes, edges: project.edges });

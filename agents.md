@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 158
+- **Tag-filter dots: replace opacity with scale-transform; add "tag" label.**
+  - **Problem**: At 0.55 opacity, small 12px circles vanish visually — the user saw a single gray blob in the toolbar. Using opacity to indicate "inactive" is a bad approach for small colored elements.
+  - **Fix**: Removed opacity entirely. Dots are now 14px at full color, with `transform: scale(0.78)` for the inactive state (visually smaller but fully colored). Hover and active states restore `scale(1)`. Added a `"tag"` text label (9px, muted) before the dots to clarify their purpose. CSS class `.zoom-tag-label` added.
+  - **Files changed**: `GraphCanvas.tsx` (added `<span className="zoom-tag-label">tag</span>`), `styles.css` (new `.zoom-tag-label` rule, replaced opacity approach with scale transform on `.zoom-color-dot`).
+- **Lazy layout for non-active imported scenes (major import performance fix).**
+  - **Problem**: `layoutProjectGraphs` laid out ALL scenes during import, including non-active scenes. A 20-scene CS project → 20 calls to `layoutStoryNodes`. For large projects this still froze the browser (even after the Math.max spread fix) because the total node count across all scenes could be enormous.
+  - **Fix**: In the `layoutProjectGraphs` forEach, added `scene.name !== project.sceneTitle || !graph.sourceText` condition so non-active scenes with `sourceText` (all imported CS scenes) are skipped. Only the active scene is laid out immediately. Other scenes keep their raw grid coordinates (acceptable since they display in preserved/read-only mode). Visual ChoiceForge projects (no sourceText) are unaffected.
+  - **Files changed**: `graphLayout.ts` (1 condition added in forEach).
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-17 — Claude Code (claude-sonnet-4-6) — session 157
 - **Fix remaining Math.max/min spread crashes for large scenes (follow-up to session 156).**
   - **Root cause discovered**: The graphLayout.ts fix was necessary but not sufficient. 9 additional `Math.max/min(...largeArray.map(...))` spread calls existed across `GraphCanvas.tsx` and `projectStore.ts`. The minimap one ran on EVERY render, meaning even after a successful import the canvas would crash immediately when displaying any large scene.

@@ -1337,14 +1337,18 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .zoom-snap { display: flex; align-items: center; justify-content: center; color: var(--ink-mute); }
 .zoom-snap.is-active { color: var(--accent); background: var(--paper-3); }
 .zoom-divider { width: 1px; height: 16px; background: var(--paper-edge); flex-shrink: 0; margin: 0 2px; }
+.zoom-tag-label {
+  font-size: 9px; color: var(--ink-mute); letter-spacing: 0.04em;
+  padding: 0 2px 0 3px; flex-shrink: 0; user-select: none;
+}
 .zoom-color-dot {
-  width: 12px; height: 12px; border-radius: 50%;
+  width: 14px; height: 14px; border-radius: 50%;
   background: var(--ct); border: 1.5px solid transparent;
   padding: 0; cursor: pointer; flex-shrink: 0;
-  opacity: 0.55; transition: opacity 0.12s, border-color 0.12s;
+  transform: scale(0.78); transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
 }
-.zoom-color-dot:hover { opacity: 0.75; }
-.zoom-color-dot.is-active { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px color-mix(in oklch, var(--ct) 45%, transparent); }
+.zoom-color-dot:hover { transform: scale(1); }
+.zoom-color-dot.is-active { transform: scale(1); border-color: var(--ink); box-shadow: 0 0 0 2px color-mix(in oklch, var(--ct) 45%, transparent); }
 .zoom-color-clear {
   background: none; border: none; cursor: pointer;
   color: var(--ink-mute); font-size: 13px; line-height: 1; padding: 0 3px;
