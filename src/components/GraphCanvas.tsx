@@ -9,7 +9,7 @@ interface GraphCanvasProps {
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
-  onLayoutNodes: () => void;
+  onLayoutNodes: (nodeHeights?: Record<string, number>) => void;
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onAddAndConnectNode: (fromId: string, type: NodeType, position: { x: number; y: number }) => void;
@@ -439,7 +439,14 @@ export function GraphCanvas({
         >
           {selCount > 1 ? `${labels.deleteSelected} (${selCount})` : labels.deleteSelected}
         </button>
-        <button className="canvas-tool" onClick={onLayoutNodes} title={labels.autoLayout}>
+        <button className="canvas-tool" onClick={() => {
+          const heights: Record<string, number> = {};
+          canvasRef.current?.querySelectorAll<HTMLDivElement>(".node[data-node-id]").forEach((el) => {
+            const id = el.getAttribute("data-node-id");
+            if (id) heights[id] = el.offsetHeight;
+          });
+          onLayoutNodes(Object.keys(heights).length > 0 ? heights : undefined);
+        }} title={labels.autoLayout}>
           {labels.autoLayout}
         </button>
         <button

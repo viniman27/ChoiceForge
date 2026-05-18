@@ -1,7 +1,7 @@
 import type { ChoiceForgeProject, SceneGraph, StoryEdge, StoryNode } from "./types";
 
-export function layoutSceneGraph(graph: SceneGraph): SceneGraph {
-  const nodes = layoutStoryNodes(graph.nodes, graph.edges);
+export function layoutSceneGraph(graph: SceneGraph, nodeHeights?: Record<string, number>): SceneGraph {
+  const nodes = layoutStoryNodes(graph.nodes, graph.edges, nodeHeights);
   return { ...graph, nodes, edges: graph.edges };
 }
 
@@ -28,11 +28,12 @@ export function layoutProjectGraphs(project: ChoiceForgeProject): ChoiceForgePro
   };
 }
 
-function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): StoryNode[] {
+function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHeights?: Record<string, number>): StoryNode[] {
   const horizontalGap = 150;
   const verticalGap = 100;
   const startX = 70;
   const startY = 70;
+  const heightOf = (node: StoryNode) => nodeHeights?.[node.id] ?? estimateLayoutNodeHeight(node);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
@@ -94,14 +95,14 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
     // Vertically centre the column around the mean predecessor Y so that
     // edges flow roughly horizontally instead of sharply up/down.
     const totalColHeight = withBc.reduce(
-      (sum, { node }) => sum + estimateLayoutNodeHeight(node) + verticalGap, 0,
+      (sum, { node }) => sum + heightOf(node) + verticalGap, 0,
     ) - verticalGap;
     const meanBc = withBc.reduce((sum, { bc }) => sum + bc, 0) / withBc.length;
     let nodeY = Math.max(startY, Math.round(meanBc - totalColHeight / 2));
 
     withBc.forEach(({ node }) => {
       positions.set(node.id, { x: columnX, y: nodeY });
-      nodeY += estimateLayoutNodeHeight(node) + verticalGap;
+      nodeY += heightOf(node) + verticalGap;
     });
     const maxWidth = columnNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
     columnX += maxWidth + horizontalGap;

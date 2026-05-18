@@ -343,6 +343,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 172
+- **DOM-measured layout + fix indented command import.**
+  - **Layout: DOM measurement on manual re-layout.**
+    - Root cause of persistent overlap: pure-TypeScript height estimation (without DOM access) is inherently imprecise. After every formula tweak, some node type still rendered taller than estimated.
+    - Fix: when the user clicks "Auto Layout", GraphCanvas now reads actual `offsetHeight` from each rendered `.node[data-node-id]` element before calling the layout function. These measured heights are passed through `onLayoutNodes(nodeHeights)` → store `layoutNodes(nodeHeights)` → `layoutSceneGraph(graph, nodeHeights)` → `layoutStoryNodes(nodes, edges, nodeHeights)`. Inside `layoutStoryNodes`, a `heightOf(node)` helper uses the measured value when available, falling back to `estimateLayoutNodeHeight` for nodes not yet rendered (import auto-layout).
+    - `data-node-id` attribute added to NodeCard outer div to make each node queryable.
+    - No visual changes. The first auto-layout after import still uses estimates; subsequent manual re-layouts use exact DOM heights.
+  - **Import: fix indented top-level commands being silently dropped.**
+    - Root cause: `createImportedSceneGraph` main loop had `if (!command || /^\s+\S/.test(line))` — the regex matched ANY line with leading whitespace, including indented commands like `  *input_text myvar`. These were pushed to `pending` as prose text instead of being parsed.
+    - Fix: removed the `/^\s+\S/.test(line)` condition. Safe because by the time the main loop sees a line, all block parsers (`collectIndentedBlock`, `collectIfChain`) have already consumed and advanced `index` past their indented body lines. Any remaining indented line is legitimately at the outer scope.
+    - `*input_text`, `*input_number`, `*rand`, `*goto`, `*label`, etc. now parsed correctly even with leading spaces.
+  - **Files changed**: `graphLayout.ts`, `projectStore.ts`, `NodeCard.tsx`, `GraphCanvas.tsx`, `choicescriptImport.ts`.
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 171
 - **Fix option/fakeOption height: account for rich-density extras (opt.body, opt.cond, reuse tag).**
   - **Root cause**: default density is "rich" (`useState<Density>("rich")`). In rich mode, each option/fakeOption row shows extra elements not in the height estimator: `opt-body` (~20px/opt when body exists), `cond-badge` (~26px/opt when condition), reuse tag (~16px/opt). For a fake_choice with 12 options all having body text, that's 240px unaccounted — more than the 100px vertical gap → overlap.

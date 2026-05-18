@@ -93,7 +93,7 @@ export interface ProjectActions {
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
   bulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
-  layoutNodes: () => void;
+  layoutNodes: (nodeHeights?: Record<string, number>) => void;
   addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
   duplicateNode: (id: string) => string | null;
   deleteNode: (id: string) => void;
@@ -324,10 +324,10 @@ export function useProjectStore() {
         nodes: current.nodes.map((node) => (node.id === id ? { ...node, x, y } : node)),
       }));
     },
-    layoutNodes: () => {
+    layoutNodes: (nodeHeights?: Record<string, number>) => {
       setTrackedProjectState((current) => commitProject({
         ...current,
-        ...layoutSceneGraph({ nodes: current.nodes, edges: current.edges }),
+        ...layoutSceneGraph({ nodes: current.nodes, edges: current.edges }, nodeHeights),
       }));
     },
     addNode: (type, id, position) => {
