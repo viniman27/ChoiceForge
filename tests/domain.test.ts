@@ -5572,6 +5572,116 @@ test("graph node validators emit if_branch_no_cond for elseif with empty conditi
   assert.ok(issue, "expected if_branch_no_cond for elseif branch");
 });
 
+test("selectable_if condition with empty expr in choice option emits cond_empty key with command param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [
+        { text: "A", to: "n2", cond: { type: "selectable_if", expr: "" } },
+        { text: "B", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "cond_empty");
+  assert.ok(issue, "expected cond_empty key from graph node lintCondition");
+  assert.equal(issue!.params?.command, "selectable_if");
+});
+
+test("set node validators emit correct keys for malformed sets", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set", sets: [
+        { var: "", op: "=", val: "1" },
+        { var: "bad-name", op: "=", val: "1" },
+        { var: "score", op: "=", val: "" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "set_no_target"), "expected set_no_target");
+  assert.ok(issues.find((i) => i.key === "set_invalid_id" && i.params?.name === "bad-name"), "expected set_invalid_id");
+  assert.ok(issues.find((i) => i.key === "set_empty_value" && i.params?.name === "score"), "expected set_empty_value");
+});
+
+test("set node emits set_invalid_op for arithmetic op on string variable", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set", sets: [{ var: "name", op: "+", val: "1" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "name", type: "string", initial: "\"\"", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "set_invalid_op");
+  assert.ok(issue, "expected set_invalid_op");
+  assert.equal(issue!.params?.name, "name");
+  assert.equal(issue!.params?.op, "+");
+});
+
+test("input_number node validators emit correct keys", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number score 5 100", inputVar: "score", inputMin: "50", inputMax: "10" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "input_bounds_order");
+  assert.ok(issue, "expected input_bounds_order");
+  assert.equal(issue!.params?.min, "50");
+  assert.equal(issue!.params?.max, "10");
+});
+
+test("input_text node emits input_text_needs_string for number variable", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_text", x: 0, y: 0, w: 240, title: "*input_text score", inputVar: "score" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "input_text_needs_string");
+  assert.ok(issue, "expected input_text_needs_string");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("achieve node emits achieve_no_id and achieve_invalid_id from body text", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 240, title: "p", body: "*achieve\n*achieve bad-id" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issues = lintProject(project);
+  assert.ok(issues.find((i) => i.key === "achieve_no_id"), "expected achieve_no_id");
+  assert.ok(issues.find((i) => i.key === "achieve_invalid_id" && i.params?.name === "bad-id"), "expected achieve_invalid_id");
+});
+
 test("empty *title in preserved startup emits startup_empty_title key", () => {
   const project = { ...minimalProject(), startupSource: "*title\n*author Author\n*scene_list\n  intro" };
   const issue = lintProject(project).find((i) => i.key === "startup_empty_title");

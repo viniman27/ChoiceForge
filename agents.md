@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 178
+- **Bug fixes discovered while adding tests: regex cross-line boundary bug + cond_empty param mismatch.**
+  - **`extractAchievementCommandTargets` regex bug**: `/^\s*\*achieve(?:\s+(.+?))?\s*$/gim` used `\s+` which matches newlines. For body text like `"*achieve\n*achieve bad-id"`, the regex would match the two-line string as a single `*achieve bad-id` call, silently dropping the empty-argument `*achieve`. Fixed to `/^[ \t]*\*achieve(?:[ \t]+(\S[^\n]*?))?[ \t]*$/gim` (horizontal whitespace only). Same bug in `stripAchieveCommands` — same fix applied.
+  - **`cond_empty` param key mismatch**: Graph-node `lintCondition` emitted `params: { kind: condition.type }` but the `lintMessages.ts` template uses `{command}` not `{kind}`. Fixed to `params: { command: condition.type }`.
+  - **Added 6 tests**: `cond_empty` from graph-node lintCondition (verifies `command` param), `set_no_target/invalid_id/empty_value/invalid_op`, `input_bounds_order`, `input_text_needs_string`, `achieve_no_id/achieve_invalid_id`.
+  - **Files changed**: `choicescript.ts`, `domain.test.ts`.
+  - **Tests**: 311 passing (6 new, 2 bug fixes).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 177
 - **Test coverage for new lint keys (startup/condition validators).**
   - Added 21 new tests covering all keys introduced in session 176: `startup_empty_title`, `startup_empty_author`, `startup_needs_scene_list`, `scene_list_invalid_id`, `scene_list_repeat`, `scene_list_missing_scene`, `scene_list_omits_scene`, `startup_omits_var`, `startup_omits_ach`, `create_invalid_id`, `create_reserved`, `create_empty_value`, `create_repeat`, `create_extra_var`, `ach_src_invalid_id`, `ach_invalid_vis`, `ach_invalid_points_src`, `ach_src_empty_title`, `ach_src_repeat`, `ach_src_extra`, `cond_empty`.
