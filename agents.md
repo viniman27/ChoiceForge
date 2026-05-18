@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 175
+- **Lint localization coverage, import confirmation, and parser edge-case verification.**
+  - **Lint localization**: audited all `key:` usage in `choicescript.ts`. 12 messages lacked a `key` (and thus were always English): duplicate scene/variable/achievement/asset names, duplicate exported asset paths, `*params` duplicate parameter, duplicate choice option text, all `*stat_chart` error/warning messages. Added `key` + `params` to each and added PT/ES translations in `lintMessages.ts`.
+  - **Import confirmation**: `importChoiceForgeProject` in `App.tsx` replaced full projects without any warning. Added `confirmReplaceProject(project, lang)` helper: skips confirm for trivially empty projects (`nodes ≤ 1 && no variables && no achievements`), shows a localized `window.confirm` otherwise. Wired into all 4 full-replacement branches (`.zip` with project.json, `.zip` ChoiceScript archive, `.json`, multi-file). Single-scene `.txt` import is a merge, so no confirm needed.
+  - **Parser verification (items 4 & 5)**: wrote 4 new tests covering: `*gosub` inside choice option body, `*label` inside choice option body, `*if` block containing a nested `*choice`, `*if` block with `*goto_scene` terminals in branches. All 4 pass, confirming the parser handles these patterns via `buildBodyNodeChain` + `BODY_STRUCTURED_COMMANDS`.
+  - **Files changed**: `choicescript.ts`, `lintMessages.ts`, `App.tsx`, `domain.test.ts`.
+  - **Tests**: 273 passing (4 new).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 174
 - **Canvas quality improvements: edge midpoints, fit-view bounds, SVG overflow, auto-fit after layout.**
   - **Edge midpoints**: `estimateNodeHeight` in `GraphCanvas.tsx` used flat 40 px for prompt and wrong 90/56 body (body is always 2-line clamped). Refactored into `nodeHeightEstimate(node, density)` helper with the same proportional prompt formula as `graphLayout.ts` and correct `node-wc` (~24 px only for `passage` + rich). `estimateNodeHeight` becomes a thin wrapper.

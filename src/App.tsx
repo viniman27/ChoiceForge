@@ -667,6 +667,15 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   URL.revokeObjectURL(url);
 }
 
+function confirmReplaceProject(project: ChoiceForgeProject, lang: Language): boolean {
+  if (project.nodes.length <= 1 && !project.variables.length && !project.achievements.length) return true;
+  return window.confirm(
+    lang === "pt" ? "Isso substituira o projeto atual. Continuar?"
+    : lang === "es" ? "Esto reemplazara el proyecto actual. ¿Continuar?"
+    : "This will replace the current project. Continue?"
+  );
+}
+
 function confirmExportWithLintErrors(project: ChoiceForgeProject, lang: Language): boolean {
   const errors = project.lints.filter((lint) => lint.level === "error");
   if (!errors.length) return true;
@@ -689,14 +698,17 @@ async function importChoiceForgeProject(files: File[], currentProject: ChoiceFor
       if (projectJson) {
         const parsed = JSON.parse(new TextDecoder().decode(projectJson.bytes)) as ChoiceForgeProject;
         assertChoiceForgeProject(parsed);
+        if (!confirmReplaceProject(currentProject, lang)) return;
         setProject(parsed);
       } else {
+        if (!confirmReplaceProject(currentProject, lang)) return;
         setProject(importChoiceScriptArchive(entries));
       }
     } else if (files.length === 1 && files[0].name.toLowerCase().endsWith(".json")) {
       const file = files[0];
       const parsed = JSON.parse(await file.text()) as ChoiceForgeProject;
       assertChoiceForgeProject(parsed);
+      if (!confirmReplaceProject(currentProject, lang)) return;
       setProject(parsed);
     } else {
       const entries = await selectedImportEntries(files);
@@ -704,10 +716,12 @@ async function importChoiceForgeProject(files: File[], currentProject: ChoiceFor
       if (projectJson) {
         const parsed = JSON.parse(new TextDecoder().decode(projectJson.bytes)) as ChoiceForgeProject;
         assertChoiceForgeProject(parsed);
+        if (!confirmReplaceProject(currentProject, lang)) return;
         setProject(parsed);
       } else {
         const txtEntries = entries.filter((entry) => entry.name.toLowerCase().endsWith(".txt"));
         if (!txtEntries.length) throw new Error("no text files selected");
+        if (!confirmReplaceProject(currentProject, lang)) return;
         setProject(importChoiceScriptArchive(txtEntries));
       }
     }
