@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 176
+- **Completed full lint message localization pass (second batch).**
+  - Audited all remaining un-keyed `issues.push` calls in `choicescript.ts`. Added `key` + `params` to ~75 additional messages across: graph-node validators (`set_no_assignments`, `if_noop`, `goto_scene_*`, `gosub_scene_*`, `image_*`, `sound_*`, `goto_*`, `gosub_*`, `return_no_gosub`, `page_break_no_label`, `checkpoint_no_name`, `temp_*`, `params_*`, `achieve_*`), schema validators (scene, variable, achievement, asset), preserved-source validators (`temp_*`, `params_*`, `set_*`, `input_*`, `label_*`, `jump_*`), node structure validators (`label_node_empty`, `label_collision`, `choice_*`, `option_*`, `if_*`), condition validator (`cond_empty`), and startup.txt validators (`startup_empty_title`, `startup_empty_author`, `scene_list_*`, `startup_needs_scene_list`, `startup_omits_*`, `create_*`, `ach_src_*`, `ach_invalid_vis`, `ach_invalid_points_src`).
+  - Added PT/ES translations for all new keys in `lintMessages.ts` (from 29 keys to 141 keys).
+  - Remaining un-keyed messages are internal graph-integrity assertions (`edge starts from missing node`, `edge points to missing node`, `node has empty id`, `duplicate node id`) that are impossible in normal usage.
+  - **Files changed**: `choicescript.ts`, `lintMessages.ts`.
+  - **Tests**: 273 passing (no new tests).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 175
 - **Lint localization coverage, import confirmation, and parser edge-case verification.**
   - **Lint localization**: audited all `key:` usage in `choicescript.ts`. 12 messages lacked a `key` (and thus were always English): duplicate scene/variable/achievement/asset names, duplicate exported asset paths, `*params` duplicate parameter, duplicate choice option text, all `*stat_chart` error/warning messages. Added `key` + `params` to each and added PT/ES translations in `lintMessages.ts`.

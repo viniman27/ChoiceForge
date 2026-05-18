@@ -486,22 +486,22 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     .forEach((path) => issues.push({ level: "error", msg: `duplicate exported asset path: ${path}`, key: "duplicate_exported_asset", params: { name: path }, scene: null }));
 
   project.scenes.forEach((scene) => {
-    if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", scene: null });
+    if (!scene.name.trim()) issues.push({ level: "error", msg: "scene has an empty name", key: "scene_empty_name", scene: null });
     if (scene.name.trim() && !isValidChoiceScriptIdentifier(scene.name)) {
-      issues.push({ level: "error", msg: `scene has an invalid identifier: ${scene.name}`, scene: null });
+      issues.push({ level: "error", msg: `scene has an invalid identifier: ${scene.name}`, key: "scene_invalid_id", params: { name: scene.name }, scene: null });
     }
   });
   project.variables.forEach((variable) => {
-    if (!variable.name.trim()) issues.push({ level: "error", msg: "variable has an empty name", scene: null });
+    if (!variable.name.trim()) issues.push({ level: "error", msg: "variable has an empty name", key: "var_empty_name", scene: null });
     if (variable.name.trim() && !isValidChoiceScriptIdentifier(variable.name)) {
-      issues.push({ level: "error", msg: `variable has an invalid identifier: ${variable.name}`, scene: null });
+      issues.push({ level: "error", msg: `variable has an invalid identifier: ${variable.name}`, key: "var_invalid_id", params: { name: variable.name }, scene: null });
     }
     if (variable.name.trim() && isValidChoiceScriptIdentifier(variable.name) && isChoiceScriptReserved(variable.name)) {
-      issues.push({ level: "error", msg: `variable name clashes with a ChoiceScript reserved word: ${variable.name}`, scene: null });
+      issues.push({ level: "error", msg: `variable name clashes with a ChoiceScript reserved word: ${variable.name}`, key: "name_reserved", params: { name: variable.name }, scene: null });
     }
-    if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, scene: null });
+    if (!variable.initial.trim()) issues.push({ level: "error", msg: `variable "${variable.name}" has an empty initial value`, key: "var_empty_initial", params: { name: variable.name }, scene: null });
     if (variable.initial.trim() && !isValidVariableInitial(variable)) {
-      issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, scene: null });
+      issues.push({ level: "error", msg: `variable "${variable.name}" has an invalid ${variable.type} initial value: ${variable.initial}`, key: "var_invalid_initial", params: { name: variable.name, type: variable.type, val: variable.initial }, scene: null });
     }
     if (variable.type === "number" && variable.fairmath) {
       const initial = Number(variable.initial.trim());
@@ -511,34 +511,34 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
     }
   });
   project.achievements.forEach((achievement) => {
-    if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", scene: null });
+    if (!achievement.id.trim()) issues.push({ level: "error", msg: "achievement has an empty id", key: "ach_empty_id", scene: null });
     if (achievement.id.trim() && !isValidChoiceScriptIdentifier(achievement.id)) {
-      issues.push({ level: "error", msg: `achievement has an invalid identifier: ${achievement.id}`, scene: null });
+      issues.push({ level: "error", msg: `achievement has an invalid identifier: ${achievement.id}`, key: "ach_invalid_id", params: { name: achievement.id }, scene: null });
     }
     if (!achievement.title.trim()) {
-      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty title`, scene: null });
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty title`, key: "ach_empty_title", params: { name: achievement.id }, scene: null });
     }
     if (!(achievement.preDesc || achievement.desc).trim()) {
-      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty locked description`, scene: null });
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty locked description`, key: "ach_empty_locked_desc", params: { name: achievement.id }, scene: null });
     }
     if (!(achievement.postDesc || achievement.desc).trim()) {
-      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty unlocked description`, scene: null });
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has an empty unlocked description`, key: "ach_empty_unlocked_desc", params: { name: achievement.id }, scene: null });
     }
     if (!Number.isInteger(achievement.points) || achievement.points < 0) {
-      issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, scene: null });
+      issues.push({ level: "error", msg: `achievement "${achievement.id}" has invalid points`, key: "ach_invalid_points", params: { name: achievement.id }, scene: null });
     }
   });
   (project.assets ?? []).forEach((asset) => {
-    if (!asset.path.trim()) issues.push({ level: "warning", msg: `asset "${asset.id}" has an empty path`, scene: null });
+    if (!asset.path.trim()) issues.push({ level: "warning", msg: `asset "${asset.id}" has an empty path`, key: "asset_empty_path", params: { name: asset.id }, scene: null });
     if (asset.path.trim() && !isSafeAssetPath(asset.path)) {
-      issues.push({ level: "error", msg: `asset "${asset.id}" has an unsafe export path: ${asset.path}`, scene: null });
+      issues.push({ level: "error", msg: `asset "${asset.id}" has an unsafe export path: ${asset.path}`, key: "asset_unsafe_path", params: { name: asset.id }, scene: null });
     }
     if (asset.dataUrl && generatedExportPaths.has(`mygame/${asset.path}`)) {
-      issues.push({ level: "error", msg: `asset "${asset.id}" export path conflicts with a generated file: ${asset.path}`, scene: null });
+      issues.push({ level: "error", msg: `asset "${asset.id}" export path conflicts with a generated file: ${asset.path}`, key: "asset_path_conflict", params: { name: asset.id }, scene: null });
     }
     const dataUrlIssue = asset.dataUrl ? assetDataUrlIssue(asset.dataUrl) : null;
     if (dataUrlIssue) {
-      issues.push({ level: "error", msg: `asset "${asset.id}" has ${dataUrlIssue}`, scene: null });
+      issues.push({ level: "error", msg: `asset "${asset.id}" has ${dataUrlIssue}`, key: "asset_data_issue", params: { name: asset.id }, scene: null });
     }
   });
 }
@@ -651,7 +651,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     node.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
 
     if (node.type === "set" && (!node.sets || node.sets.length === 0)) {
-      issues.push({ level: "warning", msg: `*set node "${node.title}" has no assignments`, scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: `*set node "${node.title}" has no assignments`, key: "set_no_assignments", params: { name: node.title }, scene: sceneName, node: node.id });
     }
 
     extractVariableReferences(node.body ?? "").forEach((name) => {
@@ -673,7 +673,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         if (!hasElse) {
           const branchTargets = node.branches?.filter((b) => nodeIds.has(b.to)).map((b) => b.to) ?? [];
           if (branchTargets.length > 0 && branchTargets.every((t) => t === ifFlowTarget)) {
-            issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node as the false path — condition is a no-op`, scene: sceneName, node: node.id });
+            issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node as the false path — condition is a no-op`, key: "if_noop", params: { name: node.title }, scene: sceneName, node: node.id });
           }
         }
       }
@@ -682,9 +682,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "goto_scene") {
       const target = node.target?.trim() ?? "";
       if (!target) {
-        issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*goto_scene needs a scene target", key: "goto_scene_no_target", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(target)) {
-        issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${target}`, key: "goto_scene_invalid_id", params: { name: target }, scene: sceneName, node: node.id });
       } else if (!scenes.has(target)) {
         issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, key: "goto_scene_missing", params: { name: target }, scene: sceneName, node: node.id });
       }
@@ -693,9 +693,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "gosub_scene") {
       const target = node.target?.trim() ?? "";
       if (!target) {
-        issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*gosub_scene needs a scene target", key: "gosub_scene_no_target", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(target)) {
-        issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${target}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${target}`, key: "gosub_scene_invalid_id", params: { name: target }, scene: sceneName, node: node.id });
       } else if (!scenes.has(target)) {
         issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, key: "gosub_scene_missing", params: { name: target }, scene: sceneName, node: node.id });
       } else {
@@ -711,7 +711,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
             : [];
           const targetLabelNames = new Set([...visualLabelNames, ...sourceLabelNames]);
           if (targetLabelNames.size > 0 && !targetLabelNames.has(entryLabel)) {
-            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, node: node.id });
+            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, key: "gosub_scene_entry_missing", params: { label: entryLabel, scene: target }, scene: sceneName, node: node.id });
           }
         }
         const targetGraph = getSceneGraph(project, target);
@@ -723,7 +723,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
         }
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
-        issues.push({ level: "warning", msg: "*gosub_scene has no flow continuation for the return", scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: "*gosub_scene has no flow continuation for the return", key: "gosub_scene_no_flow", scene: sceneName, node: node.id });
       }
     }
 
@@ -736,30 +736,30 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     }
 
     if (node.type === "image" && !node.target?.trim()) {
-      issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: "*image needs a filename", key: "image_no_filename", scene: sceneName, node: node.id });
     }
     if (node.type === "image" && node.target?.trim()) {
       const imageTarget = node.target.trim();
       const imageFile = imageTarget.split("/").pop() ?? imageTarget;
       if (!IMAGE_EXTENSIONS.has(fileExtension(imageFile))) {
-        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${imageFile}`, scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${imageFile}`, key: "image_unsupported_ext", params: { name: imageFile }, scene: sceneName, node: node.id });
       }
       if ((project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], imageTarget)) {
         issues.push({ level: "warning", msg: `*image references an unknown asset file: ${imageTarget}`, key: "image_unknown", params: { name: imageTarget }, scene: sceneName, node: node.id });
       }
       const imageAlignment = node.inputMin?.trim();
       if (imageAlignment && !["none", "left", "right"].includes(imageAlignment)) {
-        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${imageAlignment}" — use none, left, or right`, scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${imageAlignment}" — use none, left, or right`, key: "image_invalid_alignment", params: { val: imageAlignment }, scene: sceneName, node: node.id });
       }
     }
     if (node.type === "sound" && !node.target?.trim()) {
-      issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: "*sound needs a filename", key: "sound_no_filename", scene: sceneName, node: node.id });
     }
     if (node.type === "sound" && node.target?.trim()) {
       const soundTarget = node.target.trim();
       const soundFile = soundTarget.split("/").pop() ?? soundTarget;
       if (!AUDIO_EXTENSIONS.has(fileExtension(soundFile))) {
-        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${soundFile}`, scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${soundFile}`, key: "sound_unsupported_ext", params: { name: soundFile }, scene: sceneName, node: node.id });
       }
       if ((project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], soundTarget)) {
         issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${soundTarget}`, key: "sound_unknown", params: { name: soundTarget }, scene: sceneName, node: node.id });
@@ -769,9 +769,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "goto") {
       const label = stripCommandPrefix(node.title, "*goto");
       if (!label) {
-        issues.push({ level: "error", msg: "*goto needs a label target", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*goto needs a label target", key: "goto_no_target", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(label)) {
-        issues.push({ level: "error", msg: `*goto has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*goto has an invalid label identifier: ${label}`, key: "goto_invalid_id", params: { name: label }, scene: sceneName, node: node.id });
       } else if (!labels.has(label)) {
         issues.push({ level: "error", msg: `*goto points to a missing label: ${label}`, key: "goto_missing_label", params: { name: label }, scene: sceneName, node: node.id });
       }
@@ -780,27 +780,27 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "gosub") {
       const label = gosubTarget(node.title);
       if (!label) {
-        issues.push({ level: "error", msg: "*gosub needs a label target", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*gosub needs a label target", key: "gosub_no_target", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(label)) {
-        issues.push({ level: "error", msg: `*gosub has an invalid label identifier: ${label}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*gosub has an invalid label identifier: ${label}`, key: "gosub_invalid_id", params: { name: label }, scene: sceneName, node: node.id });
       } else if (!labels.has(label)) {
         issues.push({ level: "error", msg: `*gosub points to a missing label: ${label}`, key: "gosub_missing_label", params: { name: label }, scene: sceneName, node: node.id });
       }
       if ((flowOutgoing.get(node.id) ?? 0) === 0) {
-        issues.push({ level: "warning", msg: "*gosub has no flow continuation for *return", scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: "*gosub has no flow continuation for *return", key: "gosub_no_flow", scene: sceneName, node: node.id });
       }
     }
 
     if (node.type === "return" && !hasGosub) {
-      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub nodes", scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub nodes", key: "return_no_gosub", scene: sceneName, node: node.id });
     }
 
     if (node.type === "page_break" && !stripCommandPrefix(node.title, "*page_break")) {
-      issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: "*page_break needs a button label", key: "page_break_no_label", scene: sceneName, node: node.id });
     }
 
     if (node.type === "checkpoint" && !checkpointSlot(node.title, "*save_checkpoint")) {
-      issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", key: "checkpoint_no_name", scene: sceneName, node: node.id });
     }
 
 
@@ -811,27 +811,27 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "temp") {
       const varName = (node.inputVar ?? stripCommandPrefix(node.title, "*temp")).trim();
       if (!varName || !isValidChoiceScriptIdentifier(varName)) {
-        issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${varName || "(empty)"}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${varName || "(empty)"}`, key: "temp_invalid_id", params: { name: varName || "(empty)" }, scene: sceneName, node: node.id });
       } else if (isChoiceScriptReserved(varName)) {
-        issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${varName}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${varName}`, key: "name_reserved", params: { name: varName }, scene: sceneName, node: node.id });
       } else if (project.variables.some((variable) => variable.name === varName)) {
         issues.push({ level: "warning", msg: `*temp shadows a global variable: ${varName}`, key: "temp_shadows", params: { name: varName }, scene: sceneName, node: node.id });
       }
       if (!node.body?.trim()) {
-        issues.push({ level: "warning", msg: `*temp "${varName}" has no initial value (defaults to 0)`, scene: sceneName, node: node.id });
+        issues.push({ level: "warning", msg: `*temp "${varName}" has no initial value (defaults to 0)`, key: "temp_no_initial", params: { name: varName }, scene: sceneName, node: node.id });
       }
     }
 
     if (node.type === "params") {
       const rawParams = (node.body?.trim() ?? "").split(/\s+/).filter(Boolean);
       if (!rawParams.length) {
-        issues.push({ level: "error", msg: "*params has no parameter names", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*params has no parameter names", key: "params_no_names", scene: sceneName, node: node.id });
       }
       rawParams.forEach((param) => {
         if (!isValidChoiceScriptIdentifier(param)) {
-          issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${param}`, scene: sceneName, node: node.id });
+          issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${param}`, key: "params_invalid_id", params: { name: param }, scene: sceneName, node: node.id });
         } else if (isChoiceScriptReserved(param)) {
-          issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${param}`, scene: sceneName, node: node.id });
+          issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${param}`, key: "name_reserved", params: { name: param }, scene: sceneName, node: node.id });
         } else if (project.variables.some((variable) => variable.name === param)) {
           issues.push({ level: "warning", msg: `*params shadows a global variable: ${param}`, key: "temp_shadows", params: { name: param }, scene: sceneName, node: node.id });
         }
@@ -845,9 +845,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
     if (node.type === "achieve") {
       const achId = node.target?.trim() ?? "";
       if (!achId) {
-        issues.push({ level: "error", msg: "*achieve needs an achievement id", scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: "*achieve needs an achievement id", key: "achieve_no_id", scene: sceneName, node: node.id });
       } else if (!isValidChoiceScriptIdentifier(achId)) {
-        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${achId}`, scene: sceneName, node: node.id });
+        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${achId}`, key: "achieve_invalid_id", params: { name: achId }, scene: sceneName, node: node.id });
       } else if (!achievements.has(achId)) {
         issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achId}`, key: "undef_ach", params: { name: achId }, scene: sceneName, node: node.id });
       }
@@ -993,15 +993,15 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "goto_scene") {
       const rawTarget = sourceCommandValue(trimmed, "*goto_scene").split(/\s+/)[0] ?? "";
       const target = normalizeSourceIdentifier(rawTarget);
-      if (!rawTarget) issues.push({ level: "error", msg: "*goto_scene needs a scene target", scene: sceneName, line: lineNumber });
-      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
+      if (!rawTarget) issues.push({ level: "error", msg: "*goto_scene needs a scene target", key: "goto_scene_no_target", scene: sceneName, line: lineNumber });
+      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*goto_scene has an invalid scene identifier: ${rawTarget}`, key: "goto_scene_invalid_id", params: { name: rawTarget }, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*goto_scene points to a missing scene: ${target}`, key: "goto_scene_missing", params: { name: target }, scene: sceneName, line: lineNumber });
     }
     if (command === "gosub_scene") {
       const rawTarget = sourceCommandValue(trimmed, "*gosub_scene").split(/\s+/)[0] ?? "";
       const target = normalizeSourceIdentifier(rawTarget);
-      if (!rawTarget) issues.push({ level: "error", msg: "*gosub_scene needs a scene target", scene: sceneName, line: lineNumber });
-      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${rawTarget}`, scene: sceneName, line: lineNumber });
+      if (!rawTarget) issues.push({ level: "error", msg: "*gosub_scene needs a scene target", key: "gosub_scene_no_target", scene: sceneName, line: lineNumber });
+      else if (!isValidChoiceScriptIdentifier(rawTarget)) issues.push({ level: "error", msg: `*gosub_scene has an invalid scene identifier: ${rawTarget}`, key: "gosub_scene_invalid_id", params: { name: rawTarget }, scene: sceneName, line: lineNumber });
       else if (!scenes.has(target)) issues.push({ level: "error", msg: `*gosub_scene points to a missing scene: ${target}`, key: "gosub_scene_missing", params: { name: target }, scene: sceneName, line: lineNumber });
       else {
         const targetGraph = project.sceneData?.[target];
@@ -1023,7 +1023,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
             : [];
           const targetLabelNames = new Set([...visualLabelNames, ...sourceLabelNames]);
           if (targetLabelNames.size > 0 && !targetLabelNames.has(entryLabel)) {
-            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, scene: sceneName, line: lineNumber });
+            issues.push({ level: "warning", msg: `*gosub_scene entry label "${entryLabel}" not found in scene ${target}`, key: "gosub_scene_entry_missing", params: { label: entryLabel, scene: target }, scene: sceneName, line: lineNumber });
           }
         }
       }
@@ -1032,32 +1032,32 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const imageParts = sourceCommandValue(trimmed, "*image").split(/\s+/);
       const filename = imageParts[0] ?? "";
       const alignment = imageParts[1] ?? "";
-      if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", scene: sceneName, line: lineNumber });
+      if (!filename) issues.push({ level: "warning", msg: "*image needs a filename", key: "image_no_filename", scene: sceneName, line: lineNumber });
       if (filename && !IMAGE_EXTENSIONS.has(fileExtension(filename))) {
-        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${filename}`, scene: sceneName, line: lineNumber });
+        issues.push({ level: "warning", msg: `*image references a file with an unsupported extension: ${filename}`, key: "image_unsupported_ext", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
       if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
         issues.push({ level: "warning", msg: `*image references an unknown asset file: ${filename}`, key: "image_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
       if (alignment && !["none", "left", "right"].includes(alignment)) {
-        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${alignment}" — use none, left, or right`, scene: sceneName, line: lineNumber });
+        issues.push({ level: "warning", msg: `*image has an invalid alignment: "${alignment}" — use none, left, or right`, key: "image_invalid_alignment", params: { val: alignment }, scene: sceneName, line: lineNumber });
       }
     }
     if (command === "sound") {
       const filename = sourceCommandValue(trimmed, "*sound").split(/\s+/)[0] ?? "";
-      if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", scene: sceneName, line: lineNumber });
+      if (!filename) issues.push({ level: "warning", msg: "*sound needs a filename", key: "sound_no_filename", scene: sceneName, line: lineNumber });
       if (filename && !AUDIO_EXTENSIONS.has(fileExtension(filename))) {
-        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${filename}`, scene: sceneName, line: lineNumber });
+        issues.push({ level: "warning", msg: `*sound references a file with an unsupported extension: ${filename}`, key: "sound_unsupported_ext", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
       if (filename && (project.assets?.length ?? 0) > 0 && !isKnownAsset(project.assets ?? [], filename)) {
         issues.push({ level: "warning", msg: `*sound references an unknown asset file: ${filename}`, key: "sound_unknown", params: { name: filename }, scene: sceneName, line: lineNumber });
       }
     }
     if (command === "save_checkpoint") {
-      if (!sourceCommandValue(trimmed, "*save_checkpoint")) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", scene: sceneName, line: lineNumber });
+      if (!sourceCommandValue(trimmed, "*save_checkpoint")) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", key: "checkpoint_no_name", scene: sceneName, line: lineNumber });
     }
     if (command === "page_break" && !sourceCommandValue(trimmed, "*page_break")) {
-      issues.push({ level: "error", msg: "*page_break needs a button label", scene: sceneName, line: lineNumber });
+      issues.push({ level: "error", msg: "*page_break needs a button label", key: "page_break_no_label", scene: sceneName, line: lineNumber });
     }
     if (command === "set") {
       lintPreservedSetLine(variableNames, variableTypes, trimmed, sceneName, lineNumber, issues);
@@ -1079,9 +1079,9 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
       const rawAchievement = (achievementMatch[1] ?? "").trim();
       const achievement = normalizeSourceIdentifier(rawAchievement);
       if (!rawAchievement) {
-        issues.push({ level: "error", msg: "*achieve needs an achievement id", scene: sceneName, line: lineNumber });
+        issues.push({ level: "error", msg: "*achieve needs an achievement id", key: "achieve_no_id", scene: sceneName, line: lineNumber });
       } else if (!isValidChoiceScriptIdentifier(rawAchievement)) {
-        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${rawAchievement}`, scene: sceneName, line: lineNumber });
+        issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${rawAchievement}`, key: "achieve_invalid_id", params: { name: rawAchievement }, scene: sceneName, line: lineNumber });
       } else if (!achievements.has(achievement)) {
         issues.push({ level: "error", msg: `*achieve uses an undeclared achievement: ${achievement}`, key: "undef_ach", params: { name: achievement }, scene: sceneName, line: lineNumber });
       }
@@ -1129,18 +1129,18 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   });
   if (!hasGosub) {
     returnLines.forEach((line) => {
-      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub commands", scene: sceneName, line });
+      issues.push({ level: "warning", msg: "*return appears in a scene with no *gosub commands", key: "return_no_gosub", scene: sceneName, line });
     });
   }
 }
 
 function lintPreservedLabelLine(labels: Map<string, number>, label: string, sceneName: string, lineNumber: number, issues: LintIssue[]) {
   if (!label) {
-    issues.push({ level: "error", msg: "*label needs a name", scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: "*label needs a name", key: "label_no_name", scene: sceneName, line: lineNumber });
     return;
   }
   if (!isValidChoiceScriptIdentifier(label)) {
-    issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, key: "label_invalid_id", params: { name: label }, scene: sceneName, line: lineNumber });
     return;
   }
   if (labels.has(label)) {
@@ -1159,11 +1159,11 @@ function lintPreservedJumpLine(
   issues: LintIssue[],
 ) {
   if (!label) {
-    issues.push({ level: "error", msg: `${command} needs a label target`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `${command} needs a label target`, key: command === "*goto" ? "goto_no_target" : "gosub_no_target", scene: sceneName, line: lineNumber });
     return;
   }
   if (!isValidChoiceScriptIdentifier(label)) {
-    issues.push({ level: "error", msg: `${command} has an invalid label identifier: ${label}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `${command} has an invalid label identifier: ${label}`, key: command === "*goto" ? "goto_invalid_id" : "gosub_invalid_id", params: { name: label }, scene: sceneName, line: lineNumber });
     return;
   }
   referencedLabels.push({ label, line: lineNumber, command });
@@ -1181,20 +1181,20 @@ function lintPreservedTempLine(
   const normalizedName = normalizeSourceIdentifier(rawName);
 
   if (!rawName || !isValidChoiceScriptIdentifier(rawName)) {
-    issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${rawName || "(empty)"}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*temp has an invalid variable identifier: ${rawName || "(empty)"}`, key: "temp_invalid_id", params: { name: rawName || "(empty)" }, scene: sceneName, line: lineNumber });
     return;
   }
   if (isChoiceScriptReserved(rawName)) {
-    issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*temp name clashes with a ChoiceScript reserved word: ${normalizedName}`, key: "name_reserved", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
   }
   if (!rest.join(" ").trim()) {
-    issues.push({ level: "warning", msg: `*temp "${normalizedName}" has no initial value (defaults to 0)`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*temp "${normalizedName}" has no initial value (defaults to 0)`, key: "temp_no_initial", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
   }
   if (variables.has(normalizedName) && !localVariables.has(normalizedName)) {
     issues.push({ level: "warning", msg: `*temp shadows a global variable: ${normalizedName}`, key: "temp_shadows", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
   }
   if (localVariables.has(normalizedName)) {
-    issues.push({ level: "warning", msg: `*temp repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*temp repeats local variable: ${normalizedName}`, key: "temp_repeat", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
   }
   localVariables.set(normalizedName, lineNumber);
   variables.add(normalizedName);
@@ -1210,23 +1210,23 @@ function lintPreservedParamsLine(
 ) {
   const params = sourceCommandValue(line, "*params").split(/\s+/).filter(Boolean);
   if (!params.length) {
-    issues.push({ level: "error", msg: "*params needs at least one parameter", scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: "*params needs at least one parameter", key: "params_no_names", scene: sceneName, line: lineNumber });
     return;
   }
   params.forEach((rawName) => {
     const normalizedName = normalizeSourceIdentifier(rawName);
     if (!isValidChoiceScriptIdentifier(rawName)) {
-      issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${rawName}`, scene: sceneName, line: lineNumber });
+      issues.push({ level: "error", msg: `*params has an invalid parameter identifier: ${rawName}`, key: "params_invalid_id", params: { name: rawName }, scene: sceneName, line: lineNumber });
       return;
     }
     if (isChoiceScriptReserved(rawName)) {
-      issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: sceneName, line: lineNumber });
+      issues.push({ level: "error", msg: `*params name clashes with a ChoiceScript reserved word: ${normalizedName}`, key: "name_reserved", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
     }
     if (variables.has(normalizedName) && !localVariables.has(normalizedName)) {
       issues.push({ level: "warning", msg: `*params shadows a global variable: ${normalizedName}`, key: "temp_shadows", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
     }
     if (localVariables.has(normalizedName)) {
-      issues.push({ level: "warning", msg: `*params repeats local variable: ${normalizedName}`, scene: sceneName, line: lineNumber });
+      issues.push({ level: "warning", msg: `*params repeats local variable: ${normalizedName}`, key: "temp_repeat", params: { name: normalizedName }, scene: sceneName, line: lineNumber });
     }
     localVariables.set(normalizedName, lineNumber);
     variables.add(normalizedName);
@@ -1244,16 +1244,16 @@ function lintPreservedSetLine(
   const [rawVariable = "", maybeOp = "", ...rest] = sourceCommandValue(line, "*set").split(/\s+/);
   const variable = normalizeSourceIdentifier(rawVariable);
   if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
-    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${rawVariable || "(empty)"}`, key: "set_invalid_id", params: { name: rawVariable || "(empty)" }, scene: sceneName, line: lineNumber });
     return;
   }
   if (!maybeOp) {
-    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, key: "set_empty_value", params: { name: variable }, scene: sceneName, line: lineNumber });
     return;
   }
   const isExplicitOperator = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
   if (isExplicitOperator && !rest.join(" ").trim()) {
-    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*set has an empty value: ${variable}`, key: "set_empty_value", params: { name: variable }, scene: sceneName, line: lineNumber });
   }
   if (!variables.has(variable)) {
     issues.push({ level: "warning", msg: `*set uses an undeclared variable: ${variable}`, key: "undef_var", params: { name: variable }, scene: sceneName, line: lineNumber });
@@ -1261,10 +1261,10 @@ function lintPreservedSetLine(
   }
   const globalVariable = variableTypes.get(variable);
   if (globalVariable && globalVariable.type !== "number" && isExplicitOperator && maybeOp !== "=") {
-    issues.push({ level: "error", msg: `*set ${variable} uses an invalid operator for ${globalVariable.type}: ${maybeOp}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*set ${variable} uses an invalid operator for ${globalVariable.type}: ${maybeOp}`, key: "set_invalid_op", params: { name: variable, type: globalVariable.type, op: maybeOp }, scene: sceneName, line: lineNumber });
   }
   if (globalVariable?.type === "number" && (maybeOp === "%+" || maybeOp === "%-") && !globalVariable.fairmath) {
-    issues.push({ level: "warning", msg: `*set ${variable} uses fairmath without a percent stat format`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*set ${variable} uses fairmath without a percent stat format`, key: "set_fairmath_nopercent", params: { name: variable }, scene: sceneName, line: lineNumber });
   }
   const valueExpr = isExplicitOperator ? rest.join(" ") : [maybeOp, ...rest].join(" ");
   extractExpressionNames(normalizeSourceExpressionIdentifiers(valueExpr)).forEach((name) => {
@@ -1286,7 +1286,7 @@ function lintPreservedInputCommand(
   const [rawVariable = "", rawMin = "", rawMax = ""] = sourceCommandValue(line, `*${command}`).split(/\s+/);
   const variable = normalizeSourceIdentifier(rawVariable);
   if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
-    issues.push({ level: "error", msg: `*${command} has an invalid variable identifier: ${rawVariable || "(empty)"}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} has an invalid variable identifier: ${rawVariable || "(empty)"}`, key: "input_invalid_id", params: { name: rawVariable || "(empty)" }, scene: sceneName, line: lineNumber });
     return;
   }
   if (!variables.has(variable)) {
@@ -1294,14 +1294,14 @@ function lintPreservedInputCommand(
   }
   const globalVariable = variableTypes.get(variable);
   if (command === "input_text" && globalVariable && globalVariable.type !== "string") {
-    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variable}`, key: "input_text_needs_string", params: { name: variable }, scene: sceneName, line: lineNumber });
   }
   if ((command === "input_number" || command === "rand") && globalVariable && globalVariable.type !== "number") {
-    issues.push({ level: "error", msg: `*${command} requires a number variable: ${variable}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} requires a number variable: ${variable}`, key: "input_needs_number", params: { name: variable }, scene: sceneName, line: lineNumber });
   }
   if (command !== "input_number" && command !== "rand") return;
-  if (!rawMin) { issues.push({ level: "error", msg: `*${command} has an empty min bound`, scene: sceneName, line: lineNumber }); return; }
-  if (!rawMax) { issues.push({ level: "error", msg: `*${command} has an empty max bound`, scene: sceneName, line: lineNumber }); return; }
+  if (!rawMin) { issues.push({ level: "error", msg: `*${command} has an empty min bound`, key: "input_empty_min", scene: sceneName, line: lineNumber }); return; }
+  if (!rawMax) { issues.push({ level: "error", msg: `*${command} has an empty max bound`, key: "input_empty_max", scene: sceneName, line: lineNumber }); return; }
   const minNormalized = normalizeSourceIdentifier(rawMin);
   const maxNormalized = normalizeSourceIdentifier(rawMax);
   const minIsVar = isValidChoiceScriptIdentifier(rawMin);
@@ -1309,17 +1309,17 @@ function lintPreservedInputCommand(
   const min = minIsVar ? NaN : Number(rawMin);
   const max = maxIsVar ? NaN : Number(rawMax);
   if (minIsVar && !variables.has(minNormalized)) {
-    issues.push({ level: "warning", msg: `*${command} min bound uses undeclared variable: ${rawMin}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*${command} min bound uses undeclared variable: ${rawMin}`, key: "undef_var", params: { name: rawMin }, scene: sceneName, line: lineNumber });
   } else if (!minIsVar && !Number.isFinite(min)) {
-    issues.push({ level: "error", msg: `*${command} has an invalid min bound: ${rawMin}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} has an invalid min bound: ${rawMin}`, key: "input_invalid_min", params: { val: rawMin }, scene: sceneName, line: lineNumber });
   }
   if (maxIsVar && !variables.has(maxNormalized)) {
-    issues.push({ level: "warning", msg: `*${command} max bound uses undeclared variable: ${rawMax}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "warning", msg: `*${command} max bound uses undeclared variable: ${rawMax}`, key: "undef_var", params: { name: rawMax }, scene: sceneName, line: lineNumber });
   } else if (!maxIsVar && !Number.isFinite(max)) {
-    issues.push({ level: "error", msg: `*${command} has an invalid max bound: ${rawMax}`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} has an invalid max bound: ${rawMax}`, key: "input_invalid_max", params: { val: rawMax }, scene: sceneName, line: lineNumber });
   }
   if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
-    issues.push({ level: "error", msg: `*${command} min bound (${rawMin}) exceeds max bound (${rawMax})`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} min bound (${rawMin}) exceeds max bound (${rawMax})`, key: "input_bounds_order", params: { min: rawMin, max: rawMax }, scene: sceneName, line: lineNumber });
   }
   if (command === "rand" && !minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min === max) {
     issues.push({ level: "warning", msg: `*rand always produces the same value (min = max = ${min})`, key: "rand_same_bounds", params: { val: String(min) }, scene: sceneName, line: lineNumber });
@@ -1335,7 +1335,7 @@ function lintPreservedConditionLine(
   lineNumber: number,
 ) {
   if (!expression.trim()) {
-    issues.push({ level: "error", msg: `*${command} condition is empty`, scene: sceneName, line: lineNumber });
+    issues.push({ level: "error", msg: `*${command} condition is empty`, key: "cond_empty", params: { command }, scene: sceneName, line: lineNumber });
     return;
   }
   lintSourceExpression(expression, variables, issues, sceneName, lineNumber);
@@ -1365,10 +1365,10 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
       lintPreservedAchievementLine(projectAchievements, declaredAchievements, trimmed, lineNumber, issues);
     }
     if (command === "title" && !sourceCommandValue(trimmed, "*title")) {
-      issues.push({ level: "error", msg: "startup.txt has an empty *title", scene: "startup", line: lineNumber });
+      issues.push({ level: "error", msg: "startup.txt has an empty *title", key: "startup_empty_title", scene: "startup", line: lineNumber });
     }
     if (command === "author" && !sourceCommandValue(trimmed, "*author")) {
-      issues.push({ level: "error", msg: "startup.txt has an empty *author", scene: "startup", line: lineNumber });
+      issues.push({ level: "error", msg: "startup.txt has an empty *author", key: "startup_empty_author", scene: "startup", line: lineNumber });
     }
 
     if (command === "scene_list") {
@@ -1390,34 +1390,34 @@ function lintPreservedStartupSource(project: ChoiceForgeProject, sourceText: str
     const rawSceneName = trimmed.split(/\s+/)[0] ?? "";
     const sceneName = normalizeSourceIdentifier(rawSceneName);
     if (!rawSceneName || !isValidChoiceScriptIdentifier(rawSceneName)) {
-      issues.push({ level: "error", msg: `*scene_list has an invalid scene identifier: ${rawSceneName || "(empty)"}`, scene: "startup", line: lineNumber });
+      issues.push({ level: "error", msg: `*scene_list has an invalid scene identifier: ${rawSceneName || "(empty)"}`, key: "scene_list_invalid_id", params: { name: rawSceneName || "(empty)" }, scene: "startup", line: lineNumber });
       return;
     }
     if (listedScenes.has(sceneName)) {
-      issues.push({ level: "warning", msg: `*scene_list repeats scene: ${sceneName}`, scene: "startup", line: lineNumber });
+      issues.push({ level: "warning", msg: `*scene_list repeats scene: ${sceneName}`, key: "scene_list_repeat", params: { name: sceneName }, scene: "startup", line: lineNumber });
     }
     listedScenes.set(sceneName, lineNumber);
     if (!playableScenes.has(sceneName)) {
-      issues.push({ level: "error", msg: `*scene_list points to a missing scene: ${sceneName}`, scene: "startup", line: lineNumber });
+      issues.push({ level: "error", msg: `*scene_list points to a missing scene: ${sceneName}`, key: "scene_list_missing_scene", params: { name: sceneName }, scene: "startup", line: lineNumber });
     }
   });
 
   if (!foundSceneList) {
-    issues.push({ level: "error", msg: "startup.txt needs a *scene_list", scene: "startup", line: 1 });
+    issues.push({ level: "error", msg: "startup.txt needs a *scene_list", key: "startup_needs_scene_list", scene: "startup", line: 1 });
   }
   playableScenes.forEach((sceneName) => {
     if (!listedScenes.has(sceneName)) {
-      issues.push({ level: "warning", msg: `*scene_list omits project scene: ${sceneName}`, scene: "startup", line: 1 });
+      issues.push({ level: "warning", msg: `*scene_list omits project scene: ${sceneName}`, key: "scene_list_omits_scene", params: { name: sceneName }, scene: "startup", line: 1 });
     }
   });
   project.variables.forEach((variable) => {
     if (!declaredVariables.has(variable.name)) {
-      issues.push({ level: "warning", msg: `startup.txt omits project variable: ${variable.name}`, scene: "startup", line: 1 });
+      issues.push({ level: "warning", msg: `startup.txt omits project variable: ${variable.name}`, key: "startup_omits_var", params: { name: variable.name }, scene: "startup", line: 1 });
     }
   });
   project.achievements.forEach((achievement) => {
     if (!declaredAchievements.has(achievement.id)) {
-      issues.push({ level: "warning", msg: `startup.txt omits project achievement: ${achievement.id}`, scene: "startup", line: 1 });
+      issues.push({ level: "warning", msg: `startup.txt omits project achievement: ${achievement.id}`, key: "startup_omits_ach", params: { name: achievement.id }, scene: "startup", line: 1 });
     }
   });
 }
@@ -1434,18 +1434,18 @@ function lintPreservedCreateLine(
   const initial = rest.join(" ");
 
   if (!rawName || !isValidChoiceScriptIdentifier(rawName)) {
-    issues.push({ level: "error", msg: `*create has an invalid variable identifier: ${rawName || "(empty)"}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*create has an invalid variable identifier: ${rawName || "(empty)"}`, key: "create_invalid_id", params: { name: rawName || "(empty)" }, scene: "startup", line: lineNumber });
     return;
   }
   if (isChoiceScriptReserved(rawName)) {
-    issues.push({ level: "error", msg: `*create name clashes with a ChoiceScript reserved word: ${normalizedName}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*create name clashes with a ChoiceScript reserved word: ${normalizedName}`, key: "create_reserved", params: { name: normalizedName }, scene: "startup", line: lineNumber });
   }
   if (!initial.trim()) {
-    issues.push({ level: "error", msg: `*create has an empty initial value: ${normalizedName}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*create has an empty initial value: ${normalizedName}`, key: "create_empty_value", params: { name: normalizedName }, scene: "startup", line: lineNumber });
   }
   const projectVariable = projectVariables.get(normalizedName);
   if (projectVariable && initial.trim() && !isValidVariableInitial({ ...projectVariable, initial })) {
-    issues.push({ level: "error", msg: `*create ${normalizedName} has an invalid ${projectVariable.type} initial value: ${initial}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*create ${normalizedName} has an invalid ${projectVariable.type} initial value: ${initial}`, key: "create_invalid_value", params: { name: normalizedName, type: projectVariable.type, value: initial }, scene: "startup", line: lineNumber });
   }
   if (projectVariable?.type === "number" && projectVariable.fairmath && initial.trim()) {
     const initialNum = Number(initial.trim());
@@ -1454,11 +1454,11 @@ function lintPreservedCreateLine(
     }
   }
   if (declaredVariables.has(normalizedName)) {
-    issues.push({ level: "error", msg: `startup.txt repeats *create variable: ${normalizedName}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `startup.txt repeats *create variable: ${normalizedName}`, key: "create_repeat", params: { name: normalizedName }, scene: "startup", line: lineNumber });
   }
   declaredVariables.set(normalizedName, lineNumber);
   if (!projectVariables.has(normalizedName)) {
-    issues.push({ level: "warning", msg: `*create declares a variable missing from project metadata: ${normalizedName}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "warning", msg: `*create declares a variable missing from project metadata: ${normalizedName}`, key: "create_extra_var", params: { name: normalizedName }, scene: "startup", line: lineNumber });
   }
 }
 
@@ -1475,24 +1475,24 @@ function lintPreservedAchievementLine(
   const title = titleParts.join(" ").trim();
 
   if (!rawId || !isValidChoiceScriptIdentifier(rawId)) {
-    issues.push({ level: "error", msg: `*achievement has an invalid identifier: ${rawId || "(empty)"}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*achievement has an invalid identifier: ${rawId || "(empty)"}`, key: "ach_src_invalid_id", params: { name: rawId || "(empty)" }, scene: "startup", line: lineNumber });
     return;
   }
   if (!visibility || (visibility !== "visible" && visibility !== "hidden")) {
-    issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility || "(empty)"}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*achievement has invalid visibility: ${visibility || "(empty)"}`, key: "ach_invalid_vis", params: { value: visibility || "(empty)" }, scene: "startup", line: lineNumber });
   }
   if (!rawPoints || !Number.isInteger(points) || points < 0) {
-    issues.push({ level: "error", msg: `*achievement has invalid points: ${rawPoints || "(empty)"}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*achievement has invalid points: ${rawPoints || "(empty)"}`, key: "ach_invalid_points_src", params: { value: rawPoints || "(empty)" }, scene: "startup", line: lineNumber });
   }
   if (!title) {
-    issues.push({ level: "error", msg: `*achievement has an empty title: ${normalizedId}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `*achievement has an empty title: ${normalizedId}`, key: "ach_src_empty_title", params: { name: normalizedId }, scene: "startup", line: lineNumber });
   }
   if (declaredAchievements.has(normalizedId)) {
-    issues.push({ level: "error", msg: `startup.txt repeats *achievement: ${normalizedId}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "error", msg: `startup.txt repeats *achievement: ${normalizedId}`, key: "ach_src_repeat", params: { name: normalizedId }, scene: "startup", line: lineNumber });
   }
   declaredAchievements.set(normalizedId, lineNumber);
   if (!projectAchievements.has(normalizedId)) {
-    issues.push({ level: "warning", msg: `*achievement declares an achievement missing from project metadata: ${normalizedId}`, scene: "startup", line: lineNumber });
+    issues.push({ level: "warning", msg: `*achievement declares an achievement missing from project metadata: ${normalizedId}`, key: "ach_src_extra", params: { name: normalizedId }, scene: "startup", line: lineNumber });
   }
 }
 
@@ -1579,15 +1579,15 @@ function lintLabels(
   const seen = new Map<string, StoryNode>();
   labels.forEach(({ node, label }) => {
     if (!label) {
-      issues.push({ level: "error", msg: `*label node "${node.title}" has an empty label`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*label node "${node.title}" has an empty label`, key: "label_node_empty", params: { name: node.title }, scene: sceneName, node: node.id });
       return;
     }
     if (!isValidChoiceScriptIdentifier(label)) {
-      issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*label has an invalid identifier: ${label}`, key: "label_invalid_id", params: { name: label }, scene: sceneName, node: node.id });
       return;
     }
     if (generatedLabels.has(label)) {
-      issues.push({ level: "error", msg: `*label collides with a generated ChoiceForge label: ${label}`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*label collides with a generated ChoiceForge label: ${label}`, key: "label_collision", params: { name: label }, scene: sceneName, node: node.id });
       return;
     }
     const previous = seen.get(label);
@@ -1611,13 +1611,14 @@ function lintChoiceNode(
   if (!node.options?.length) {
     issues.push({ level: "error", msg: `*choice node "${node.title}" has no options`, key: "empty_choice", scene: sceneName, node: node.id });
   } else if (node.options.length === 1) {
-    issues.push({ level: "warning", msg: `*choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
+    issues.push({ level: "warning", msg: `*choice node "${node.title}" has only one option — ChoiceScript requires at least two`, key: "choice_single_option", params: { name: node.title }, scene: sceneName, node: node.id });
   }
   const seenOptionText = new Set<string>();
   node.options?.forEach((option, index) => {
-    if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
-    if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, scene: sceneName, node: node.id });
-    if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, scene: sceneName, node: node.id });
+    const num = String(index + 1);
+    if (!option.text.trim()) issues.push({ level: "error", msg: `option #${index + 1} is empty in "${node.title}"`, key: "option_empty", params: { num, name: node.title }, scene: sceneName, node: node.id });
+    if (!nodeIds.has(option.to)) issues.push({ level: "error", msg: `option #${index + 1} points to a missing node: ${option.to}`, key: "option_missing_target", params: { num, name: node.title }, scene: sceneName, node: node.id });
+    if (option.to === node.id) issues.push({ level: "warning", msg: `option #${index + 1} loops back to its own *choice node`, key: "option_self_loop", params: { num, name: node.title }, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
     extractVariableReferences(option.text).forEach((name) => {
@@ -1634,7 +1635,7 @@ function lintChoiceNode(
   if ((node.options?.length ?? 0) > 1) {
     const validTargets = node.options!.filter((opt) => nodeIds.has(opt.to)).map((opt) => opt.to);
     if (validTargets.length === node.options!.length && new Set(validTargets).size === 1) {
-      issues.push({ level: "warning", msg: `all options in *choice "${node.title}" lead to the same node — consider simplifying`, scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: `all options in *choice "${node.title}" lead to the same node — consider simplifying`, key: "choice_all_same_target", params: { name: node.title }, scene: sceneName, node: node.id });
     }
   }
 }
@@ -1650,11 +1651,12 @@ function lintFakeChoiceNode(
   if (!node.fakeOptions?.length) {
     issues.push({ level: "error", msg: `*fake_choice node "${node.title}" has no options`, key: "empty_fake_choice", scene: sceneName, node: node.id });
   } else if (node.fakeOptions.length === 1) {
-    issues.push({ level: "warning", msg: `*fake_choice node "${node.title}" has only one option — ChoiceScript requires at least two`, scene: sceneName, node: node.id });
+    issues.push({ level: "warning", msg: `*fake_choice node "${node.title}" has only one option — ChoiceScript requires at least two`, key: "choice_single_option", params: { name: node.title }, scene: sceneName, node: node.id });
   }
   const seenFakeText = new Set<string>();
   node.fakeOptions?.forEach((option, index) => {
-    if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, scene: sceneName, node: node.id });
+    const num = String(index + 1);
+    if (!option.text.trim()) issues.push({ level: "error", msg: `fake choice option #${index + 1} is empty in "${node.title}"`, key: "option_empty", params: { num, name: node.title }, scene: sceneName, node: node.id });
     lintCondition(option.cond, variables, issues, sceneName, node.id);
     option.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
     extractVariableReferences(option.text).forEach((name) => {
@@ -1684,23 +1686,23 @@ function lintIfNode(
   let seenElse = false;
   node.branches?.forEach((branch, index) => {
     if (index === 0 && branch.kind !== "if") {
-      issues.push({ level: "error", msg: `*if node "${node.title}" must start with an *if branch`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*if node "${node.title}" must start with an *if branch`, key: "if_must_start_if", params: { name: node.title }, scene: sceneName, node: node.id });
     }
     if (seenElse) {
-      issues.push({ level: "error", msg: `*if node "${node.title}" has a branch after *else`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*if node "${node.title}" has a branch after *else`, key: "if_branch_after_else", params: { name: node.title }, scene: sceneName, node: node.id });
     }
     if (branch.kind === "else" && seenElse) {
-      issues.push({ level: "error", msg: `*if node "${node.title}" has multiple *else branches`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*if node "${node.title}" has multiple *else branches`, key: "if_multiple_else", params: { name: node.title }, scene: sceneName, node: node.id });
     }
     if (branch.kind === "else") seenElse = true;
     if (branch.kind === "else" && branch.expr?.trim()) {
-      issues.push({ level: "error", msg: "*else branch cannot have a condition", scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: "*else branch cannot have a condition", key: "if_else_has_cond", scene: sceneName, node: node.id });
     }
     if ((branch.kind === "if" || branch.kind === "elseif") && !branch.expr?.trim()) {
-      issues.push({ level: "error", msg: `*${branch.kind} branch needs a condition`, scene: sceneName, node: node.id });
+      issues.push({ level: "error", msg: `*${branch.kind} branch needs a condition`, key: "if_branch_no_cond", params: { kind: branch.kind }, scene: sceneName, node: node.id });
     }
-    if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, scene: sceneName, node: node.id });
-    if (branch.to === node.id) issues.push({ level: "warning", msg: `branch *${branch.kind} loops back to its own *if node`, scene: sceneName, node: node.id });
+    if (!nodeIds.has(branch.to)) issues.push({ level: "error", msg: `branch *${branch.kind} points to a missing node: ${branch.to}`, key: "if_branch_missing_target", params: { kind: branch.kind }, scene: sceneName, node: node.id });
+    if (branch.to === node.id) issues.push({ level: "warning", msg: `branch *${branch.kind} loops back to its own *if node`, key: "if_branch_self_loop", params: { kind: branch.kind }, scene: sceneName, node: node.id });
     lintExpression(branch.expr, variables, issues, sceneName, node.id);
     branch.sets?.forEach((set) => lintSet(set, variables, variableTypes, issues, sceneName, node.id));
   });
@@ -1708,7 +1710,7 @@ function lintIfNode(
   if (hasElse && (node.branches?.length ?? 0) > 1) {
     const validTargets = node.branches!.filter((b) => nodeIds.has(b.to)).map((b) => b.to);
     if (validTargets.length === node.branches!.length && new Set(validTargets).size === 1) {
-      issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node — consider simplifying`, scene: sceneName, node: node.id });
+      issues.push({ level: "warning", msg: `all branches in *if "${node.title}" lead to the same node — consider simplifying`, key: "if_all_same_target", params: { name: node.title }, scene: sceneName, node: node.id });
     }
   }
 }
@@ -1839,7 +1841,7 @@ function checkpointSlot(value: string, command: "*save_checkpoint" | "*restore_c
 function lintCondition(condition: ChoiceCondition | null | undefined, variables: Set<string>, issues: LintIssue[], scene: string, node: string) {
   if (!condition) return;
   if (!condition.expr.trim()) {
-    issues.push({ level: "error", msg: `*${condition.type} condition is empty`, scene, node });
+    issues.push({ level: "error", msg: `*${condition.type} condition is empty`, key: "cond_empty", params: { kind: condition.type }, scene, node });
     return;
   }
   lintExpression(condition.expr, variables, issues, scene, node);
@@ -1854,15 +1856,15 @@ function lintSet(
   node: string,
 ) {
   if (!set.var.trim()) {
-    issues.push({ level: "error", msg: "*set needs a variable target", scene, node });
+    issues.push({ level: "error", msg: "*set needs a variable target", key: "set_no_target", scene, node });
     return;
   }
   if (!isValidChoiceScriptIdentifier(set.var)) {
-    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${set.var}`, scene, node });
+    issues.push({ level: "error", msg: `*set has an invalid variable identifier: ${set.var}`, key: "set_invalid_id", params: { name: set.var }, scene, node });
     return;
   }
   if (!set.val.trim()) {
-    issues.push({ level: "error", msg: `*set ${set.var} has an empty value`, scene, node });
+    issues.push({ level: "error", msg: `*set ${set.var} has an empty value`, key: "set_empty_value", params: { name: set.var }, scene, node });
     return;
   }
   if (!variables.has(set.var)) {
@@ -1871,10 +1873,10 @@ function lintSet(
   }
   const variable = variableTypes.get(set.var);
   if (variable && variable.type !== "number" && set.op !== "=") {
-    issues.push({ level: "error", msg: `*set ${set.var} uses an invalid operator for ${variable.type}: ${set.op}`, scene, node });
+    issues.push({ level: "error", msg: `*set ${set.var} uses an invalid operator for ${variable.type}: ${set.op}`, key: "set_invalid_op", params: { name: set.var, type: variable.type, op: set.op }, scene, node });
   }
   if (variable?.type === "number" && (set.op === "%+" || set.op === "%-") && !variable.fairmath) {
-    issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, scene, node });
+    issues.push({ level: "warning", msg: `*set ${set.var} uses fairmath without a percent stat format`, key: "set_fairmath_nopercent", params: { name: set.var }, scene, node });
   }
   extractExpressionNames(set.val).forEach((name) => {
     if (!variables.has(name)) {
@@ -1893,23 +1895,23 @@ function lintInputNode(
   const command = node.type === "input_text" ? "*input_text" : node.type === "input_number" ? "*input_number" : "*rand";
   const variableName = (node.inputVar ?? stripCommandPrefix(node.title, command)).trim();
   if (!variableName) {
-    issues.push({ level: "error", msg: `${command} needs a variable target`, scene, node: node.id });
+    issues.push({ level: "error", msg: `${command} needs a variable target`, key: "input_no_target", scene, node: node.id });
     return;
   }
   if (!isValidChoiceScriptIdentifier(variableName)) {
-    issues.push({ level: "error", msg: `${command} has an invalid variable identifier: ${variableName}`, scene, node: node.id });
+    issues.push({ level: "error", msg: `${command} has an invalid variable identifier: ${variableName}`, key: "input_invalid_id", params: { name: variableName }, scene, node: node.id });
     return;
   }
   const variable = variableTypes.get(variableName);
   if (!variables.has(variableName) || !variable) {
-    issues.push({ level: "error", msg: `${command} uses an undeclared variable: ${variableName}`, scene, node: node.id });
+    issues.push({ level: "error", msg: `${command} uses an undeclared variable: ${variableName}`, key: "undef_var", params: { name: variableName }, scene, node: node.id });
     return;
   }
   if (node.type === "input_text" && variable.type !== "string") {
-    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variableName}`, scene, node: node.id });
+    issues.push({ level: "error", msg: `*input_text requires a string variable: ${variableName}`, key: "input_text_needs_string", params: { name: variableName }, scene, node: node.id });
   }
   if (node.type === "input_number" || node.type === "rand") {
-    if (variable.type !== "number") issues.push({ level: "error", msg: `${command} requires a number variable: ${variableName}`, scene, node: node.id });
+    if (variable.type !== "number") issues.push({ level: "error", msg: `${command} requires a number variable: ${variableName}`, key: "input_needs_number", params: { name: variableName }, scene, node: node.id });
     const minStr = node.inputMin ?? (node.type === "rand" ? "1" : "0");
     const maxStr = node.inputMax ?? "100";
     const minIsVar = isValidChoiceScriptIdentifier(minStr);
@@ -1917,17 +1919,17 @@ function lintInputNode(
     const min = minIsVar ? NaN : Number(minStr);
     const max = maxIsVar ? NaN : Number(maxStr);
     if (minIsVar && !variables.has(minStr)) {
-      issues.push({ level: "warning", msg: `${command} min bound uses undeclared variable: ${minStr}`, scene, node: node.id });
+      issues.push({ level: "warning", msg: `${command} min bound uses undeclared variable: ${minStr}`, key: "undef_var", params: { name: minStr }, scene, node: node.id });
     } else if (!minIsVar && !Number.isFinite(min)) {
-      issues.push({ level: "error", msg: `${command} has an invalid min bound: ${minStr}`, scene, node: node.id });
+      issues.push({ level: "error", msg: `${command} has an invalid min bound: ${minStr}`, key: "input_invalid_min", params: { val: minStr }, scene, node: node.id });
     }
     if (maxIsVar && !variables.has(maxStr)) {
-      issues.push({ level: "warning", msg: `${command} max bound uses undeclared variable: ${maxStr}`, scene, node: node.id });
+      issues.push({ level: "warning", msg: `${command} max bound uses undeclared variable: ${maxStr}`, key: "undef_var", params: { name: maxStr }, scene, node: node.id });
     } else if (!maxIsVar && !Number.isFinite(max)) {
-      issues.push({ level: "error", msg: `${command} has an invalid max bound: ${maxStr}`, scene, node: node.id });
+      issues.push({ level: "error", msg: `${command} has an invalid max bound: ${maxStr}`, key: "input_invalid_max", params: { val: maxStr }, scene, node: node.id });
     }
     if (!minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min > max) {
-      issues.push({ level: "error", msg: `${command} min bound (${minStr}) exceeds max bound (${maxStr})`, scene, node: node.id });
+      issues.push({ level: "error", msg: `${command} min bound (${minStr}) exceeds max bound (${maxStr})`, key: "input_bounds_order", params: { min: minStr, max: maxStr }, scene, node: node.id });
     }
     if (node.type === "rand" && !minIsVar && !maxIsVar && Number.isFinite(min) && Number.isFinite(max) && min === max) {
       issues.push({ level: "warning", msg: `*rand always produces the same value (min = max = ${min})`, key: "rand_same_bounds", params: { val: String(min) }, scene, node: node.id });
@@ -1938,11 +1940,11 @@ function lintInputNode(
 function lintAchievementCommands(text: string, achievements: Set<string>, issues: LintIssue[], scene: string, node: string) {
   extractAchievementCommandTargets(text).forEach((id) => {
     if (!id) {
-      issues.push({ level: "error", msg: "*achieve needs an achievement id", scene, node });
+      issues.push({ level: "error", msg: "*achieve needs an achievement id", key: "achieve_no_id", scene, node });
       return;
     }
     if (!isValidChoiceScriptIdentifier(id)) {
-      issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${id}`, scene, node });
+      issues.push({ level: "error", msg: `*achieve has an invalid achievement identifier: ${id}`, key: "achieve_invalid_id", params: { name: id }, scene, node });
       return;
     }
     if (!achievements.has(id)) {
