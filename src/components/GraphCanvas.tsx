@@ -507,7 +507,12 @@ export function GraphCanvas({
           {connecting && <path d={`M ${connecting.x1} ${connecting.y1} C ${(connecting.x1 + connecting.x2) / 2} ${connecting.y1}, ${(connecting.x1 + connecting.x2) / 2} ${connecting.y2}, ${connecting.x2} ${connecting.y2}`} className="edge-preview" />}
         </svg>
 
-        {data.nodes.map((node) => (
+        {(drag || selBoxDisplay ? data.nodes : data.nodes.filter((n) => {
+          const vx = -pan.x / zoom, vy = -pan.y / zoom;
+          const vw = viewport.width / zoom, vh = viewport.height / zoom;
+          const buf = 350;
+          return n.x + n.w >= vx - buf && n.x <= vx + vw + buf && n.y + 600 >= vy - buf && n.y <= vy + vh + buf;
+        })).map((node) => (
           <NodeCard
             key={node.id}
             node={node}

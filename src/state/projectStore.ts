@@ -243,7 +243,11 @@ export function useProjectStore() {
         const saved = commitProject(current);
         const scene = current.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special) return current;
-        const graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
+        let graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
+        if (graph.sourceText && graph.nodes.length === 0) {
+          graph = layoutSceneGraph({ ...importChoiceScriptSceneText(scene.name, graph.sourceText), sourceText: graph.sourceText });
+        }
+        const updatedSceneData = graph !== (saved.sceneData?.[scene.name]) ? { ...(saved.sceneData ?? {}), [scene.name]: graph } : saved.sceneData;
         return commitProject({
           ...saved,
           sceneTitle: scene.name,
@@ -251,6 +255,7 @@ export function useProjectStore() {
           scenes: saved.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
           nodes: graph.nodes,
           edges: graph.edges,
+          sceneData: updatedSceneData,
         });
       });
     },
