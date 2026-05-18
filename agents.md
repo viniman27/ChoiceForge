@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 168
+- **Fix node overlap and edge crossings in horizontal layout.**
+  - **Overlap root cause**: `estimateLayoutNodeHeight` used a fixed 90px for `node.body` regardless of content length. Long narrative passages (200–1000 chars) render 200–500px tall, so nodes in the same column were placed on top of each other. Fix: body height is now proportional — `ceil(body.length / charsPerLine) * 18`, min 60px.
+  - **Crossing root cause**: nodes within each column were sorted by their pre-layout `node.y` value (all 0 for fresh imports), so ordering was arbitrary. Fix: barycenter sort — each column's nodes are ordered by the mean Y of their already-placed predecessors. Standard graph-drawing heuristic for crossing minimisation.
+  - Also added `predecessors` map (tracking which nodes point TO each node) alongside the existing `outgoing` / `incoming` maps. `verticalGap` bumped from 90 → 100.
+  - **Files changed**: `graphLayout.ts` (predecessors map, barycenter sort, proportional body height).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 167
 - **Revert to always-horizontal layout — user prefers wide over tall.**
   - User explicitly rejected comic-strip/vertical approaches. Horizontal layout (depth = columns, left→right) is the priority even for 200-node linear chains. Wide canvas is acceptable; vertical is not.
