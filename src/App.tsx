@@ -54,7 +54,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const { lintedProject, actions, snapshotIndex } = useProjectStore();
+  const { lintedProject, actions, snapshotIndex, isParsingScene } = useProjectStore();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -395,6 +395,7 @@ export default function App() {
             const scene = lintedProject.scenes.find((s) => s.name === sceneName);
             if (scene) navigateToScene(scene.id);
           }}
+          isParsingScene={isParsingScene}
         />
       )}
       <button

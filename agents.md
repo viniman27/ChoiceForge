@@ -343,6 +343,13 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 160
+- **Show loading spinner while large scenes parse (two-phase lazy load).**
+  - **Problem**: The lazy scene parse (`createImportedSceneGraph` + `layoutSceneGraph`) runs synchronously on the JS main thread. Clicking a large scene froze the browser for several seconds with a blank/white canvas — no indication it was loading.
+  - **Fix**: Split `selectScene` into two React renders. Phase 1: navigate immediately to the scene with empty nodes (canvas is visible but empty). Phase 2: after the next event-loop tick (`setTimeout(0)`), run the actual parse and update state. A `useEffect` in the store triggers the deferred parse when `isParsingScene` is true. A visual overlay (spinner + "Loading scene…" text) is shown on the canvas during parsing. The overlay uses `pointer-events: none` so it doesn't block interaction.
+  - **Files changed**: `projectStore.ts` (added `isParsingScene` state + deferred-parse `useEffect` + modified `selectScene`), `GraphCanvas.tsx` (new `isParsingScene` prop + overlay JSX), `App.tsx` (pass `isParsingScene` to GraphCanvas), `styles.css` (new `.canvas-parse-overlay` + `.canvas-parse-spinner` + `@keyframes spin`).
+  - **Tests**: 269 passing, build clean.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 159
 - **Fix CSS specificity bug making tag-filter color dots invisible.**
   - **Root cause**: `.zoom-controls button` (specificity 0,1,1) overrode `.zoom-color-dot` (0,1,0), setting `background: transparent` on the dots and wiping out `background: var(--ct)`. No color was visible at any zoom/opacity/scale.

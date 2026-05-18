@@ -112,6 +112,7 @@ export function useProjectStore() {
   const historyRef = useRef<ChoiceForgeProject[]>([]);
   const futureRef = useRef<ChoiceForgeProject[]>([]);
   const [snapshotIndex, setSnapshotIndex] = useState<SnapshotMeta[]>(loadSnapshotIndex);
+  const [isParsingScene, setIsParsingScene] = useState(false);
   const projectRef = useRef(project);
   projectRef.current = project;
 
@@ -152,6 +153,25 @@ export function useProjectStore() {
       document.removeEventListener("visibilitychange", visibilityChange);
     };
   }, [project]);
+
+  useEffect(() => {
+    if (!isParsingScene) return;
+    const handle = window.setTimeout(() => {
+      setProjectState((current) => {
+        const graph = current.sceneData?.[current.sceneTitle];
+        if (!graph?.sourceText || graph.nodes.length > 0) { setIsParsingScene(false); return current; }
+        const parsed = layoutSceneGraph({ ...importChoiceScriptSceneText(current.sceneTitle, graph.sourceText), sourceText: graph.sourceText });
+        setIsParsingScene(false);
+        return commitProject({
+          ...current,
+          nodes: parsed.nodes,
+          edges: parsed.edges,
+          sceneData: { ...(current.sceneData ?? {}), [current.sceneTitle]: parsed },
+        });
+      });
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [isParsingScene]);
 
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);
 
@@ -243,11 +263,9 @@ export function useProjectStore() {
         const saved = commitProject(current);
         const scene = current.scenes.find((candidate) => candidate.id === id);
         if (!scene || scene.isStart || scene.special) return current;
-        let graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
-        if (graph.sourceText && graph.nodes.length === 0) {
-          graph = layoutSceneGraph({ ...importChoiceScriptSceneText(scene.name, graph.sourceText), sourceText: graph.sourceText });
-        }
-        const updatedSceneData = graph !== (saved.sceneData?.[scene.name]) ? { ...(saved.sceneData ?? {}), [scene.name]: graph } : saved.sceneData;
+        const graph = saved.sceneData?.[scene.name] ?? createEmptySceneGraph(scene.name);
+        const needsLazyParse = graph.sourceText !== undefined && graph.nodes.length === 0;
+        if (needsLazyParse) setIsParsingScene(true);
         return commitProject({
           ...saved,
           sceneTitle: scene.name,
@@ -255,7 +273,6 @@ export function useProjectStore() {
           scenes: saved.scenes.map((candidate) => ({ ...candidate, current: candidate.id === id })),
           nodes: graph.nodes,
           edges: graph.edges,
-          sceneData: updatedSceneData,
         });
       });
     },
@@ -820,7 +837,7 @@ export function useProjectStore() {
     },
   }), [historyLength, setTrackedProjectState]);
 
-  return { project, lintedProject, actions, snapshotIndex };
+  return { project, lintedProject, actions, snapshotIndex, isParsingScene };
 }
 
 function renameVariableReferences(text: string, from: string, to: string): string {
