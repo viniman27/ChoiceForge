@@ -119,6 +119,7 @@ export function GraphCanvas({
   const errorNodeIds = new Set(data.lints.filter((lint) => lint.level === "error" && lint.node).map((lint) => lint.node));
   const warnNodeIds = new Set(data.lints.filter((lint) => lint.level === "warning" && lint.node).map((lint) => lint.node));
 
+
   useEffect(() => {
     const element = canvasRef.current;
     if (!element) return;
