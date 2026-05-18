@@ -348,7 +348,8 @@ When you see something in the spec that sounds implemented but isn't in the code
   - Added 21 new tests covering all keys introduced in session 176: `startup_empty_title`, `startup_empty_author`, `startup_needs_scene_list`, `scene_list_invalid_id`, `scene_list_repeat`, `scene_list_missing_scene`, `scene_list_omits_scene`, `startup_omits_var`, `startup_omits_ach`, `create_invalid_id`, `create_reserved`, `create_empty_value`, `create_repeat`, `create_extra_var`, `ach_src_invalid_id`, `ach_invalid_vis`, `ach_invalid_points_src`, `ach_src_empty_title`, `ach_src_repeat`, `ach_src_extra`, `cond_empty`.
   - Each test verifies that the `key` field and relevant `params` entries are correctly emitted.
   - **Files changed**: `domain.test.ts`.
-  - **Tests**: 294 passing (21 new).
+  - Also added `create_invalid_value` test (boolean type mismatch, verifies name/type/value params).
+  - **Tests**: 295 passing (22 new).
 
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 176
 - **Completed full lint message localization pass (second batch).**
