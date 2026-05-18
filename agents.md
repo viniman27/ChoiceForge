@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 166
+- **Comic-strip layout for deep imported scenes (replaces vertical-only layout).**
+  - **Problem**: Single-column vertical layout for 200-node linear files is "muito confuso, nada intuitivo" — 100,000px tall, one node wide.
+  - **Fix**: For scenes with > 8 depth levels (`isDeep`), switched to **comic-strip layout**: nodes laid out left→right across `COMIC_COLS=5` columns, then wrapping down to the next row. Row heights use `max(300, cellHeight × 1.5) + 80` to absorb estimation inaccuracy between rows. For ≤ 8 depth levels, the existing horizontal layout is unchanged.
+  - **Result for chap1.txt**: 200 nodes fill ~5 columns × 40 rows ≈ 2,700px wide × ~25,000px tall — much more readable than the single column.
+  - **Files changed**: `graphLayout.ts` (replaced vertical layout with comic-strip in `layoutStoryNodes`).
+  - **Tests**: 269 passing.
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 165
 - **Replace grid-wrap with top-to-bottom layout for deep scenes.**
   - **Problem**: The previous grid wrap (8 cols × N rows) caused node overlap because `estimateLayoutNodeHeight` underestimates tall fakeOptions nodes. The grid strategy required cross-row height comparison, which amplified estimation error.

@@ -75,6 +75,7 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
   const positions = new Map<string, { x: number; y: number }>();
 
   const DEEP_THRESHOLD = 8;
+  const COMIC_COLS = 5;
   const isDeep = orderedColumns.length > DEEP_THRESHOLD;
 
   const sortGroup = (groupNodes: StoryNode[]) =>
@@ -98,19 +99,46 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"]): Story
       columnX += maxWidth + horizontalGap;
     });
   } else {
-    // Vertical layout: depths become rows (top → bottom)
-    // Nodes at the same depth spread horizontally within their row.
-    // Row spacing is generous (×1.5) to absorb height estimation error.
-    let currentY = startY;
-    orderedColumns.forEach(([, rowNodes]) => {
-      const sorted = sortGroup(rowNodes);
-      const rowHeight = sorted.reduce((acc, node) => Math.max(acc, estimateLayoutNodeHeight(node)), 0);
-      let nodeX = startX;
+    // Comic-strip layout for deep scenes: left→right across COMIC_COLS columns, then wrap down.
+    // Nodes at the same depth (branching) stack inside their cell.
+
+    // Max width per grid column (same column index across all rows)
+    const gridColWidths: number[] = Array(COMIC_COLS).fill(260) as number[];
+    orderedColumns.forEach(([, depthNodes], i) => {
+      const gc = i % COMIC_COLS;
+      const maxW = depthNodes.reduce((acc, n) => Math.max(acc, n.w), 260);
+      if (maxW > gridColWidths[gc]!) gridColWidths[gc] = maxW;
+    });
+
+    const gridColX: number[] = [startX];
+    for (let c = 1; c < COMIC_COLS; c++) {
+      gridColX.push(gridColX[c - 1]! + gridColWidths[c - 1]! + horizontalGap);
+    }
+
+    // Max cell height per grid row (tallest cell in that row, with safety margin)
+    const numGridRows = Math.ceil(orderedColumns.length / COMIC_COLS);
+    const gridRowHeights: number[] = Array(numGridRows).fill(0) as number[];
+    orderedColumns.forEach(([, depthNodes], i) => {
+      const gr = Math.floor(i / COMIC_COLS);
+      const cellH = depthNodes.reduce((acc, n) => acc + estimateLayoutNodeHeight(n) + verticalGap, 0);
+      if (cellH > gridRowHeights[gr]!) gridRowHeights[gr] = cellH;
+    });
+
+    const gridRowY: number[] = [startY];
+    for (let r = 1; r < numGridRows; r++) {
+      gridRowY.push(gridRowY[r - 1]! + Math.max(300, Math.round(gridRowHeights[r - 1]! * 1.5)) + 80);
+    }
+
+    // Place nodes
+    orderedColumns.forEach(([, depthNodes], i) => {
+      const gc = i % COMIC_COLS;
+      const gr = Math.floor(i / COMIC_COLS);
+      const sorted = sortGroup(depthNodes);
+      let nodeY = gridRowY[gr] ?? startY;
       sorted.forEach((node) => {
-        positions.set(node.id, { x: nodeX, y: currentY });
-        nodeX += node.w + horizontalGap;
+        positions.set(node.id, { x: gridColX[gc] ?? startX, y: nodeY });
+        nodeY += estimateLayoutNodeHeight(node) + verticalGap;
       });
-      currentY += Math.round(rowHeight * 1.5) + verticalGap;
     });
   }
 
