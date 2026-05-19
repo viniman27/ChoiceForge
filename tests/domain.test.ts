@@ -5602,6 +5602,252 @@ test("*if without else where all branches lead to flow target emits if_noop key"
   assert.ok(issue, "expected if_noop when all branches lead to same node as flow target (no else)");
 });
 
+test("project with empty title emits project_empty_title key", () => {
+  const project = { ...minimalProject(), title: "" };
+  const issue = lintProject(project).find((i) => i.key === "project_empty_title");
+  assert.ok(issue, "expected project_empty_title");
+  assert.equal(issue!.level, "error");
+});
+
+test("project with empty author emits project_empty_author key", () => {
+  const project = { ...minimalProject(), author: "" };
+  const issue = lintProject(project).find((i) => i.key === "project_empty_author");
+  assert.ok(issue, "expected project_empty_author");
+  assert.equal(issue!.level, "error");
+});
+
+test("choice node with no options emits empty_choice key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "empty_choice");
+  assert.ok(issue, "expected empty_choice");
+  assert.equal(issue!.level, "error");
+});
+
+test("fake_choice node with no options emits empty_fake_choice key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "fake_choice", x: 0, y: 0, w: 240, title: "*fake_choice", fakeOptions: [] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "empty_fake_choice");
+  assert.ok(issue, "expected empty_fake_choice");
+  assert.equal(issue!.level, "error");
+});
+
+test("if node with no branches emits empty_if key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "empty_if");
+  assert.ok(issue, "expected empty_if");
+  assert.equal(issue!.level, "error");
+});
+
+test("option with empty text emits option_empty key with num and name params", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [{ text: "", to: "n2" }, { text: "OK", to: "n2" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "choice", label: "#1" }, { from: "n1", to: "n2", kind: "choice", label: "#2" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "option_empty");
+  assert.ok(issue, "expected option_empty");
+  assert.equal(issue!.params?.num, "1");
+});
+
+test("option pointing to its own choice node emits option_self_loop key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [{ text: "Loop", to: "n1" }, { text: "OK", to: "n2" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n1", kind: "choice", label: "#1" }, { from: "n1", to: "n2", kind: "choice", label: "#2" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "option_self_loop");
+  assert.ok(issue, "expected option_self_loop");
+  assert.equal(issue!.params?.num, "1");
+});
+
+test("all choice options pointing to same node emits choice_all_same_target key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "choice", x: 0, y: 0, w: 240, title: "*choice", options: [{ text: "A", to: "n2" }, { text: "B", to: "n2" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "choice", label: "#1" }, { from: "n1", to: "n2", kind: "choice", label: "#2" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "choice_all_same_target");
+  assert.ok(issue, "expected choice_all_same_target");
+  assert.equal(issue!.level, "warning");
+});
+
+test("*if node starting with elseif emits if_must_start_if key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [
+        { kind: "elseif", expr: "score > 0", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_must_start_if");
+  assert.ok(issue, "expected if_must_start_if");
+});
+
+test("*if with multiple else branches emits if_multiple_else key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [
+        { kind: "if", expr: "score > 0", to: "n2" },
+        { kind: "else", to: "n2" },
+        { kind: "else", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_multiple_else");
+  assert.ok(issue, "expected if_multiple_else");
+});
+
+test("*else branch with condition emits if_else_has_cond key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [
+        { kind: "if", expr: "score > 0", to: "n2" },
+        { kind: "else", expr: "score > 10", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_else_has_cond");
+  assert.ok(issue, "expected if_else_has_cond");
+});
+
+test("all if branches leading to same node emits if_all_same_target key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if", branches: [
+        { kind: "if", expr: "score > 0", to: "n2" },
+        { kind: "else", to: "n2" },
+      ]},
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n3", kind: "flow" }, { from: "n1", to: "n2", kind: "if" }, { from: "n1", to: "n2", kind: "else" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number", initial: "0", desc: "", fairmath: false }],
+    nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_all_same_target");
+  assert.ok(issue, "expected if_all_same_target");
+});
+
+test("gosub node with no label emits gosub_no_target key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "gosub_no_target");
+  assert.ok(issue, "expected gosub_no_target");
+});
+
+test("gosub node with invalid label identifier emits gosub_invalid_id key and name param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub 123bad" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "gosub_invalid_id");
+  assert.ok(issue, "expected gosub_invalid_id");
+  assert.equal(issue!.params?.name, "123bad");
+});
+
+test("goto node with invalid label identifier emits goto_invalid_id key and name param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "goto", x: 0, y: 0, w: 240, title: "*goto 123bad" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "goto_invalid_id");
+  assert.ok(issue, "expected goto_invalid_id");
+  assert.equal(issue!.params?.name, "123bad");
+});
+
+test("image node with unsupported extension emits image_unsupported_ext key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 240, title: "*image", target: "picture.bmp" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "image_unsupported_ext");
+  assert.ok(issue, "expected image_unsupported_ext");
+  assert.equal(issue!.params?.name, "picture.bmp");
+});
+
+test("image node with invalid alignment emits image_invalid_alignment key and val param", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 240, title: "*image", target: "pic.jpg", inputMin: "center" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), nodes: graph.nodes, edges: graph.edges, sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "image_invalid_alignment");
+  assert.ok(issue, "expected image_invalid_alignment");
+  assert.equal(issue!.params?.val, "center");
+});
+
 test("variable schema validation emits correct keys", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),
@@ -6058,6 +6304,562 @@ test("empty *if condition in preserved source emits cond_empty key and command p
   const issue = lintProject(project).find((i) => i.key === "cond_empty");
   assert.ok(issue, "expected cond_empty key");
   assert.equal(issue!.params?.command, "if");
+});
+
+test("*if branch after *else emits if_branch_after_else key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if",
+        branches: [
+          { kind: "if", expr: "score > 5", to: "n2" },
+          { kind: "else", to: "n2" },
+          { kind: "elseif", expr: "score > 1", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "if" }, { from: "n1", to: "n2", kind: "else" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_branch_after_else");
+  assert.ok(issue, "expected if_branch_after_else");
+});
+
+test("*if branch pointing to missing node emits if_branch_missing_target key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if",
+        branches: [{ kind: "if", expr: "score > 5", to: "missing_node" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_branch_missing_target");
+  assert.ok(issue, "expected if_branch_missing_target");
+  assert.equal(issue!.params?.kind, "if");
+});
+
+test("*if branch looping back to its own node emits if_branch_self_loop key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "if", x: 0, y: 0, w: 240, title: "*if",
+        branches: [
+          { kind: "if", expr: "score > 5", to: "n1" },
+          { kind: "else", to: "n2" },
+        ] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "else" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "if_branch_self_loop");
+  assert.ok(issue, "expected if_branch_self_loop");
+  assert.equal(issue!.params?.kind, "if");
+});
+
+test("gosub node with no flow continuation emits gosub_no_flow key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub", x: 0, y: 0, w: 240, title: "*gosub cf_n2" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "gosub_no_flow");
+  assert.ok(issue, "expected gosub_no_flow");
+});
+
+test("gosub_scene node with no flow continuation emits gosub_scene_no_flow key", () => {
+  const subGraph: SceneGraph = {
+    nodes: [{ id: "s1", type: "return", x: 0, y: 0, w: 240, title: "*return" }],
+    edges: [],
+  };
+  const introGraph: SceneGraph = {
+    nodes: [{ id: "n1", type: "gosub_scene", x: 0, y: 0, w: 240, title: "*gosub_scene sub", target: "sub" }],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", isStart: true, words: 0, nodes: 0 },
+      { id: "intro", name: "intro", words: 0, nodes: 1 },
+      { id: "sub", name: "sub", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: introGraph, sub: subGraph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "gosub_scene_no_flow");
+  assert.ok(issue, "expected gosub_scene_no_flow");
+});
+
+test("gosub_scene with missing entry label emits gosub_scene_entry_missing key", () => {
+  const subGraph: SceneGraph = {
+    nodes: [
+      { id: "s1", type: "label", x: 0, y: 0, w: 240, title: "*label existing_label" },
+      { id: "s2", type: "return", x: 160, y: 0, w: 240, title: "*return" },
+    ],
+    edges: [{ from: "s1", to: "s2", kind: "flow" }],
+  };
+  const introGraph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "gosub_scene", x: 0, y: 0, w: 240, title: "*gosub_scene sub", target: "sub", body: "missing_label" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", isStart: true, words: 0, nodes: 0 },
+      { id: "intro", name: "intro", words: 0, nodes: 2 },
+      { id: "sub", name: "sub", words: 0, nodes: 2 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: introGraph, sub: subGraph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "gosub_scene_entry_missing");
+  assert.ok(issue, "expected gosub_scene_entry_missing");
+  assert.equal(issue!.params?.label, "missing_label");
+  assert.equal(issue!.params?.scene, "sub");
+});
+
+test("image node with no filename emits image_no_filename key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 240, title: "*image" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "image_no_filename");
+  assert.ok(issue, "expected image_no_filename");
+});
+
+test("image node referencing unknown asset emits image_unknown key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "image", x: 0, y: 0, w: 240, title: "*image ghost.png", target: "ghost.png" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "other.png", kind: "image" as const, desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "image_unknown");
+  assert.ok(issue, "expected image_unknown");
+  assert.equal(issue!.params?.name, "ghost.png");
+});
+
+test("sound node with no filename emits sound_no_filename key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "sound", x: 0, y: 0, w: 240, title: "*sound" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "sound_no_filename");
+  assert.ok(issue, "expected sound_no_filename");
+});
+
+test("sound node with unsupported extension emits sound_unsupported_ext key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "sound", x: 0, y: 0, w: 240, title: "*sound theme.midi", target: "theme.midi" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "sound_unsupported_ext");
+  assert.ok(issue, "expected sound_unsupported_ext");
+  assert.equal(issue!.params?.name, "theme.midi");
+});
+
+test("sound node referencing unknown asset emits sound_unknown key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "sound", x: 0, y: 0, w: 240, title: "*sound theme.mp3", target: "theme.mp3" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "other.mp3", kind: "audio" as const, desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "sound_unknown");
+  assert.ok(issue, "expected sound_unknown");
+  assert.equal(issue!.params?.name, "theme.mp3");
+});
+
+test("return node in scene without gosub emits return_no_gosub key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "return", x: 0, y: 0, w: 240, title: "*return" },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "return_no_gosub");
+  assert.ok(issue, "expected return_no_gosub");
+});
+
+test("label node with invalid identifier emits label_invalid_id key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "label", x: 0, y: 0, w: 240, title: "*label 123bad" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "label_invalid_id");
+  assert.ok(issue, "expected label_invalid_id");
+  assert.equal(issue!.params?.name, "123bad");
+});
+
+test("*label with no name in source text emits label_no_name key", () => {
+  const graph: SceneGraph = { nodes: [], edges: [], sourceText: "*label\n*finish" };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "label_no_name");
+  assert.ok(issue, "expected label_no_name");
+});
+
+test("label node colliding with generated label emits label_collision key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "label", x: 0, y: 0, w: 240, title: "*label cf_n2" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "label_collision");
+  assert.ok(issue, "expected label_collision");
+  assert.equal(issue!.params?.name, "cf_n2");
+});
+
+test("project variable with reserved name emits name_reserved key", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "modulo", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+  };
+  const issue = lintProject(project).find((i) => i.key === "name_reserved");
+  assert.ok(issue, "expected name_reserved");
+  assert.equal(issue!.params?.name, "modulo");
+});
+
+test("temp variable declared twice in source text emits temp_repeat key", () => {
+  const graph: SceneGraph = { nodes: [], edges: [], sourceText: "*temp myvar 0\n*temp myvar 1\n*finish" };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "temp_repeat");
+  assert.ok(issue, "expected temp_repeat");
+  assert.equal(issue!.params?.name, "myvar");
+});
+
+test("params node with duplicate parameter emits duplicate_params key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "params", x: 0, y: 0, w: 240, title: "*params", body: "alpha alpha beta" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "duplicate_params");
+  assert.ok(issue, "expected duplicate_params");
+  assert.equal(issue!.params?.name, "alpha");
+});
+
+test("input_number node with no target variable emits input_no_target key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "input_no_target");
+  assert.ok(issue, "expected input_no_target");
+});
+
+test("input_number node with invalid variable identifier emits input_invalid_id key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number 123bad", inputVar: "123bad" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "input_invalid_id");
+  assert.ok(issue, "expected input_invalid_id");
+  assert.equal(issue!.params?.name, "123bad");
+});
+
+test("input_number node using string variable emits input_needs_number key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number hero_name", inputVar: "hero_name" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "hero_name", type: "string" as const, initial: "", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "input_needs_number");
+  assert.ok(issue, "expected input_needs_number");
+  assert.equal(issue!.params?.name, "hero_name");
+});
+
+test("input_number node with non-numeric min bound emits input_invalid_min key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number score", inputVar: "score", inputMin: "3.14.15" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "input_invalid_min");
+  assert.ok(issue, "expected input_invalid_min");
+  assert.equal(issue!.params?.val, "3.14.15");
+});
+
+test("input_number node with non-numeric max bound emits input_invalid_max key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "input_number", x: 0, y: 0, w: 240, title: "*input_number score", inputVar: "score", inputMax: "3.14.15" },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "input_invalid_max");
+  assert.ok(issue, "expected input_invalid_max");
+  assert.equal(issue!.params?.val, "3.14.15");
+});
+
+test("set node using fairmath op on non-percent variable emits set_fairmath_nopercent key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "set", x: 0, y: 0, w: 240, title: "*set score %+ 10",
+        sets: [{ var: "score", op: "%+", val: "10" }] },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "set_fairmath_nopercent");
+  assert.ok(issue, "expected set_fairmath_nopercent");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("project with unreachable scene emits scene_unreachable key", () => {
+  const introGraph: SceneGraph = {
+    nodes: [{ id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "No exit." }],
+    edges: [],
+  };
+  const ch2Graph: SceneGraph = {
+    nodes: [{ id: "s1", type: "finish", x: 0, y: 0, w: 240, title: "*finish" }],
+    edges: [],
+  };
+  const project = {
+    ...minimalProject(),
+    scenes: [
+      { id: "startup", name: "startup", isStart: true, words: 0, nodes: 0 },
+      { id: "intro", name: "intro", words: 0, nodes: 1 },
+      { id: "ch2", name: "ch2", words: 0, nodes: 1 },
+      { id: "stats", name: "choicescript_stats", words: 0, nodes: 0, special: true },
+    ],
+    sceneData: { intro: introGraph, ch2: ch2Graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "scene_unreachable");
+  assert.ok(issue, "expected scene_unreachable");
+  assert.equal(issue!.params?.name, "ch2");
+});
+
+test("stats source with invalid chart type emits stat_chart_invalid_type key", () => {
+  const project = { ...minimalProject(), statsSource: "*stat_chart\n  badtype score" };
+  const issue = lintProject(project).find((i) => i.key === "stat_chart_invalid_type");
+  assert.ok(issue, "expected stat_chart_invalid_type");
+  assert.equal(issue!.params?.type, "badtype");
+});
+
+test("stats source with invalid variable name emits stat_chart_invalid_var key", () => {
+  const project = { ...minimalProject(), statsSource: "*stat_chart\n  percent 123bad" };
+  const issue = lintProject(project).find((i) => i.key === "stat_chart_invalid_var");
+  assert.ok(issue, "expected stat_chart_invalid_var");
+  assert.equal(issue!.params?.name, "123bad");
+});
+
+test("stats source with undeclared variable emits stat_undef_var key", () => {
+  const project = { ...minimalProject(), statsSource: "*stat_chart\n  percent score" };
+  const issue = lintProject(project).find((i) => i.key === "stat_undef_var");
+  assert.ok(issue, "expected stat_undef_var");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("stats source percent row for string variable emits stat_chart_needs_number key", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "hero_name", type: "string" as const, initial: "", desc: "", fairmath: false }],
+    statsSource: "*stat_chart\n  percent hero_name",
+  };
+  const issue = lintProject(project).find((i) => i.key === "stat_chart_needs_number");
+  assert.ok(issue, "expected stat_chart_needs_number");
+  assert.equal(issue!.params?.name, "hero_name");
+});
+
+test("stats source percent row for non-fairmath number emits stat_chart_nonpercent key", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    statsSource: "*stat_chart\n  percent score",
+  };
+  const issue = lintProject(project).find((i) => i.key === "stat_chart_nonpercent");
+  assert.ok(issue, "expected stat_chart_nonpercent");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("stats source text row for number variable emits stat_chart_raw_number key", () => {
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "score", type: "number" as const, initial: "0", desc: "", fairmath: false }],
+    statsSource: "*stat_chart\n  text score",
+  };
+  const issue = lintProject(project).find((i) => i.key === "stat_chart_raw_number");
+  assert.ok(issue, "expected stat_chart_raw_number");
+  assert.equal(issue!.params?.name, "score");
+});
+
+test("asset with empty path emits asset_empty_path key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "", kind: "image" as const, desc: "" }],
+  };
+  const issue = lintProject(project).find((i) => i.key === "asset_empty_path");
+  assert.ok(issue, "expected asset_empty_path");
+  assert.equal(issue!.params?.name, "bg");
+});
+
+test("asset with unsafe path emits asset_unsafe_path key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "../secret.png", kind: "image" as const, desc: "" }],
+  };
+  const issue = lintProject(project).find((i) => i.key === "asset_unsafe_path");
+  assert.ok(issue, "expected asset_unsafe_path");
+  assert.equal(issue!.params?.name, "bg");
+});
+
+test("asset path conflicting with generated file emits asset_path_conflict key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "intro.txt", kind: "other" as const, desc: "", dataUrl: "data:text/plain,hello" }],
+  };
+  const issue = lintProject(project).find((i) => i.key === "asset_path_conflict");
+  assert.ok(issue, "expected asset_path_conflict");
+  assert.equal(issue!.params?.name, "bg");
+});
+
+test("asset with invalid base64 data URL emits asset_data_issue key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [{ id: "bg", path: "bg.png", kind: "image" as const, desc: "", dataUrl: "data:image/png;base64,INVALID!!!" }],
+  };
+  const issue = lintProject(project).find((i) => i.key === "asset_data_issue");
+  assert.ok(issue, "expected asset_data_issue");
+  assert.equal(issue!.params?.name, "bg");
+});
+
+test("two assets with same id emit duplicate_asset_id key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "bg", path: "bg1.png", kind: "image" as const, desc: "" },
+      { id: "bg", path: "bg2.png", kind: "image" as const, desc: "" },
+    ],
+  };
+  const issue = lintProject(project).find((i) => i.key === "duplicate_asset_id");
+  assert.ok(issue, "expected duplicate_asset_id");
+  assert.equal(issue!.params?.name, "bg");
+});
+
+test("two assets with same path emit duplicate_asset_path key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "bg1", path: "bg.png", kind: "image" as const, desc: "" },
+      { id: "bg2", path: "bg.png", kind: "image" as const, desc: "" },
+    ],
+  };
+  const issue = lintProject(project).find((i) => i.key === "duplicate_asset_path");
+  assert.ok(issue, "expected duplicate_asset_path");
+  assert.equal(issue!.params?.name, "bg.png");
+});
+
+test("two assets with dataUrl and same path emit duplicate_exported_asset key", () => {
+  const project = {
+    ...minimalProject(),
+    assets: [
+      { id: "bg1", path: "bg.png", kind: "image" as const, desc: "", dataUrl: "data:image/png,abc" },
+      { id: "bg2", path: "bg.png", kind: "image" as const, desc: "", dataUrl: "data:image/png,def" },
+    ],
+  };
+  const issue = lintProject(project).find((i) => i.key === "duplicate_exported_asset");
+  assert.ok(issue, "expected duplicate_exported_asset");
+  assert.equal(issue!.params?.name, "bg.png");
+});
+
+test("*rand with no min bound in source text emits input_empty_min key", () => {
+  const graph: SceneGraph = { nodes: [], edges: [], sourceText: "*rand score\n*finish" };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "input_empty_min");
+  assert.ok(issue, "expected input_empty_min");
+});
+
+test("*rand with no max bound in source text emits input_empty_max key", () => {
+  const graph: SceneGraph = { nodes: [], edges: [], sourceText: "*rand score 0\n*finish" };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const issue = lintProject(project).find((i) => i.key === "input_empty_max");
+  assert.ok(issue, "expected input_empty_max");
 });
 
 function minimalProject(): ChoiceForgeProject {
