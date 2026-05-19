@@ -79,20 +79,25 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
 
   let columnX = startX;
   orderedColumns.forEach(([, columnNodes]) => {
-    // Barycenter sort: order nodes by mean Y of already-placed predecessors.
+    // Barycenter sort: order nodes by mean vertical centre of already-placed predecessors.
     const withBc = columnNodes.map((node) => {
       if (node.id === "n1") return { node, bc: startY };
-      const predYs = (predecessors.get(node.id) ?? [])
-        .map((p) => positions.get(p)?.y)
+      const predCentres = (predecessors.get(node.id) ?? [])
+        .map((p) => {
+          const pos = positions.get(p);
+          const predNode = nodes.find((n) => n.id === p);
+          if (!pos || !predNode) return undefined;
+          return pos.y + heightOf(predNode) / 2;
+        })
         .filter((y): y is number => y !== undefined);
-      const bc = predYs.length === 0
+      const bc = predCentres.length === 0
         ? startY
-        : predYs.reduce((a, b) => a + b, 0) / predYs.length;
+        : predCentres.reduce((a, b) => a + b, 0) / predCentres.length;
       return { node, bc };
     });
     withBc.sort((a, b) => a.bc - b.bc);
 
-    // Vertically centre the column around the mean predecessor Y so that
+    // Vertically centre the column around the mean predecessor centre so that
     // edges flow roughly horizontally instead of sharply up/down.
     const totalColHeight = withBc.reduce(
       (sum, { node }) => sum + heightOf(node) + verticalGap, 0,
@@ -106,6 +111,32 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
     });
     const maxWidth = columnNodes.reduce((acc, node) => node.w > acc ? node.w : acc, 260);
     columnX += maxWidth + horizontalGap;
+  });
+
+  // Post-placement collision resolution: if heightOf underestimates the real
+  // rendered height, nodes in the same column can visually overlap. Walk each
+  // column in Y order and push any node that would overlap the previous one.
+  orderedColumns.forEach(([, columnNodes]) => {
+    const sorted = columnNodes
+      .map((node) => ({ node, pos: positions.get(node.id)! }))
+      .filter((entry) => entry.pos !== undefined)
+      .sort((a, b) => a.pos.y - b.pos.y);
+
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]!;
+      const curr = sorted[i]!;
+      const minY = prev.pos.y + heightOf(prev.node) + verticalGap;
+      if (curr.pos.y < minY) {
+        const shift = minY - curr.pos.y;
+        for (let j = i; j < sorted.length; j++) {
+          const entry = sorted[j]!;
+          const newY = entry.pos.y + shift;
+          const updated = { ...entry.pos, y: newY };
+          positions.set(entry.node.id, updated);
+          sorted[j] = { ...entry, pos: updated };
+        }
+      }
+    }
   });
 
   return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
