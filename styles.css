@@ -1581,6 +1581,25 @@ input, select, textarea { font-family: inherit; color: inherit; }
   opacity: 1;
   transform: scale(1.12);
 }
+.node-resize {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  border-radius: 0 var(--r-3) var(--r-3) 0;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.node:hover .node-resize,
+.node.is-selected .node-resize {
+  opacity: 1;
+}
+.node-resize:hover {
+  background: color-mix(in oklch, var(--accent) 20%, transparent);
+}
 .edge-preview {
   stroke: var(--accent-2);
   stroke-width: 2;
