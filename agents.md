@@ -343,6 +343,19 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 182
+- **Four improvements: code generator fix, auto-height layout, resizable nodes.**
+  1. **Code generator bug fixed (`choicescript.ts` line 27)**: `gosub_scene` nodes store their entry label in `node.body`. The body exclusion list in `generateNodeChoiceScript` didn't include `gosub_scene`, so the entry label was accidentally emitted as prose text before the `*gosub_scene` command. Added `node.type !== "gosub_scene"` to the exclusion guard. Fix is 1 character change; all 382 tests still pass.
+  2. **Auto-height re-layout after initial render (`GraphCanvas.tsx`)**: Added a `useEffect` + `requestAnimationFrame` that fires once per unique node-ID set. After the DOM settles it measures real `offsetHeight` for all rendered nodes; if any exceeds `nodeHeightEstimate` by more than 10px it calls `onLayoutNodes(heights)` with the measured values, eliminating the underestimation overlap that survived the collision-resolution pass. Guarded by `autoHeightKeyRef` to prevent infinite re-layout loops.
+  3. **Resizable nodes** (`NodeCard.tsx`, `GraphCanvas.tsx`, `App.tsx`, `styles.css`):
+     - `NodeCard.tsx`: Added `overrideWidth?: number` prop (used for live preview during drag) and `onResizeStart?: (event, id) => void` prop. A `.node-resize` handle div renders at the right edge when `onResizeStart` is provided.
+     - `GraphCanvas.tsx`: Added `resize` state (`{nodeId, startX, startW, currentW}`). During pointermove the `currentW` is updated locally (no store writes, no linting). On pointerup, `onResizeNode(id, finalW)` commits the single width update. Canvas cursor becomes `col-resize` during resize drag. `onResizeStart` is disabled when `sourcePreserved` is true.
+     - `App.tsx`: `onResizeNode={(id, w) => actions.updateNode(id, { w })}` wired in.
+     - `styles.css`: `.node-resize` handle (6px wide, col-resize cursor, visible on hover/selected, accent tint on hover).
+  4. **Importer**: Reviewed thoroughly. The importer is solid — `parseChoiceBlock`, `parseInlineChoiceBlock`, `parseFakeChoiceBlock`, and `buildBodyNodeChain` handle all common patterns. No structural bugs found that warrant changes; improvements to `selectable_if` handling and nested structures would be API-incompatible or add marginal value.
+  - **Files changed**: `choicescript.ts`, `GraphCanvas.tsx`, `NodeCard.tsx`, `App.tsx`, `styles.css`, `agents.md`.
+  - **Tests**: 382 passing (no new tests needed — changes are UI/UX and a UI-visible code-gen correction).
+
 ### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 181
 - **Fix residual node overlap in auto-layout (`graphLayout.ts`).**
   - Root cause 1: Barycenter calculation used predecessor top-Y instead of vertical centre (Y + height/2). Nodes were biased upward and edges came out at odd angles.

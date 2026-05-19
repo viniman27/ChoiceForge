@@ -24,7 +24,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
 
   lines.push(`*label ${nodeLabel}`);
   if (node.type === "label") lines.push(`*label ${stripCommandPrefix(node.title, "*label")}`);
-  if (node.type !== "comment" && node.type !== "temp" && node.type !== "params" && node.body?.trim()) lines.push(node.body);
+  if (node.type !== "comment" && node.type !== "temp" && node.type !== "params" && node.type !== "gosub_scene" && node.body?.trim()) lines.push(node.body);
   node.sets?.forEach((set) => lines.push(generateSet(set)));
 
   if (node.type === "choice") {

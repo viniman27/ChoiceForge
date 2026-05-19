@@ -10,6 +10,7 @@ interface GraphCanvasProps {
   setSelectedId: (id: string | null) => void;
   onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
   onLayoutNodes: (nodeHeights?: Record<string, number>) => void;
+  onResizeNode: (id: string, w: number) => void;
   onConnectNodes: (from: string, to: string) => void;
   onAddNode: (type: NodeType, position: { x: number; y: number }) => void;
   onAddAndConnectNode: (fromId: string, type: NodeType, position: { x: number; y: number }) => void;
@@ -43,7 +44,7 @@ const COLOR_TAG_KEYS: NodeColorTag[] = ["red", "orange", "yellow", "green", "blu
 
 export function GraphCanvas({
   data, density, labels, selectedId, setSelectedId,
-  onMoveNodes, onLayoutNodes, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes, onBulkUpdateNodes,
+  onMoveNodes, onLayoutNodes, onResizeNode, onConnectNodes, onAddNode, onAddAndConnectNode, onUpdateTitle, onDuplicateNode, onDeleteNodes, onPasteNodes, onBulkUpdateNodes,
   sourcePreserved = false, onConvertSource, pan, onPan, zoom, setZoom, onNavigateToScene, isConvertingScene = false,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +54,7 @@ export function GraphCanvas({
     startY: number;
     origPositions: { id: string; x: number; y: number }[];
   } | null>(null);
+  const [resize, setResize] = useState<{ nodeId: string; startX: number; startW: number; currentW: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [connecting, setConnecting] = useState<{ from: string; x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 700 });
@@ -69,6 +71,7 @@ export function GraphCanvas({
   const [selBoxDisplay, setSelBoxDisplay] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const lastSetIdRef = useRef<string | null>(selectedId);
+  const autoHeightKeyRef = useRef<string | null>(null);
   const clipboardRef = useRef<{ nodes: StoryNode[]; edges: StoryEdge[] } | null>(null);
   const pendingFitRef = useRef(false);
   const [pendingConnect, setPendingConnect] = useState<{ from: string; screenX: number; screenY: number; worldX: number; worldY: number } | null>(null);
@@ -238,6 +241,30 @@ export function GraphCanvas({
   }, [snap]);
 
   useEffect(() => {
+    if (!data.nodes.length) return;
+    const key = data.nodes.map((n) => n.id).join(",");
+    if (autoHeightKeyRef.current === key) return;
+    const rafId = requestAnimationFrame(() => {
+      if (!canvasRef.current) return;
+      const heights: Record<string, number> = {};
+      canvasRef.current.querySelectorAll<HTMLDivElement>(".node[data-node-id]").forEach((el) => {
+        const nodeId = el.getAttribute("data-node-id");
+        if (nodeId) heights[nodeId] = el.offsetHeight;
+      });
+      if (!Object.keys(heights).length) return;
+      const hasUnderestimate = data.nodes.some((node) => {
+        const real = heights[node.id];
+        if (real === undefined) return false;
+        return real > nodeHeightEstimate(node, density) + 10;
+      });
+      autoHeightKeyRef.current = key;
+      if (hasUnderestimate) onLayoutNodes(heights);
+    });
+    return () => cancelAnimationFrame(rafId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.nodes]);
+
+  useEffect(() => {
     if (!toolbarResize) return;
     const move = (event: PointerEvent) => {
       const maxWidth = Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64);
@@ -272,6 +299,11 @@ export function GraphCanvas({
         const dx = (event.clientX - drag.startX) / zoom;
         const dy = (event.clientY - drag.startY) / zoom;
         onMoveNodes(drag.origPositions.map(({ id, x, y }) => ({ id, x: x + dx, y: y + dy })));
+      }
+      if (resize) {
+        const dx = (event.clientX - resize.startX) / zoom;
+        const newW = Math.max(200, Math.round(resize.startW + dx));
+        setResize((r) => r ? { ...r, currentW: newW } : null);
       }
       if (panning) {
         onPan({ x: panning.origX + event.clientX - panning.startX, y: panning.origY + event.clientY - panning.startY });
@@ -327,11 +359,15 @@ export function GraphCanvas({
           y: Math.round((y + dy) / GRID_SIZE) * GRID_SIZE,
         })));
       }
+      if (resize) {
+        onResizeNode(resize.nodeId, resize.currentW);
+      }
       setDrag(null);
+      setResize(null);
       setPanning(null);
       setConnecting(null);
     };
-    if (drag || panning || connecting || selBoxing) {
+    if (drag || panning || connecting || selBoxing || resize) {
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     }
@@ -340,7 +376,7 @@ export function GraphCanvas({
       window.removeEventListener("pointerup", up);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connecting, drag, onConnectNodes, onMoveNodes, onPan, pan, panning, selBoxing, zoom]);
+  }, [connecting, drag, resize, onConnectNodes, onMoveNodes, onPan, onResizeNode, pan, panning, selBoxing, zoom]);
 
   const selCount = selectedIds.size;
   const activeFilter = canvasFilter.trim().toLowerCase();
@@ -399,7 +435,7 @@ export function GraphCanvas({
           }
         }
       }}
-      style={{ cursor: connecting ? "crosshair" : panning ? "grabbing" : space ? "grab" : "default" }}
+      style={{ cursor: connecting ? "crosshair" : resize ? "col-resize" : panning ? "grabbing" : space ? "grab" : "default" }}
       onDoubleClick={(event) => {
         if (!isCanvasPanTarget(event.target)) return;
         if (sourcePreserved) return;
@@ -541,6 +577,13 @@ export function GraphCanvas({
               (activeFilter ? !nodeMatchesFilter(node, activeFilter, errorNodeIds, warnNodeIds) : false) ||
               (activeColorTags.size > 0 ? !node.colorTag || !activeColorTags.has(node.colorTag) : false)
             }
+            overrideWidth={resize?.nodeId === node.id ? resize.currentW : undefined}
+            onResizeStart={sourcePreserved ? undefined : (event, id) => {
+              const current = data.nodes.find((n) => n.id === id);
+              if (!current) return;
+              event.stopPropagation();
+              setResize({ nodeId: id, startX: event.clientX, startW: current.w, currentW: current.w });
+            }}
             onSelect={(id, addToSet) => selectNode(id, addToSet)}
             onDragStart={(event, id) => {
               const current = data.nodes.find((n) => n.id === id);

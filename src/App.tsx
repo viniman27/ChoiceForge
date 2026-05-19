@@ -371,6 +371,7 @@ export default function App() {
           setZoom={setZoom}
           onMoveNodes={actions.moveNodes}
           onLayoutNodes={actions.layoutNodes}
+          onResizeNode={(id, w) => actions.updateNode(id, { w })}
           onConnectNodes={actions.connectNodes}
           onAddNode={(type, position) => {
             const id = nextNodeId(lintedProject.nodes);

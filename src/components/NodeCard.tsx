@@ -111,15 +111,17 @@ interface NodeCardProps {
   hasError: boolean;
   hasWarning?: boolean;
   isDimmed?: boolean;
+  overrideWidth?: number;
   onSelect: (id: string, addToSelection: boolean) => void;
   onDragStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectStart: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
   onConnectEnd: (id: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
   onNavigateToScene?: (sceneName: string) => void;
+  onResizeStart?: (event: React.PointerEvent<HTMLDivElement>, id: string) => void;
 }
 
-export function NodeCard({ node, density, labels, selected, hasError, hasWarning, isDimmed, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle, onNavigateToScene }: NodeCardProps) {
+export function NodeCard({ node, density, labels, selected, hasError, hasWarning, isDimmed, overrideWidth, onSelect, onDragStart, onConnectStart, onConnectEnd, onUpdateTitle, onNavigateToScene, onResizeStart }: NodeCardProps) {
   const colors = typeColors[node.type];
   const isMinimal = density === "minimal";
   const isRich = density === "rich";
@@ -142,7 +144,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
     <div
       data-node-id={node.id}
       className={`node node-${node.type} ${selected ? "is-selected" : ""} ${hasError ? "has-error" : ""} ${hasWarning ? "has-warning" : ""} ${node.colorTag ? "has-color-tag" : ""} ${isDimmed ? "is-dimmed" : ""} ${(node.type === "goto_scene" || node.type === "gosub_scene") && node.target && onNavigateToScene ? "is-navigable" : ""}`}
-      style={{ left: node.x, top: node.y, width: node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
+      style={{ left: node.x, top: node.y, width: overrideWidth ?? node.w, "--accent": colors.dot, "--accent-tint": colors.tint, "--ct": node.colorTag ? COLOR_TAG_VALUES[node.colorTag] : "transparent" } as React.CSSProperties}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest(".no-drag")) return;
         event.stopPropagation();
@@ -241,6 +243,7 @@ export function NodeCard({ node, density, labels, selected, hasError, hasWarning
       {isRich && node.type === "passage" && node.body && (() => { const wc = countCardWords(node.body); return wc > 0 ? <div className={`node-wc${wc > 600 ? " node-wc-long" : ""}`}>{wc} words</div> : null; })()}
       <div className="anchor anchor-in no-drag" title={labels.connectHere} data-node-id={node.id} onPointerUp={(event) => { event.stopPropagation(); onConnectEnd(node.id); }} />
       <div className="anchor anchor-out no-drag" title={labels.dragToConnect} onPointerDown={(event) => onConnectStart(event, node.id)} />
+      {onResizeStart && <div className="node-resize no-drag" onPointerDown={(e) => { e.stopPropagation(); onResizeStart(e, node.id); }} />}
     </div>
   );
 }
