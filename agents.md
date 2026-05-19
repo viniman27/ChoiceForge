@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 181
+- **Fix residual node overlap in auto-layout (`graphLayout.ts`).**
+  - Root cause 1: Barycenter calculation used predecessor top-Y instead of vertical centre (Y + height/2). Nodes were biased upward and edges came out at odd angles.
+  - Root cause 2: No post-placement collision resolution — if `estimateLayoutNodeHeight` underestimates the actual rendered height, nodes in the same column would visually overlap.
+  - Fix 1: Changed `predYs` → `predCentres` using `pos.y + heightOf(predNode) / 2`. Edges now flow more horizontally.
+  - Fix 2: Added a second pass over each column (sorted by Y) that pushes any node overlapping its predecessor down by the required shift, cascading through the rest of the column.
+  - **Files changed**: `graphLayout.ts`, `agents.md`.
+  - **Tests**: 382 passing (no change — layout is pure domain logic but existing tests still cover it).
+
 ### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 180
 - **Achieved 100% lint key test coverage (342 → 382 tests, 40 new).**
   - Fixed two failing tests from session 179: `gosub_invalid_id` and `goto_invalid_id` were using `"noexist"` (a valid identifier) — these keys fire for syntactically invalid identifiers, not missing labels. Fixed to use `"123bad"` (starts with digit, fails the identifier regex).
