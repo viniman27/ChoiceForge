@@ -343,6 +343,24 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 180
+- **Achieved 100% lint key test coverage (342 → 382 tests, 40 new).**
+  - Fixed two failing tests from session 179: `gosub_invalid_id` and `goto_invalid_id` were using `"noexist"` (a valid identifier) — these keys fire for syntactically invalid identifiers, not missing labels. Fixed to use `"123bad"` (starts with digit, fails the identifier regex).
+  - Added 38 new tests covering every previously untested lint key:
+    - **if-branch**: `if_branch_after_else`, `if_branch_missing_target`, `if_branch_self_loop`
+    - **gosub/gosub_scene**: `gosub_no_flow`, `gosub_scene_no_flow`, `gosub_scene_entry_missing`
+    - **image/sound**: `image_no_filename`, `image_unknown`, `sound_no_filename`, `sound_unsupported_ext`, `sound_unknown`
+    - **label/return**: `return_no_gosub`, `label_invalid_id`, `label_no_name`, `label_collision`
+    - **temp/params/variables**: `name_reserved`, `temp_repeat`, `duplicate_params`
+    - **input**: `input_no_target`, `input_invalid_id`, `input_needs_number`, `input_invalid_min`, `input_invalid_max`, `input_empty_min`, `input_empty_max`
+    - **set/scene**: `set_fairmath_nopercent`, `scene_unreachable`
+    - **stat_chart**: `stat_chart_invalid_type`, `stat_chart_invalid_var`, `stat_undef_var`, `stat_chart_needs_number`, `stat_chart_nonpercent`, `stat_chart_raw_number`
+    - **assets**: `asset_empty_path`, `asset_unsafe_path`, `asset_path_conflict`, `asset_data_issue`, `duplicate_asset_id`, `duplicate_asset_path`, `duplicate_exported_asset`
+  - Key design notes: `label_no_name` and `input_empty_min`/`input_empty_max` are source-text-only paths (use `SceneGraph.sourceText`). `label_collision` is triggered by a label using a `cf_*` generated name. `gosub_no_flow` uses a gosub title referencing a generated label (`cf_n2`) so the label check passes.
+  - `comm -23` diff of emitted keys vs tested keys now produces empty output — full coverage.
+  - **Files changed**: `domain.test.ts`, `agents.md`.
+  - **Tests**: 382 passing (40 new, 2 fixed).
+
 ### 2026-05-18 — Claude Code (claude-sonnet-4-6) — session 179
 - **Additional key-coverage tests for graph-node validators (14 new tests).**
   - Added tests for: `page_break_no_label`, `checkpoint_no_name`, `goto_scene_no_target`, `goto_scene_invalid_id`, `gosub_scene_no_target`, `gosub_scene_invalid_id`, `temp_invalid_id`, `temp_no_initial`, `orphan_node`, `dead_end`, `duplicate_option_text`, `params_no_names`, `params_invalid_id`, `if_noop`.
