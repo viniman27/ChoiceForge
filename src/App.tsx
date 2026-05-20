@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
@@ -18,6 +18,7 @@ import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceSc
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
+import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, setWindowTitle } from "./platform/fileSystem";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
 
@@ -54,7 +55,50 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const currentFilePathRef = useRef<string | null>(null);
+  currentFilePathRef.current = currentFilePath;
   const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
+
+  const handleNativeOpen = useCallback(async () => {
+    const result = await nativeOpenProject();
+    if (!result) return;
+    try {
+      const project = JSON.parse(result.content) as ChoiceForgeProject;
+      actions.setProject(project);
+      setCurrentFilePath(result.path);
+      setSelectedId("n1");
+      setGeneratedDocumentId(null);
+      setGeneratedDocumentLine(null);
+      setPlayOpen(false);
+      resetViewport(setPan, setZoom);
+      const name = result.path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+      void setWindowTitle(`ChoiceForge — ${name}`);
+      setSaveStatus(`Opened ${name}`);
+    } catch {
+      window.alert("Failed to parse project file. Make sure it is a valid ChoiceForge .json export.");
+    }
+  }, [actions]);
+
+  const handleNativeSave = useCallback(async () => {
+    const content = JSON.stringify(lintedProject, null, 2);
+    const path = await nativeSaveProject(content, currentFilePathRef.current ?? undefined);
+    if (!path) return;
+    setCurrentFilePath(path);
+    const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+    void setWindowTitle(`ChoiceForge — ${name}`);
+    setSaveStatus(`Saved to ${name}`);
+  }, [lintedProject]);
+
+  const handleNativeSaveAs = useCallback(async () => {
+    const content = JSON.stringify(lintedProject, null, 2);
+    const path = await nativeSaveProjectAs(content);
+    if (!path) return;
+    setCurrentFilePath(path);
+    const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+    void setWindowTitle(`ChoiceForge — ${name}`);
+    setSaveStatus(`Saved as ${name}`);
+  }, [lintedProject]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -97,8 +141,12 @@ export default function App() {
     const keyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        actions.saveNow();
-        setSaveStatus(formatSaveStatus(lang));
+        if (isTauri()) {
+          void handleNativeSave();
+        } else {
+          actions.saveNow();
+          setSaveStatus(formatSaveStatus(lang));
+        }
         return;
       }
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "k") {
@@ -133,7 +181,7 @@ export default function App() {
     };
     window.addEventListener("keydown", keyDown);
     return () => window.removeEventListener("keydown", keyDown);
-  }, [actions, lang]);
+  }, [actions, lang, handleNativeSave]);
 
   useEffect(() => {
     if (!saveStatus) return;
@@ -263,6 +311,10 @@ export default function App() {
         onSnapshots={() => setSnapshotsOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onHelp={() => setHelpOpen(true)}
+        currentFilePath={currentFilePath}
+        onNativeOpen={isTauri() ? handleNativeOpen : undefined}
+        onNativeSave={isTauri() ? handleNativeSave : undefined}
+        onNativeSaveAs={isTauri() ? handleNativeSaveAs : undefined}
       />
       <LeftPanel
         data={lintedProject}

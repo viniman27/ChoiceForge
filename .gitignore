@@ -3,3 +3,7 @@ dist/
 .DS_Store
 npm-debug.log*
 *.local
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/Cargo.lock
