@@ -3,7 +3,7 @@ import { unzipSync } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
-import { KeyboardShortcutOverlay } from "./components/KeyboardShortcutOverlay";
+import { HelpGuide } from "./components/HelpGuide";
 import { ManuscriptView } from "./components/ManuscriptView";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { SnapshotPanel } from "./components/SnapshotPanel";
@@ -50,7 +50,7 @@ export default function App() {
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [consoleOpen, setConsoleOpen] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -119,7 +119,7 @@ export default function App() {
       if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== "z") {
         if (event.key === "?" && !isTypingTarget(event.target)) {
           event.preventDefault();
-          setShortcutsOpen((v) => !v);
+          setHelpOpen((v) => !v);
         }
         return;
       }
@@ -262,6 +262,7 @@ export default function App() {
         }}
         onSnapshots={() => setSnapshotsOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
+        onHelp={() => setHelpOpen(true)}
       />
       <LeftPanel
         data={lintedProject}
@@ -498,7 +499,7 @@ export default function App() {
           onClose={() => setSnapshotsOpen(false)}
         />
       )}
-      {shortcutsOpen && <KeyboardShortcutOverlay onClose={() => setShortcutsOpen(false)} />}
+      {helpOpen && <HelpGuide onClose={() => setHelpOpen(false)} />}
       {newProjectOpen && (
         <NewProjectModal
           labels={i18n[lang]}
@@ -555,7 +556,7 @@ export default function App() {
             else if (cmd === "save") { actions.saveNow(); setSaveStatus(formatSaveStatus(lang)); }
             else if (cmd === "undo") { actions.undo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
             else if (cmd === "redo") { actions.redo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
-            else if (cmd === "shortcuts") { setShortcutsOpen(true); }
+            else if (cmd === "shortcuts") { setHelpOpen(true); }
           }}
         />
       )}
