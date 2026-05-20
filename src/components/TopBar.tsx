@@ -25,9 +25,10 @@ interface TopBarProps {
   onExport: () => void;
   onNewProject: () => void;
   onSnapshots: () => void;
+  onHelp: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -104,6 +105,7 @@ export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, on
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
           {lang === "pt" ? "Jogar" : lang === "es" ? "Jugar" : "Play"}
         </button>
+        <button className="ghost-btn hg-help-btn" onClick={onHelp} title="Help guide (?)">?</button>
       </div>
     </header>
   );

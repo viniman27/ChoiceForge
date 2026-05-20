@@ -242,7 +242,7 @@ export function GraphCanvas({
 
   useEffect(() => {
     if (!data.nodes.length) return;
-    const key = data.nodes.map((n) => n.id).join(",");
+    const key = data.sceneTitle;
     if (autoHeightKeyRef.current === key) return;
     const rafId = requestAnimationFrame(() => {
       if (!canvasRef.current) return;

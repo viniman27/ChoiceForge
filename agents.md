@@ -343,6 +343,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-20 — Claude Code (claude-sonnet-4-6) — session 183
+- **Critical bug fix + comprehensive HelpGuide.**
+  1. **Auto-height key bug fixed (`GraphCanvas.tsx`)**: The `autoHeightKeyRef` guard used `data.nodes.map(n => n.id).join(",")` as its key. Every time the user added a node, the key changed, the effect fired, found the new (default-sized) node as an underestimate, and called `onLayoutNodes()` — nuking all manual node placement. Fixed the key to `data.sceneTitle`. The effect now triggers only once per scene navigation, exactly as intended.
+  2. **`HelpGuide.tsx` created** — full 6-tab comprehensive guide modal:
+     - **Canvas**: navigation, adding nodes, connecting, selection, filtering, layout/resize
+     - **Node Types**: all 24 node types with live `NodeIcon` + color tint from `typeColors`, plus plain-English descriptions
+     - **Inspector**: Content/Logic/Raw tab breakdown, node status values, color tags, notes
+     - **Project**: scenes, variables, achievements, assets, search & replace, dashboard/stats
+     - **Import/Export**: .json/.txt/.zip/Folder import, source preservation, export zip, linter
+     - **Shortcuts**: full shortcut reference (reuses the groups from the old `KeyboardShortcutOverlay`)
+  3. **`TopBar.tsx`**: Added `onHelp: () => void` prop. Added a circular `?` button after the Play button in `top-actions`.
+  4. **`App.tsx`**: Replaced `shortcutsOpen`/`KeyboardShortcutOverlay` with `helpOpen`/`HelpGuide`. The `?` key shortcut and CommandPalette `shortcuts` command now open `HelpGuide`.
+  5. **`styles.css`**: Added `.hg-*` CSS for backdrop, modal, tabs, section rows, node grid, shortcut grid, and the help button.
+  - **Files changed**: `GraphCanvas.tsx`, `HelpGuide.tsx` (new), `TopBar.tsx`, `App.tsx`, `styles.css`, `agents.md`.
+  - **Tests**: 382 passing (no domain changes).
+
 ### 2026-05-19 — Claude Code (claude-sonnet-4-6) — session 182
 - **Four improvements: code generator fix, auto-height layout, resizable nodes.**
   1. **Code generator bug fixed (`choicescript.ts` line 27)**: `gosub_scene` nodes store their entry label in `node.body`. The body exclusion list in `generateNodeChoiceScript` didn't include `gosub_scene`, so the entry label was accidentally emitted as prose text before the `*gosub_scene` command. Added `node.type !== "gosub_scene"` to the exclusion guard. Fix is 1 character change; all 382 tests still pass.
