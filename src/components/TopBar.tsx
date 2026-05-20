@@ -26,9 +26,13 @@ interface TopBarProps {
   onNewProject: () => void;
   onSnapshots: () => void;
   onHelp: () => void;
+  currentFilePath?: string | null;
+  onNativeOpen?: () => void;
+  onNativeSave?: () => void;
+  onNativeSaveAs?: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp }: TopBarProps) {
+export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -90,7 +94,21 @@ export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, on
         <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
         <button className="ghost-btn" onClick={onRedo} disabled={!canRedo} title="Ctrl+Shift+Z">Redo</button>
-        <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : lang === "es" ? "Guardar" : "Save"}</button>
+        {onNativeOpen && (
+          <button className="ghost-btn" onClick={onNativeOpen} title="Open project file">Open</button>
+        )}
+        {onNativeSave ? (
+          <>
+            <button className="ghost-btn" onClick={onNativeSave} title="Save project (Ctrl+S)">
+              {currentFilePath ? "Save" : "Save As…"}
+            </button>
+            {currentFilePath && (
+              <button className="ghost-btn" onClick={onNativeSaveAs} title="Save project to a new file">Save As…</button>
+            )}
+          </>
+        ) : (
+          <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : lang === "es" ? "Guardar" : "Save"}</button>
+        )}
         <button className="ghost-btn" onClick={onSnapshots} title="Named project restore points">{lang === "pt" ? "Snapshots" : lang === "es" ? "Capturas" : "Snapshots"}</button>
         {saveStatus && <span className="save-status">{saveStatus}</span>}
         <button className="ghost-btn" onClick={onNewProject}>New</button>

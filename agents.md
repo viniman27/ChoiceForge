@@ -343,6 +343,32 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-20 — Claude Code (claude-sonnet-4-6) — session 184
+- **Tauri v2 desktop app scaffold.**
+  - **Goal**: Wrap the web app as a cross-platform desktop app (Windows/macOS/Linux) using Tauri v2, with native file open/save for `.json` project files. Web version (`npm run dev` / `npm run build`) is fully unchanged.
+  - **Scaffold files created**:
+    - `src-tauri/Cargo.toml` — Rust package, depends on `tauri@2`, `tauri-plugin-dialog@2`, `tauri-plugin-fs@2`
+    - `src-tauri/build.rs` — Tauri build script
+    - `src-tauri/src/main.rs` — entry point (sets `windows_subsystem = "windows"` for release)
+    - `src-tauri/src/lib.rs` — Tauri builder with dialog + fs plugins
+    - `src-tauri/tauri.conf.json` — window: 1400×900 min 960×640, identifier `com.choiceforge.app`
+    - `src-tauri/capabilities/default.json` — grants `dialog:allow-open`, `dialog:allow-save`, `fs:allow-read-text-file`, `fs:allow-write-text-file`
+  - **Platform abstraction** (`src/platform/fileSystem.ts`):
+    - `isTauri()` — detects Tauri via `__TAURI_INTERNALS__`
+    - `nativeOpenProject()` — opens file dialog filtered to `.json`, returns `{path, content}`
+    - `nativeSaveProject(content, currentPath?)` — saves to existing path or shows Save As dialog
+    - `nativeSaveProjectAs(content)` — always shows Save As dialog
+    - `setWindowTitle(title)` — updates native window title
+  - **TopBar.tsx**: Added optional `onNativeOpen`, `onNativeSave`, `onNativeSaveAs`, `currentFilePath` props. In Tauri mode the "Save" web button is replaced by "Open" + "Save"/"Save As" native buttons. Web mode is unchanged.
+  - **App.tsx**: Added `currentFilePath` state + ref, three `useCallback` native handlers, `handleNativeSave` in `useEffect` deps. Ctrl+S routes to `handleNativeSave()` when in Tauri, otherwise falls back to `actions.saveNow()`. Window title updates on open/save.
+  - **vite.config.ts**: Added Tauri-specific `clearScreen: false`, `strictPort: true`, `TAURI_ENV_` prefix, and conditional build target.
+  - **package.json**: Added `tauri:dev`, `tauri:build`, `tauri:icons` scripts. Installed `@tauri-apps/cli@^2`, `@tauri-apps/api@^2`, `@tauri-apps/plugin-dialog`, `@tauri-apps/plugin-fs`.
+  - **`.gitignore`**: Added `src-tauri/target/` and `src-tauri/Cargo.lock`.
+  - **How to run desktop**: Install Rust first (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`), then `npm run tauri:dev`.
+  - **Icons**: Run `npm run tauri:icons src-tauri/app-icon.png` (provide a 512×512 PNG) to generate all required icon sizes before `tauri:build`.
+  - **Files changed**: `src-tauri/` (new), `src/platform/fileSystem.ts` (new), `vite.config.ts`, `package.json`, `src/App.tsx`, `src/components/TopBar.tsx`, `.gitignore`, `agents.md`.
+  - **Tests**: 382 passing (no domain changes).
+
 ### 2026-05-20 — Claude Code (claude-sonnet-4-6) — session 183
 - **Critical bug fix + comprehensive HelpGuide.**
   1. **Auto-height key bug fixed (`GraphCanvas.tsx`)**: The `autoHeightKeyRef` guard used `data.nodes.map(n => n.id).join(",")` as its key. Every time the user added a node, the key changed, the effect fired, found the new (default-sized) node as an underestimate, and called `onLayoutNodes()` — nuking all manual node placement. Fixed the key to `data.sceneTitle`. The effect now triggers only once per scene navigation, exactly as intended.
