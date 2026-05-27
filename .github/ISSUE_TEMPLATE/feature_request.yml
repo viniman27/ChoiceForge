@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new capability or improvement.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Start with the underlying user need, not the implementation.
+      placeholder: As an author writing a long branching story, I have trouble ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like ChoiceForge to behave? UI mockups, examples, or links to similar tools welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about and why you ruled them out.
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
