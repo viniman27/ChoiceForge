@@ -530,7 +530,7 @@ export function useProjectStore() {
             ...current,
             nodes: current.nodes.map((node) => (
               node.id === from
-                ? { ...node, options: [...(node.options ?? []), { text: `Go to ${target.title}`, to, cond: null }] }
+                ? { ...node, options: [...(node.options ?? []), { text: target.title, to, cond: null }] }
                 : node
             )),
           }));
