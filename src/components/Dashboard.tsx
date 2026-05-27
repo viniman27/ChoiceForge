@@ -50,7 +50,7 @@ export function Dashboard({ data, labels, onClose, onUpdateWordGoal, onUpdateSce
     <div className="dashboard-overlay">
       <div className="dash-head">
         <div>
-          <h1 className="dash-title">Project stats</h1>
+          <h1 className="dash-title">{labels.dashTitle}</h1>
           <div className="dash-subtitle">{data.title} - {data.scenes.length} scenes</div>
         </div>
         <button className="dash-close" onClick={onClose}>back to editor</button>

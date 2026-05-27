@@ -337,4 +337,25 @@ export interface I18nLabels {
   ipMissing: string;
   ipSelectPlaceholder: string;
   ipNonePlaceholder: string;
+  topUndo: string;
+  topRedo: string;
+  topNew: string;
+  topOpen: string;
+  topSave: string;
+  topSaveAs: string;
+  topImport: string;
+  topImportFolder: string;
+  topSnapshots: string;
+  topBoardToggle: string;
+  topTextToggle: string;
+  snapTitle: string;
+  snapDesc: string;
+  snapNamePlaceholder: string;
+  snapSaveNow: string;
+  snapEmpty: string;
+  snapRestore: string;
+  snapConfirmRestore: string;
+  snapCancel: string;
+  dashTitle: string;
+  bottomClearFilters: string;
 }

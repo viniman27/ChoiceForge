@@ -48,6 +48,11 @@ const REQUIRED_KEYS: Array<keyof I18nLabels> = [
   "ipOptionCondition", "ipBranchEffects", "ipOptionEffects",
   "ipStatEffects", "ipAddEffect",
   "ipChooseAsset", "ipMissing", "ipSelectPlaceholder", "ipNonePlaceholder",
+  "topUndo", "topRedo", "topNew", "topOpen", "topSave", "topSaveAs",
+  "topImport", "topImportFolder", "topSnapshots", "topBoardToggle", "topTextToggle",
+  "snapTitle", "snapDesc", "snapNamePlaceholder", "snapSaveNow", "snapEmpty",
+  "snapRestore", "snapConfirmRestore", "snapCancel",
+  "dashTitle", "bottomClearFilters",
 ];
 
 const LANGS: Language[] = ["pt", "en", "es"];
