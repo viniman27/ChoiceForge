@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 195
+- **Robustness pass: panel error boundaries + full round-trip integration tests.**
+  - **PanelErrorBoundary** (`src/components/PanelErrorBoundary.tsx`): class-based React error boundary. Wrapped LeftPanel, the canvas/editor/playview area, and RightPanel in App.tsx. A render crash in any one panel now shows an inline error card (with panel name, the error message, a Retry button, and a hint about autosave) instead of taking down the whole app. Console.error gets a `[ChoiceForge] X panel crashed` prefix so it's obvious in devtools. The TopBar, BottomBar, modal overlays, and HelpGuide stay unwrapped — they need to keep working when an inner panel crashes, and they're simple enough to be unlikely to throw.
+  - **Round-trip integration tests** (`tests/ui/exportImportRoundtrip.test.ts`): 12 new tests run `createExportPackage → unpack → importChoiceScriptArchive` on both EN and PT samples and assert title/author/scenes/variables/achievements survive. Also asserts export-package shape (always has `_choiceforge/project.json` + `mygame/startup.txt` + `mygame/choicescript_stats.txt`, scene `.txt` file count matches playable scene count) and verifies preserved scene source contains the generator's `cf_n*` labels. Higher leverage than single-function unit tests because each test exercises the whole generator + importer chain end-to-end — any regression in `generateSceneChoiceScript`, `generateStartupChoiceScript`, `generateStatsChoiceScript`, or `importChoiceScriptArchive` will fail at least one round-trip test.
+  - **PanelErrorBoundary tests** (`tests/ui/PanelErrorBoundary.test.tsx`): 4 tests — renders children when nothing throws, catches errors with the panel name in the fallback, shows a Retry button, logs to console.error with the panel-name prefix.
+  - **Tests**: 387 domain + 67 UI = **454 passing** (was 438). Build clean.
+  - **Commits**: `b77eb8b` (error boundaries), `bedce18` (round-trip tests).
+  - **README EN/PT, CHANGELOG, agents.md** updated with the new test counts and a Robustness subsection.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 194
 - **Backlog cleanup pass: zip worker, ~90-string i18n bulk, a11y, more UI tests.**
   - **`extractZipEntries` async via Worker** (`src/workers/zipParser.ts`, `App.tsx`): unzipSync ran on the main thread, freezing input for multi-second decompresses on multi-MB ChoiceScript archives with images. New zipParser worker runs decompress off-main; chooses path by size (≤ 256 KB stays sync to avoid worker spin-up overhead; > 256 KB uses the worker with 30 s timeout and sync fallback on error).
