@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 188
+- **Open-source readiness pass: CI, CONTRIBUTING, finish i18n.**
+  - **GitHub Actions CI** (`.github/workflows/ci.yml`): runs `npx tsc --noEmit`, `npm test`, and `npm run build` on every push to `main` and every PR. Pulls Node version from `.nvmrc` and caches npm. 10-minute timeout.
+  - **CONTRIBUTING.md**: human-facing contributor guide. Sections: quick start, workflow, eight non-negotiables (purity of `choicescript.ts`, `commitProject` discipline, startup/special-scene locks, identifier normalization, etc.), code style, testing expectations, the new-node-type and new-scene-action checklists, bug-report template, license/trademark note. Links to `agents.md` as the authoritative deep dive.
+  - **i18n for `createStoryNode` defaults** (`projectStore.ts` + `App.tsx`): new nodes added from the toolbar previously seeded English-only placeholder prose ("New narrative passage.", "What happens next?", "Author note.", etc.) regardless of the editor's UI language. Mixed English into PT/ES projects until the user overwrote each field. Added a `NODE_DEFAULTS: Record<Language, NodeDefaults>` table covering the 8 user-visible seed strings, extended `addNode` action signature with an optional `lang` param, and wired `lang` in at both call sites in `App.tsx`. ChoiceScript command titles (`*goto`, `*finish`, `*page_break`, etc.) stay in English — those are language syntax, not prose.
+  - **Tests**: 387 passing. Build clean (904 KB main bundle).
+  - **Commits**: `9d30136` (CI workflow), `40cd2d6` (CONTRIBUTING), `c07485a` (i18n defaults).
+  - **Out-of-scope remaining**: `extractZipEntries` async via worker (still synchronous `unzipSync`); `clearStartupSource` aggressive wipe on var/ach mutations (design tradeoff); bundle splitting to shrink main chunk under 500 KB warning threshold; UI/integration test layer (no Vitest/Playwright yet). i18n of `simpleCommandNode` lossy-import defaults skipped — those are rare and seen only in unmodelled imports.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 187
 - **3 follow-up cleanups: zip compression, helper dedup, drop English default in connectNodes.**
   - **Zip compression** (`App.tsx`): replaced the hand-rolled `createZipArchive` (~80 lines using STORE method, with `u16`/`u32`/`concatBytes`/`crc32` helpers) with `fflate.zipSync` at level 6. Already-compressed asset extensions (png/jpg/gif/webp/mp3/ogg/mp4/m4a/aac/zip) get level 0 to skip wasted CPU. ChoiceScript text exports should shrink ~70%.
