@@ -46,7 +46,8 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
     predecessors.get(edge.to)?.push(edge.from);
   });
 
-  const roots = nodes.filter((node) => node.id === "n1" || (incoming.get(node.id) ?? 0) === 0);
+  const rootId = nodes[0]?.id ?? "";
+  const roots = nodes.filter((node) => node.id === rootId || (incoming.get(node.id) ?? 0) === 0);
   const queue = roots.length ? roots.map((node) => node.id) : nodes.slice(0, 1).map((node) => node.id);
   const depth = new Map<string, number>(queue.map((id) => [id, 0]));
 
@@ -81,7 +82,7 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
   orderedColumns.forEach(([, columnNodes]) => {
     // Barycenter sort: order nodes by mean vertical centre of already-placed predecessors.
     const withBc = columnNodes.map((node) => {
-      if (node.id === "n1") return { node, bc: startY };
+      if (node.id === rootId) return { node, bc: startY };
       const predCentres = (predecessors.get(node.id) ?? [])
         .map((p) => {
           const pos = positions.get(p);

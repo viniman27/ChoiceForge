@@ -1699,18 +1699,28 @@ function mimeType(fileName: string): string {
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof btoa === "function") {
+    const chunkSize = 0x8000;
+    const parts: string[] = [];
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const slice = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      parts.push(String.fromCharCode(...slice));
+    }
+    return btoa(parts.join(""));
+  }
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  let output = "";
+  const out = new Array<string>(Math.ceil(bytes.length / 3) * 4);
+  let pos = 0;
   for (let index = 0; index < bytes.length; index += 3) {
     const a = bytes[index];
     const b = bytes[index + 1] ?? 0;
     const c = bytes[index + 2] ?? 0;
-    output += chars[a >> 2];
-    output += chars[((a & 3) << 4) | (b >> 4)];
-    output += index + 1 < bytes.length ? chars[((b & 15) << 2) | (c >> 6)] : "=";
-    output += index + 2 < bytes.length ? chars[c & 63] : "=";
+    out[pos++] = chars[a >> 2];
+    out[pos++] = chars[((a & 3) << 4) | (b >> 4)];
+    out[pos++] = index + 1 < bytes.length ? chars[((b & 15) << 2) | (c >> 6)] : "=";
+    out[pos++] = index + 2 < bytes.length ? chars[c & 63] : "=";
   }
-  return output;
+  return out.join("");
 }
 
 function normalizeIdentifier(value: string): string {
