@@ -49,6 +49,8 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
               key={s}
               className={`ip-status-btn ip-status-${s}${node.status === s ? " is-active" : ""}`}
               disabled={sourcePreserved}
+              aria-pressed={node.status === s}
+              aria-label={s}
               onClick={() => onUpdateNode(node.id, { status: node.status === s ? undefined : s })}
             >{s}</button>
           ))}
@@ -60,6 +62,8 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
               className={`ip-color-dot${node.colorTag === tag ? " is-active" : ""}`}
               style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
               title={tag}
+              aria-label={tag}
+              aria-pressed={node.colorTag === tag}
               disabled={sourcePreserved}
               onClick={() => onUpdateNode(node.id, { colorTag: node.colorTag === tag ? undefined : tag })}
             />

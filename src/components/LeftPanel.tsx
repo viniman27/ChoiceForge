@@ -521,10 +521,10 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
-                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>{labels.miniUp}</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>{labels.miniDown}</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>{labels.miniDup}</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>{labels.miniDel}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} aria-label={`${labels.miniUp} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>{labels.miniUp}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} aria-label={`${labels.miniDown} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>{labels.miniDown}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" aria-label={`${labels.miniDup} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>{labels.miniDup}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action danger" aria-label={`${labels.miniDel} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>{labels.miniDel}</button>}
                 </span>
               </div>
             </div>
@@ -589,8 +589,8 @@ function VariablesList({
               <React.Fragment key={variable.name}>
                 <tr>
                   <td className="var-move-cell">
-                    <button className="var-move-btn" disabled={isFirst} onClick={() => onMoveVariable(variable.name, "up")} title="Move up">↑</button>
-                    <button className="var-move-btn" disabled={isLast} onClick={() => onMoveVariable(variable.name, "down")} title="Move down">↓</button>
+                    <button className="var-move-btn" disabled={isFirst} aria-label={`${labels.miniUp} ${variable.name}`} onClick={() => onMoveVariable(variable.name, "up")} title={labels.miniUp}>↑</button>
+                    <button className="var-move-btn" disabled={isLast} aria-label={`${labels.miniDown} ${variable.name}`} onClick={() => onMoveVariable(variable.name, "down")} title={labels.miniDown}>↓</button>
                   </td>
                   <td>
                     <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
@@ -640,7 +640,7 @@ function VariablesList({
                       onClick={() => uses > 0 && setExpandedVar(isExpanded ? null : variable.name)}
                     >{uses}</button>
                   </td>
-                  <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>{labels.miniDel}</button></td>
+                  <td><button className="mini-action danger" aria-label={`${labels.miniDel} ${variable.name}`} onClick={() => onDeleteVariable(variable.name)}>{labels.miniDel}</button></td>
                 </tr>
                 {isExpanded && locs.length > 0 && (
                   <tr className="var-locs-row">
@@ -789,7 +789,7 @@ function AchievementsList({
                   <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === 0} onClick={() => onMoveAchievement(achievement.id, "up")} title={labels.miniUp}>↑</button>
                   <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === data.achievements.length - 1} onClick={() => onMoveAchievement(achievement.id, "down")} title={labels.miniDown}>↓</button>
                 </span>
-                <button className="mini-action danger" onClick={() => onDeleteAchievement(achievement.id)}>{labels.miniDel}</button>
+                <button className="mini-action danger" aria-label={`${labels.miniDel} ${achievement.id}`} onClick={() => onDeleteAchievement(achievement.id)}>{labels.miniDel}</button>
               </div>
               <div className="ach-code-row">
                 <code>*achievement</code>
@@ -867,7 +867,7 @@ function AssetsList({
                     <option value="data">data</option>
                     <option value="other">other</option>
                   </select>
-                  <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>{labels.miniDel}</button>
+                  <button className="mini-action danger" aria-label={`${labels.miniDel} ${asset.id}`} onClick={() => onDeleteAsset(asset.id)}>{labels.miniDel}</button>
                 </div>
                 <label className="asset-file-btn">
                   {labels.assetFile}

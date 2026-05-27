@@ -645,6 +645,8 @@ export function GraphCanvas({
           className={`zoom-snap${snap ? " is-active" : ""}`}
           onClick={() => setSnap((s) => !s)}
           title={`${labels.canvasSnap} (G)`}
+          aria-label={labels.canvasSnap}
+          aria-pressed={snap}
         >
           <SnapIcon />
         </button>
@@ -659,6 +661,8 @@ export function GraphCanvas({
             title={activeColorTags.has(tag)
               ? `Filtering by ${tag} tag — click to remove this filter`
               : `Show only ${tag}-tagged nodes (dims others)`}
+            aria-label={`${labels.canvasTagLabel}: ${tag}`}
+            aria-pressed={activeColorTags.has(tag)}
           />
         ))}
         {activeColorTags.size > 0 && (
@@ -882,6 +886,7 @@ function SelectionBar({ selCount, selectedIds, data, density, labels, onMoveNode
           className="sel-bar-color-dot"
           style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
           title={`${labels.tagAllAs} ${tag}`}
+          aria-label={`${labels.tagAllAs} ${tag}`}
           onClick={() => onBulkUpdateNodes(ids, { colorTag: tag })}
         />
       ))}
