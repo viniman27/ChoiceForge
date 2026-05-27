@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ChoiceScript reference
+    url: https://choicescriptdev.fandom.com/wiki/ChoiceScript_Wiki
+    about: Official-community wiki for ChoiceScript syntax and semantics.
+  - name: Choice of Games
+    url: https://www.choiceofgames.com/
+    about: The publisher and source of ChoiceScript. ChoiceForge is an unaffiliated fan-made editor.
