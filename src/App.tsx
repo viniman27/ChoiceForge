@@ -866,11 +866,45 @@ function assertChoiceForgeProject(value: unknown): asserts value is ChoiceForgeP
   if (!Array.isArray(project.scenes) || !Array.isArray(project.variables) || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) throw new Error("invalid collections");
 }
 
-function extractZipEntries(bytes: Uint8Array) {
+const LARGE_ZIP_BYTES = 256 * 1024;
+
+function extractZipEntries(bytes: Uint8Array): Promise<{ name: string; bytes: Uint8Array }[]> {
+  if (bytes.byteLength <= LARGE_ZIP_BYTES) {
+    return Promise.resolve(extractZipEntriesSync(bytes));
+  }
+  return extractZipEntriesViaWorker(bytes).catch(() => extractZipEntriesSync(bytes));
+}
+
+function extractZipEntriesSync(bytes: Uint8Array) {
   const files = unzipSync(bytes);
   return Object.entries(files)
     .filter(([name]) => !name.endsWith("/"))
     .map(([name, fileBytes]) => ({ name, bytes: fileBytes }));
+}
+
+function extractZipEntriesViaWorker(bytes: Uint8Array): Promise<{ name: string; bytes: Uint8Array }[]> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("./workers/zipParser.ts", import.meta.url), { type: "module" });
+    const timer = window.setTimeout(() => {
+      worker.terminate();
+      reject(new Error("zip parse worker timeout"));
+    }, 30000);
+    worker.onmessage = (event: MessageEvent<import("./workers/zipParser.ts").ZipParseResponse>) => {
+      window.clearTimeout(timer);
+      worker.terminate();
+      if (!event.data.ok || !event.data.entries) {
+        reject(new Error(event.data.error ?? "zip parse failed"));
+        return;
+      }
+      resolve(event.data.entries);
+    };
+    worker.onerror = (err) => {
+      window.clearTimeout(timer);
+      worker.terminate();
+      reject(err.error ?? new Error("zip parse worker error"));
+    };
+    worker.postMessage({ bytes });
+  });
 }
 
 function createZipArchive(files: ReturnType<typeof createExportPackage>["files"]): Uint8Array {
