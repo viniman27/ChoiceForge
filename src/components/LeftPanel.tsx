@@ -423,11 +423,11 @@ function ScenesList({
     <div className="scene-list">
       <div className="source-summary">
         <div>
-          <span className="source-summary-label">source files</span>
-          <strong>{preservedScenes} preserved</strong>
+          <span className="source-summary-label">{labels.sourceFilesLabel}</span>
+          <strong>{preservedScenes} {labels.preservedCount}</strong>
         </div>
         <div>
-          <span className="source-summary-label">generated</span>
+          <span className="source-summary-label">{labels.generatedCount}</span>
           <strong>{generatedScenes}</strong>
         </div>
       </div>
@@ -491,7 +491,7 @@ function ScenesList({
               <input
                 className="scene-notes"
                 value={scene.notes ?? ""}
-                placeholder="synopsis…"
+                placeholder={labels.sceneSynopsis}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => onUpdateScene(scene.id, { notes: e.target.value || undefined })}
               />
@@ -504,7 +504,7 @@ function ScenesList({
                       type="number"
                       min="0"
                       value={scene.wordGoal ?? ""}
-                      placeholder="word goal…"
+                      placeholder={labels.sceneWordGoal}
                       onChange={(e) => {
                         const n = parseInt(e.target.value, 10);
                         onUpdateScene(scene.id, { wordGoal: isNaN(n) || n <= 0 ? undefined : n });
@@ -521,10 +521,10 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
-                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>up</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>down</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>dup</button>}
-                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>del</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>{labels.miniUp}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>{labels.miniDown}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action" onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>{labels.miniDup}</button>}
+                  {!scene.isStart && !scene.special && <button className="mini-action danger" onClick={(event) => { event.stopPropagation(); onDeleteScene(scene.id); }}>{labels.miniDel}</button>}
                 </span>
               </div>
             </div>
@@ -577,7 +577,7 @@ function VariablesList({
     <div className="vars-list">
       <div className="section-title"><span>*create</span><button className="ghost-btn" onClick={onAddVariable}>+ {labels.addVar}</button></div>
       <table className="vars-table">
-        <thead><tr><th></th><th>type</th><th>name</th><th>initial</th><th>stats</th><th>desc</th><th>uses</th><th></th></tr></thead>
+        <thead><tr><th></th><th>{labels.varColType}</th><th>{labels.varColName}</th><th>{labels.varColInitial}</th><th>{labels.varColStats}</th><th>{labels.varColDesc}</th><th>{labels.varColUses}</th><th></th></tr></thead>
         <tbody>
           {data.variables.map((variable, index) => {
             const uses = variableUses.get(variable.name) ?? 0;
@@ -594,9 +594,9 @@ function VariablesList({
                   </td>
                   <td>
                     <select value={variable.type} onChange={(event) => onUpdateVariable(variable.name, { type: event.target.value as VariableSummary["type"], fairmath: event.target.value === "number" ? variable.fairmath : false })}>
-                      <option value="number">num</option>
-                      <option value="string">str</option>
-                      <option value="boolean">bool</option>
+                      <option value="number">{labels.varTypeNum}</option>
+                      <option value="string">{labels.varTypeStr}</option>
+                      <option value="boolean">{labels.varTypeBool}</option>
                     </select>
                   </td>
                   <td>
@@ -616,18 +616,18 @@ function VariablesList({
                           else onUpdateVariable(variable.name, { showInStats: undefined, fairmath: false, opposedLow: undefined });
                         }}
                       >
-                        <option value="off">off</option>
-                        <option value="text">text</option>
-                        <option value="percent" disabled={variable.type !== "number"}>%</option>
-                        <option value="pair" disabled={variable.type !== "number"}>pair</option>
+                        <option value="off">{labels.varStatsOff}</option>
+                        <option value="text">{labels.varStatsText}</option>
+                        <option value="percent" disabled={variable.type !== "number"}>{labels.varStatsPercent}</option>
+                        <option value="pair" disabled={variable.type !== "number"}>{labels.varStatsPair}</option>
                       </select>
                       {variable.opposedLow !== undefined && (
                         <input
                           className="stat-chart-low-input"
                           value={variable.opposedLow}
-                          placeholder="low label"
+                          placeholder={labels.varStatsLowLabel}
                           onChange={(event) => onUpdateVariable(variable.name, { opposedLow: event.target.value })}
-                          title="Low-end label for opposed_pair (e.g. Cowardly)"
+                          title={labels.varStatsLowLabel}
                         />
                       )}
                     </div>
@@ -636,11 +636,11 @@ function VariablesList({
                   <td>
                     <button
                       className={`var-uses-btn ${uses === 0 ? "is-zero" : ""} ${isExpanded ? "is-active" : ""}`}
-                      title={uses > 0 ? "Show usage locations" : undefined}
+                      title={uses > 0 ? labels.varUsesTitle : undefined}
                       onClick={() => uses > 0 && setExpandedVar(isExpanded ? null : variable.name)}
                     >{uses}</button>
                   </td>
-                  <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
+                  <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>{labels.miniDel}</button></td>
                 </tr>
                 {isExpanded && locs.length > 0 && (
                   <tr className="var-locs-row">
@@ -783,13 +783,13 @@ function AchievementsList({
                     checked={Boolean(achievement.hidden)}
                     onChange={(event) => onUpdateAchievement(achievement.id, { hidden: event.target.checked })}
                   />
-                  hidden
+                  {labels.achHidden}
                 </label>
                 <span className="var-move-cell">
-                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === 0} onClick={() => onMoveAchievement(achievement.id, "up")} title="move up">↑</button>
-                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === data.achievements.length - 1} onClick={() => onMoveAchievement(achievement.id, "down")} title="move down">↓</button>
+                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === 0} onClick={() => onMoveAchievement(achievement.id, "up")} title={labels.miniUp}>↑</button>
+                  <button className="var-move-btn" disabled={data.achievements.indexOf(achievement) === data.achievements.length - 1} onClick={() => onMoveAchievement(achievement.id, "down")} title={labels.miniDown}>↓</button>
                 </span>
-                <button className="mini-action danger" onClick={() => onDeleteAchievement(achievement.id)}>del</button>
+                <button className="mini-action danger" onClick={() => onDeleteAchievement(achievement.id)}>{labels.miniDel}</button>
               </div>
               <div className="ach-code-row">
                 <code>*achievement</code>
@@ -805,22 +805,22 @@ function AchievementsList({
                 value={achievement.preDesc ?? achievement.desc}
                 onChange={(event) => onUpdateAchievement(achievement.id, { preDesc: event.target.value, desc: event.target.value })}
                 aria-label="achievement pre description"
-                placeholder="description before unlock"
+                placeholder={labels.achDescBefore}
               />
               <input
                 className="ach-desc-edit"
                 value={achievement.postDesc ?? achievement.desc}
                 onChange={(event) => onUpdateAchievement(achievement.id, { postDesc: event.target.value })}
                 aria-label="achievement post description"
-                placeholder="description after unlock"
+                placeholder={labels.achDescAfter}
               />
               <div className="ach-footer-row">
                 <code className="ach-id">*achieve {achievement.id}</code>
                 <button
                   className={`var-uses-btn ${uses === 0 ? "is-zero" : ""} ${isExpanded ? "is-active" : ""}`}
-                  title={uses > 0 ? "Show where this achievement is granted" : undefined}
+                  title={uses > 0 ? labels.achUsesTitle : undefined}
                   onClick={() => uses > 0 && setExpandedAch(isExpanded ? null : achievement.id)}
-                >{uses} use{uses !== 1 ? "s" : ""}</button>
+                >{uses} {labels.achUsesSuffix}</button>
               </div>
               {isExpanded && locs.length > 0 && (
                 <AchievementLocationList locs={locs} onNavigate={onNavigateToNode} />
@@ -850,7 +850,7 @@ function AssetsList({
   const assets = data.assets ?? [];
   return (
     <div className="assets-list">
-      <div className="section-title"><span>assets</span><button className="ghost-btn" onClick={onAddAsset}>+ asset</button></div>
+      <div className="section-title"><span>{labels.assets}</span><button className="ghost-btn" onClick={onAddAsset}>+ {labels.addAsset}</button></div>
       {assets.length === 0 ? (
         <p className="empty-search">{labels.noAssetsYet}</p>
       ) : (
@@ -867,7 +867,7 @@ function AssetsList({
                     <option value="data">data</option>
                     <option value="other">other</option>
                   </select>
-                  <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>del</button>
+                  <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>{labels.miniDel}</button>
                 </div>
                 <label className="asset-file-btn">
                   {labels.assetFile}
