@@ -343,6 +343,15 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 192
+- **LeftPanel audit (948 lines) + 2 fixes.**
+  - **Audit findings**: catalogued ~17 items. The two real fixes shipped this session; rest are either acceptable-as-is (most chrome strings already always-English, no Spanish regression; expandedVar persistence across tab switches is a UX nit), microoptimizations (per-row `indexOf` is fine for typical achievement counts; rename without debounce only matters on big projects), or deferred (broader chrome i18n).
+  - **Fix 1 — React key warning** (`LeftPanel.tsx` VariablesList): each variable row was rendered as `<>...</>` Fragment inside `.map()` with keys on the inner `<tr>` elements but missing on the outer fragment. React was warning every render. Switched to `<React.Fragment key={variable.name}>` and dropped the redundant inner keys.
+  - **Fix 2 — `labels.words === "words"` heuristic was broken for Spanish** (`LeftPanel.tsx`, `types.ts`, `sampleProject.ts`): six places detected language via the brittle `labels.words === "words" ? <en> : <pt>` pattern, handling only English vs everything-else. Spanish users saw Portuguese fallbacks for the search results title, no-results message, no-assets-yet, the asset file-picker label, the asset usage-note placeholder, and (in a 3-way variant) the replace status messages. Added 8 proper `I18nLabels` keys (`searchResultsTitle`, `searchNoResults`, `replaceNoMatches`, `replaceInScene`, `replaceInAll`, `noAssetsYet`, `assetFile`, `assetUsageNote`) with PT/EN/ES translations. The replace-status keys use a `{count}` interpolation pattern.
+  - **Tests**: 387 passing. Build clean.
+  - **Commits**: `5c4e516`.
+  - **Deferred**: ~15 remaining always-English chrome strings ("type"/"name"/"initial" table headers, "num"/"str"/"bool" type options, "off"/"text"/"%"/"pair" stats select options, mini-action labels "up"/"down"/"dup"/"del", "synopsis…" placeholder, "hidden" checkbox label, "use(s)" suffix, etc.). These don't break Spanish fallbacks since they're always-English; they would just remain English in PT/ES projects until a future bulk i18n pass. Combined with the ~20 deferred canvas chrome strings, the next i18n pass is a ~35-string bulk effort worth a dedicated session.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 191
 - **GraphCanvas audit (1133 lines) + 3 fixes.**
   - **Audit findings**: catalogued ~25 items. The three real fixes shipped this session; ~20 are either acceptable-in-practice (idempotent double-fire on connect end because store rejects duplicate options/branches/edges; substring match in `type:choice` filter is intentional) or deferred (large surface of canvas-chrome English strings: "dup", AlignIcon titles, "Mark all selected as done", "Filtering by ..." tooltip, etc.).
