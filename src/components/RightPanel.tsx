@@ -110,6 +110,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
           <LogicTab
             node={node}
             project={project}
+            labels={labels}
             onUpdateNode={onUpdateNode}
             onAddFlowEdge={onAddFlowEdge}
             onDeleteFlowEdge={onDeleteFlowEdge}
@@ -211,8 +212,8 @@ function ContentTab({
             <button className="wf-expand-btn" onClick={() => setWritingFocus(true)} title="Focus writing mode">⛶</button>
           </div>
           <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
-          <AchievementInsert node={node} project={project} onUpdateNode={onUpdateNode} />
-          <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
+          <AchievementInsert node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />
+          <SetsList node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />
         </div>
         {writingFocus && createPortal(
           <WritingFocusOverlay
@@ -235,9 +236,9 @@ function ContentTab({
       <div className="ip-content">
         <div className="stat-node-note">
           <span className="node-icon"><NodeIcon type="set" /></span>
-          <span>stat step</span>
+          <span>{labels.ipStatStep}</span>
         </div>
-        <SetsList node={node} project={project} onUpdateNode={onUpdateNode} />
+        <SetsList node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />
       </div>
     );
   }
@@ -253,7 +254,7 @@ function ContentTab({
         <div className="ip-prompt-editor">
           <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
         </div>
-        <label className="ip-label">#options</label>
+        <label className="ip-label">{labels.ipOptionsLabel}</label>
         <ul className="ip-opts">
           {node.options?.map((option, index) => (
             <li key={`opt-${index}`} className={`ip-opt-row${dragOptIdx === index ? " is-dragging" : ""}${dragOverIdx === index && dragOptIdx !== index ? " is-drag-over" : ""}`} {...optDragHandlers(index)}>
@@ -268,17 +269,17 @@ function ContentTab({
                   value={option.cond?.type ?? "none"}
                   onChange={(event) => updateOptionCondition(node, index, event.target.value, onUpdateNode)}
                 >
-                  <option value="none">no condition</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
+                  <option value="none">{labels.ipNoCondition}</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
                 </select>
                 <select value={option.to} onChange={(event) => updateOption(node, index, { to: event.target.value }, onUpdateNode)}>
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
                 <button className="mini-action" title="Navigate to target node" onClick={() => onSelectNode?.(option.to)}>→</button>
               </div>
-              {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
+              {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
               <div className="ip-opt-body-editor"><NodeBodyEditor key={`opt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
-              <OptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
+              <OptionSets node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
@@ -292,13 +293,13 @@ function ContentTab({
     return (
       <div className="ip-content">
         <div className="ip-label-row">
-          <label className="ip-label">fake choice prompt</label>
+          <label className="ip-label">{labels.ipFakeChoicePrompt}</label>
           {fakePromptWc > 0 && <span className="ip-word-count">{fakePromptWc} {fakePromptWc === 1 ? "word" : "words"}</span>}
         </div>
         <div className="ip-prompt-editor">
           <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
         </div>
-        <label className="ip-label">#options</label>
+        <label className="ip-label">{labels.ipOptionsLabel}</label>
         <ul className="ip-opts">
           {node.fakeOptions?.map((option, index) => (
             <li key={`fopt-${index}`} className={`ip-opt-row${dragOptIdx === index ? " is-dragging" : ""}${dragOverIdx === index && dragOptIdx !== index ? " is-drag-over" : ""}`} {...fakeOptDragHandlers(index)}>
@@ -313,13 +314,13 @@ function ContentTab({
                   value={option.cond?.type ?? "none"}
                   onChange={(event) => updateFakeOptionCondition(node, index, event.target.value, onUpdateNode)}
                 >
-                  <option value="none">no condition</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
+                  <option value="none">{labels.ipNoCondition}</option><option value="if">*if</option><option value="selectable_if">*selectable_if</option>
                 </select>
               </div>
-              {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />}
+              {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateFakeOptionReuse(node, index, reuse, onUpdateNode)} />
               <div className="ip-opt-body-editor"><NodeBodyEditor key={`fopt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateFakeOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
-              <FakeOptionSets node={node} option={option} optionIndex={index} project={project} onUpdateNode={onUpdateNode} />
+              <FakeOptionSets node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
@@ -331,21 +332,21 @@ function ContentTab({
   if (node.type === "comment") {
     return (
       <div className="ip-content">
-        <label className="ip-label">comment</label>
+        <label className="ip-label">{labels.ipComment}</label>
         <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} />
       </div>
     );
   }
 
   if (node.type === "input_text" || node.type === "input_number" || node.type === "rand") {
-    return <InputNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
+    return <InputNodeFields node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />;
   }
 
   if (node.type === "temp") {
     const varName = node.inputVar?.trim() ?? "";
     return (
       <div className="ip-content">
-        <label className="ip-label">variable name</label>
+        <label className="ip-label">{labels.ipVariableName}</label>
         <input
           className="command-input"
           value={varName}
@@ -355,14 +356,13 @@ function ContentTab({
             onUpdateNode(node.id, { inputVar: name, title: `*temp ${name}`.trimEnd() });
           }}
         />
-        <label className="ip-label">initial value</label>
+        <label className="ip-label">{labels.ipInitialValue}</label>
         <input
           className="command-input"
           value={node.body ?? ""}
           placeholder="0"
           onChange={(event) => onUpdateNode(node.id, { body: event.target.value })}
         />
-        <p className="ip-hint">Scene-local variable — not declared in startup.txt. Valid in this scene only.</p>
       </div>
     );
   }
@@ -370,7 +370,7 @@ function ContentTab({
   if (node.type === "params") {
     return (
       <div className="ip-content">
-        <label className="ip-label">parameter names</label>
+        <label className="ip-label">{labels.ipParameterNames}</label>
         <input
           className="command-input"
           value={node.body ?? ""}
@@ -381,7 +381,6 @@ function ContentTab({
             onUpdateNode(node.id, { body: raw, title: `*params${names.length ? ` ${names.join(" ")}` : ""}` });
           }}
         />
-        <p className="ip-hint">Space-separated names for gosub arguments. Must appear after *label at the top of a subroutine.</p>
       </div>
     );
   }
@@ -398,31 +397,31 @@ function ContentTab({
             <span className="ip-image-name">{imageAsset.fileName}</span>
           </div>
         ) : node.target ? (
-          <div className="ip-image-missing">image not found in assets: {node.target}</div>
+          <div className="ip-image-missing">{node.target} {labels.ipMissing}</div>
         ) : null}
-        <label className="ip-label">filename</label>
+        <label className="ip-label">{labels.ipFilename}</label>
         {imageAssets.length > 0 ? (
           <select
             className="command-input"
             value={node.target ?? ""}
             onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })}
           >
-            <option value="">— choose asset —</option>
+            <option value="">{labels.ipChooseAsset}</option>
             {node.target && !imageAssets.find((a) => a.fileName === node.target) && (
-              <option value={node.target}>{node.target} (missing)</option>
+              <option value={node.target}>{node.target} {labels.ipMissing}</option>
             )}
             {imageAssets.map((a) => <option key={a.id} value={a.fileName}>{a.fileName}</option>)}
           </select>
         ) : (
           <input className="command-input" value={node.target ?? ""} placeholder="image.jpg" onChange={(event) => onUpdateNode(node.id, { title: `*image ${event.target.value}`.trim(), target: event.target.value })} />
         )}
-        <label className="ip-label">alignment</label>
+        <label className="ip-label">{labels.ipAlignment}</label>
         <select className="command-input" value={node.inputMin ?? "none"} onChange={(event) => onUpdateNode(node.id, { inputMin: event.target.value })}>
           <option value="none">none</option>
           <option value="left">left</option>
           <option value="right">right</option>
         </select>
-        <label className="ip-label">alt text</label>
+        <label className="ip-label">{labels.ipAltText}</label>
         <input className="command-input" value={node.prompt ?? ""} onChange={(event) => onUpdateNode(node.id, { prompt: event.target.value })} />
       </div>
     );
@@ -433,16 +432,16 @@ function ContentTab({
     const audioAssets = assets.filter((a) => /\.(mp3|ogg|wav|aac|flac|m4a)$/i.test(a.fileName ?? ""));
     return (
       <div className="ip-content">
-        <label className="ip-label">filename</label>
+        <label className="ip-label">{labels.ipFilename}</label>
         {audioAssets.length > 0 ? (
           <select
             className="command-input"
             value={node.target ?? ""}
             onChange={(event) => onUpdateNode(node.id, { title: `*sound ${event.target.value}`.trim(), target: event.target.value })}
           >
-            <option value="">— choose asset —</option>
+            <option value="">{labels.ipChooseAsset}</option>
             {node.target && !audioAssets.find((a) => a.fileName === node.target) && (
-              <option value={node.target}>{node.target} (missing)</option>
+              <option value={node.target}>{node.target} {labels.ipMissing}</option>
             )}
             {audioAssets.map((a) => <option key={a.id} value={a.fileName}>{a.fileName}</option>)}
           </select>
@@ -454,11 +453,11 @@ function ContentTab({
   }
 
   if (["label", "goto", "goto_scene", "gosub", "gosub_scene", "return", "checkpoint", "restore_checkpoint", "page_break", "ending", "finish"].includes(node.type)) {
-    return <CommandNodeFields node={node} project={project} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} onSelectNode={onSelectNode} />;
+    return <CommandNodeFields node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} onSelectScene={onSelectScene} onSelectNode={onSelectNode} />;
   }
 
   if (node.type === "achieve") {
-    return <AchieveNodeFields node={node} project={project} onUpdateNode={onUpdateNode} />;
+    return <AchieveNodeFields node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />;
   }
 
   return <div className="ip-content"><p className="dim">Simple node - no content fields.</p></div>;
@@ -467,10 +466,12 @@ function ContentTab({
 function AchievementInsert({
   node,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   if (!project.achievements.length) return null;
@@ -478,7 +479,7 @@ function AchievementInsert({
 
   return (
     <div className="achieve-insert">
-      <label className="ip-label">assign achievement</label>
+      <label className="ip-label">{labels.ipAssignAchievement}</label>
       <div className="achieve-actions">
         {project.achievements.map((achievement) => (
           <button
@@ -490,7 +491,7 @@ function AchievementInsert({
                 : appendAchievementCommand(node, achievement.id, onUpdateNode)
             )}
           >
-            {assigned.has(achievement.id) ? "remove" : "*achieve"} {achievement.id}
+            {assigned.has(achievement.id) ? labels.ipRemoveAchievement : "*achieve"} {achievement.id}
           </button>
         ))}
       </div>
@@ -501,10 +502,12 @@ function AchievementInsert({
 function AchieveNodeFields({
   node,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   const currentId = node.target?.trim() ?? "";
@@ -515,10 +518,10 @@ function AchieveNodeFields({
 
   return (
     <div className="ip-content">
-      <label className="ip-label">achievement</label>
+      <label className="ip-label">{labels.ipAchievementField}</label>
       {project.achievements.length > 0 ? (
         <select className="command-input" value={currentId} onChange={(event) => set(event.target.value)}>
-          {!currentId && <option value="">— select —</option>}
+          {!currentId && <option value="">{labels.ipSelectPlaceholder}</option>}
           {project.achievements.map((achievement) => (
             <option key={achievement.id} value={achievement.id}>{achievement.id} — {achievement.title}</option>
           ))}
@@ -533,23 +536,25 @@ function AchieveNodeFields({
 function CommandNodeFields({
   node,
   project,
+  labels,
   onUpdateNode,
   onSelectScene,
   onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onSelectScene?: (id: string) => void;
   onSelectNode?: (id: string) => void;
 }) {
-  const labels = project.nodes.filter((candidate) => candidate.type === "label");
+  const labelNodes = project.nodes.filter((candidate) => candidate.type === "label");
   const currentLabel = stripCommandPrefix(node.title, node.type === "gosub" ? "*gosub" : node.type === "goto" ? "*goto" : "*label");
 
   if (node.type === "label") {
     return (
       <div className="ip-content">
-        <label className="ip-label">label</label>
+        <label className="ip-label">{labels.ipLabelField}</label>
         <input className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `*label ${normalizeIdentifier(event.target.value)}` })} />
       </div>
     );
@@ -557,15 +562,15 @@ function CommandNodeFields({
 
   if (node.type === "goto" || node.type === "gosub") {
     const command = node.type === "goto" ? "*goto" : "*gosub";
-    const labelNames = labels.map((label) => stripCommandPrefix(label.title, "*label"));
-    const targetLabelNode = labels.find((label) => stripCommandPrefix(label.title, "*label") === currentLabel);
+    const labelNames = labelNodes.map((labelNode) => stripCommandPrefix(labelNode.title, "*label"));
+    const targetLabelNode = labelNodes.find((labelNode) => stripCommandPrefix(labelNode.title, "*label") === currentLabel);
     return (
       <div className="ip-content">
-        <label className="ip-label">{command} destination</label>
+        <label className="ip-label">{command} {labels.ipTargetScene}</label>
         <div className="ip-scene-row">
           <select className="command-input" value={currentLabel} onChange={(event) => onUpdateNode(node.id, { title: `${command} ${event.target.value}` })}>
             {currentLabel && !labelNames.includes(currentLabel) && <option value={currentLabel}>{currentLabel}</option>}
-            {!currentLabel && <option value="">label</option>}
+            {!currentLabel && <option value="">{labels.ipLabelField}</option>}
             {labelNames.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
           {onSelectNode && targetLabelNode && (
@@ -581,7 +586,7 @@ function CommandNodeFields({
     const targetSceneObj = project.scenes.find((s) => s.name === currentScene);
     return (
       <div className="ip-content">
-        <label className="ip-label">target scene</label>
+        <label className="ip-label">{labels.ipTargetScene}</label>
         <div className="ip-scene-row">
           <select
             className="command-input"
@@ -600,7 +605,7 @@ function CommandNodeFields({
 
   if (node.type === "gosub_scene") {
     const currentScene = node.target ?? "";
-    const currentLabel = node.body?.trim() ?? "";
+    const currentEntryLabel = node.body?.trim() ?? "";
     const targetSceneObj = project.scenes.find((s) => s.name === currentScene);
     const targetGraph = currentScene
       ? (currentScene === project.sceneTitle
@@ -613,7 +618,7 @@ function CommandNodeFields({
       .filter(Boolean);
     return (
       <div className="ip-content">
-        <label className="ip-label">target scene</label>
+        <label className="ip-label">{labels.ipTargetScene}</label>
         <div className="ip-scene-row">
           <select
             className="command-input"
@@ -626,21 +631,21 @@ function CommandNodeFields({
             <button className="scene-jump-btn" title={`open ${currentScene}.txt`} onClick={() => onSelectScene(targetSceneObj.id)}>→</button>
           )}
         </div>
-        <label className="ip-label">entry label (optional)</label>
+        <label className="ip-label">{labels.ipEntryLabelOptional}</label>
         {targetLabels.length > 0 ? (
           <select
             className="command-input"
-            value={currentLabel}
+            value={currentEntryLabel}
             onChange={(event) => onUpdateNode(node.id, { body: event.target.value })}
           >
-            <option value="">— none —</option>
-            {currentLabel && !targetLabels.includes(currentLabel) && (
-              <option value={currentLabel}>{currentLabel}</option>
+            <option value="">{labels.ipNonePlaceholder}</option>
+            {currentEntryLabel && !targetLabels.includes(currentEntryLabel) && (
+              <option value={currentEntryLabel}>{currentEntryLabel}</option>
             )}
             {targetLabels.map((lbl) => <option key={lbl} value={lbl}>{lbl}</option>)}
           </select>
         ) : (
-          <input className="command-input" value={currentLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
+          <input className="command-input" value={currentEntryLabel} placeholder="subroutine_label" onChange={(event) => onUpdateNode(node.id, { body: event.target.value })} />
         )}
       </div>
     );
@@ -649,7 +654,7 @@ function CommandNodeFields({
   if (node.type === "checkpoint") {
     return (
       <div className="ip-content">
-        <label className="ip-label">checkpoint</label>
+        <label className="ip-label">{labels.nodeTypes.checkpoint}</label>
         <input className="command-input" value={stripCommandPrefix(node.title, "*save_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*save_checkpoint ${normalizeIdentifier(event.target.value)}` })} />
       </div>
     );
@@ -658,7 +663,7 @@ function CommandNodeFields({
   if (node.type === "restore_checkpoint") {
     return (
       <div className="ip-content">
-        <label className="ip-label">restore checkpoint</label>
+        <label className="ip-label">{labels.nodeTypes.restore_checkpoint}</label>
         <input className="command-input" value={stripCommandPrefix(node.title, "*restore_checkpoint")} onChange={(event) => onUpdateNode(node.id, { title: `*restore_checkpoint ${normalizeIdentifier(event.target.value)}`.trimEnd() })} />
       </div>
     );
@@ -667,7 +672,7 @@ function CommandNodeFields({
   if (node.type === "page_break") {
     return (
       <div className="ip-content">
-        <label className="ip-label">page break label</label>
+        <label className="ip-label">{labels.ipPageBreakLabel}</label>
         <input className="command-input" value={stripCommandPrefix(node.title, "*page_break")} onChange={(event) => onUpdateNode(node.id, { title: `*page_break ${event.target.value}` })} />
       </div>
     );
@@ -677,18 +682,18 @@ function CommandNodeFields({
     const nextScene = nextPlayableScene(project);
     return (
       <div className="ip-content">
-        <p className="dim">This node finishes the current scene with *finish.</p>
+        <p className="dim">{labels.ipFinishHint}</p>
         <div className="command-summary">
-          <span>next scene</span>
-          <code>{nextScene ? `${nextScene}.txt` : "end of scene_list"}</code>
+          <span>{labels.ipNextScene}</span>
+          <code>{nextScene ? `${nextScene}.txt` : labels.ipEndOfSceneList}</code>
         </div>
       </div>
     );
   }
   if (node.type === "return") {
-    return <div className="ip-content"><p className="dim">This node returns from the current *gosub with *return.</p></div>;
+    return <div className="ip-content"><p className="dim">{labels.ipReturnHint}</p></div>;
   }
-  return <div className="ip-content"><p className="dim">This node ends the story with *ending.</p></div>;
+  return <div className="ip-content"><p className="dim">{labels.ipEndingHint}</p></div>;
 }
 
 function nextPlayableScene(project: ChoiceForgeProject): string | null {
@@ -700,10 +705,12 @@ function nextPlayableScene(project: ChoiceForgeProject): string | null {
 function InputNodeFields({
   node,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   const allowedType: VariableSummary["type"] = node.type === "input_text" ? "string" : "number";
@@ -716,11 +723,11 @@ function InputNodeFields({
     <div className="ip-content">
       {node.type !== "rand" && (
         <>
-          <label className="ip-label">prompt text</label>
+          <label className="ip-label">{labels.ipPromptText}</label>
           <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={project.variables.map((v) => v.name)} />
         </>
       )}
-      <label className="ip-label">target variable</label>
+      <label className="ip-label">{labels.ipTargetVariable}</label>
       <select className="command-input" value={current} onChange={(event) => onUpdateNode(node.id, { inputVar: event.target.value, title: `${command} ${event.target.value}` })}>
         {!variables.length && <option value={fallback}>{fallback || "no variable"}</option>}
         {variables.map((variable) => <option key={variable.name} value={variable.name}>{variable.name}</option>)}
@@ -735,10 +742,10 @@ function InputNodeFields({
   );
 }
 
-function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
+function SetsList({ node, project, labels, onUpdateNode }: { node: StoryNode; project: ChoiceForgeProject; labels: I18nLabels; onUpdateNode: (id: string, patch: Partial<StoryNode>) => void }) {
   return (
     <>
-      <label className="ip-label">stat effects</label>
+      <label className="ip-label">{labels.ipStatEffects}</label>
       <ul className="ip-sets">
         {node.sets?.map((set, index) => (
           <li key={`${set.var}-${index}`} className="ip-set-row">
@@ -746,7 +753,7 @@ function SetsList({ node, project, onUpdateNode }: { node: StoryNode; project: C
             <button className="x-btn" onClick={() => removeSet(node, index, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>+ effect</button></li>
+        <li><button className="ghost-btn" onClick={() => addSet(node, project, onUpdateNode)}>{labels.ipAddEffect}</button></li>
       </ul>
     </>
   );
@@ -810,17 +817,19 @@ function BranchSets({
   branch,
   branchIndex,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   branch: ConditionalBranch;
   branchIndex: number;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   return (
     <div className="branch-effects">
-      <span className="branch-effects-title">effects when this branch wins</span>
+      <span className="branch-effects-title">{labels.ipBranchEffects}</span>
       <ul className="ip-sets">
         {branch.sets?.map((set, setIndex) => (
           <li key={`${set.var}-${setIndex}`} className="ip-set-row">
@@ -828,7 +837,7 @@ function BranchSets({
             <button className="x-btn" onClick={() => removeBranchSet(node, branchIndex, setIndex, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addBranchSet(node, branchIndex, project, onUpdateNode)}>+ effect</button></li>
+        <li><button className="ghost-btn" onClick={() => addBranchSet(node, branchIndex, project, onUpdateNode)}>{labels.ipAddEffect}</button></li>
       </ul>
     </div>
   );
@@ -839,17 +848,19 @@ function OptionSets({
   option,
   optionIndex,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   option: ChoiceOption;
   optionIndex: number;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   return (
     <div className="branch-effects">
-      <span className="branch-effects-title">effects when this option is chosen</span>
+      <span className="branch-effects-title">{labels.ipOptionEffects}</span>
       <ul className="ip-sets">
         {option.sets?.map((set, setIndex) => (
           <li key={`${set.var}-${setIndex}`} className="ip-set-row">
@@ -857,7 +868,7 @@ function OptionSets({
             <button className="x-btn" onClick={() => removeOptionSet(node, optionIndex, setIndex, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addOptionSet(node, optionIndex, project, onUpdateNode)}>+ effect</button></li>
+        <li><button className="ghost-btn" onClick={() => addOptionSet(node, optionIndex, project, onUpdateNode)}>{labels.ipAddEffect}</button></li>
       </ul>
     </div>
   );
@@ -868,17 +879,19 @@ function FakeOptionSets({
   option,
   optionIndex,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   option: FakeChoiceOption;
   optionIndex: number;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   return (
     <div className="branch-effects">
-      <span className="branch-effects-title">effects when this option is chosen</span>
+      <span className="branch-effects-title">{labels.ipOptionEffects}</span>
       <ul className="ip-sets">
         {option.sets?.map((set, setIndex) => (
           <li key={`${set.var}-${setIndex}`} className="ip-set-row">
@@ -886,7 +899,7 @@ function FakeOptionSets({
             <button className="x-btn" onClick={() => removeFakeOptionSet(node, optionIndex, setIndex, onUpdateNode)}>x</button>
           </li>
         ))}
-        <li><button className="ghost-btn" onClick={() => addFakeOptionSet(node, optionIndex, project, onUpdateNode)}>+ effect</button></li>
+        <li><button className="ghost-btn" onClick={() => addFakeOptionSet(node, optionIndex, project, onUpdateNode)}>{labels.ipAddEffect}</button></li>
       </ul>
     </div>
   );
@@ -897,12 +910,14 @@ function ChoiceConditionBuilder({
   option,
   optionIndex,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   option: ChoiceOption;
   optionIndex: number;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   const parsed = parseConditionExpression(option.cond?.expr ?? "", project.variables);
@@ -913,7 +928,7 @@ function ChoiceConditionBuilder({
 
   return (
     <div className="cond-builder">
-      <span className="branch-effects-title">option condition</span>
+      <span className="branch-effects-title">{labels.ipOptionCondition}</span>
       <div className="cb-row">
         <select value={variable?.name ?? ""} onChange={(event) => updateChoiceCondition(node, optionIndex, option, { variable: event.target.value }, project.variables, onUpdateNode)}>
           {project.variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
@@ -940,12 +955,14 @@ function FakeChoiceConditionBuilder({
   option,
   optionIndex,
   project,
+  labels,
   onUpdateNode,
 }: {
   node: StoryNode;
   option: FakeChoiceOption;
   optionIndex: number;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
 }) {
   const parsed = parseConditionExpression(option.cond?.expr ?? "", project.variables);
@@ -956,7 +973,7 @@ function FakeChoiceConditionBuilder({
 
   return (
     <div className="cond-builder">
-      <span className="branch-effects-title">option condition</span>
+      <span className="branch-effects-title">{labels.ipOptionCondition}</span>
       <div className="cb-row">
         <select value={variable?.name ?? ""} onChange={(event) => updateFakeChoiceCondition(node, optionIndex, option, { variable: event.target.value }, project.variables, onUpdateNode)}>
           {project.variables.map((candidate) => <option key={candidate.name} value={candidate.name}>{candidate.name}</option>)}
@@ -981,6 +998,7 @@ function FakeChoiceConditionBuilder({
 function LogicTab({
   node,
   project,
+  labels,
   onUpdateNode,
   onAddFlowEdge,
   onDeleteFlowEdge,
@@ -988,6 +1006,7 @@ function LogicTab({
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onUpdateNode: (id: string, patch: Partial<StoryNode>) => void;
   onAddFlowEdge: (from: string, to: string) => void;
   onDeleteFlowEdge: (from: string, to: string) => void;
@@ -1002,7 +1021,7 @@ function LogicTab({
     const hasElseBranch = branches.some((branch) => branch.kind === "else");
     return (
       <div className="ip-logic">
-        <label className="ip-label">branches</label>
+        <label className="ip-label">{labels.ipBranches}</label>
         <ul className="ip-branches">
           {branches.map((branch, index) => (
             <li key={`${branch.kind}-${index}`} className={`ip-branch branch-${branch.kind}`}>
@@ -1013,9 +1032,9 @@ function LogicTab({
                   {project.nodes.map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
                 </select>
                 <button className="mini-action" title="Navigate to target node" onClick={() => onSelectNode(branch.to)}>→</button>
-                <button className="mini-action danger" disabled={branches.length <= 1} onClick={() => removeBranch(node, index, fallbackTarget, onUpdateNode)}>del</button>
+                <button className="mini-action danger" disabled={branches.length <= 1} onClick={() => removeBranch(node, index, fallbackTarget, onUpdateNode)}>{labels.miniDel}</button>
               </div>
-              <BranchSets node={node} branch={branch} branchIndex={index} project={project} onUpdateNode={onUpdateNode} />
+              <BranchSets node={node} branch={branch} branchIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />
             </li>
           ))}
         </ul>
@@ -1023,25 +1042,25 @@ function LogicTab({
           <button className="ghost-btn" onClick={() => addBranch(node, "elseif", fallbackTarget, onUpdateNode)}>+ *elseif</button>
           <button className="ghost-btn" disabled={hasElseBranch} onClick={() => addBranch(node, "else", fallbackTarget, onUpdateNode)}>+ *else</button>
         </div>
-        <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
-        <IncomingConnections node={node} project={project} onSelectNode={onSelectNode} />
+        <OutgoingEdges node={node} project={project} labels={labels} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
+        <IncomingConnections node={node} project={project} labels={labels} onSelectNode={onSelectNode} />
       </div>
     );
   }
 
   return (
     <div className="ip-logic">
-      <label className="ip-label">logic structure</label>
-      <pre className="cond-final"><code>{node.branches?.map((branch) => `*${branch.kind}${branch.expr ? ` (${branch.expr})` : ""} -> ${branch.to}`).join("\n") || "no branches"}</code></pre>
-      <label className="ip-label">visual flow</label>
+      <label className="ip-label">{labels.ipLogicStructure}</label>
+      <pre className="cond-final"><code>{node.branches?.map((branch) => `*${branch.kind}${branch.expr ? ` (${branch.expr})` : ""} -> ${branch.to}`).join("\n") || labels.ipNoBranches}</code></pre>
+      <label className="ip-label">{labels.ipVisualFlow}</label>
       <div className="flow-editor">
         <select value={selectedFlowTarget} onChange={(event) => setFlowTarget(event.target.value)}>
           {project.nodes.filter((target) => target.id !== node.id).map((target) => <option key={target.id} value={target.id}>{target.id} - {target.title}</option>)}
         </select>
-        <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>+ connect</button>
+        <button className="ghost-btn" onClick={() => onAddFlowEdge(node.id, selectedFlowTarget)}>{labels.ipConnect}</button>
       </div>
-      <OutgoingEdges node={node} project={project} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
-      <IncomingConnections node={node} project={project} onSelectNode={onSelectNode} />
+      <OutgoingEdges node={node} project={project} labels={labels} onDeleteFlowEdge={onDeleteFlowEdge} onSelectNode={onSelectNode} />
+      <IncomingConnections node={node} project={project} labels={labels} onSelectNode={onSelectNode} />
     </div>
   );
 }
@@ -1049,16 +1068,18 @@ function LogicTab({
 function OutgoingEdges({
   node,
   project,
+  labels,
   onDeleteFlowEdge,
   onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onDeleteFlowEdge: (from: string, to: string) => void;
   onSelectNode: (id: string) => void;
 }) {
   const outgoing = project.edges.filter((edge) => edge.from === node.id);
-  if (!outgoing.length) return <p className="dim">no outgoing connections</p>;
+  if (!outgoing.length) return <p className="dim">{labels.ipNoOutgoing}</p>;
 
   return (
     <ul className="flow-list">
@@ -1069,7 +1090,7 @@ function OutgoingEdges({
             <code>{targetLabel(project, edge)}</code>
           </button>
           {edge.label && <span className="dim">{edge.label}</span>}
-          {edge.kind === "flow" && <button className="mini-action danger" onClick={() => onDeleteFlowEdge(edge.from, edge.to)}>del</button>}
+          {edge.kind === "flow" && <button className="mini-action danger" onClick={() => onDeleteFlowEdge(edge.from, edge.to)}>{labels.miniDel}</button>}
         </li>
       ))}
     </ul>
@@ -1084,10 +1105,12 @@ function targetLabel(project: ChoiceForgeProject, edge: StoryEdge): string {
 function IncomingConnections({
   node,
   project,
+  labels,
   onSelectNode,
 }: {
   node: StoryNode;
   project: ChoiceForgeProject;
+  labels: I18nLabels;
   onSelectNode: (id: string) => void;
 }) {
   const incoming = project.edges.filter((edge) => edge.to === node.id);
@@ -1095,7 +1118,7 @@ function IncomingConnections({
 
   return (
     <>
-      <label className="ip-label">incoming connections</label>
+      <label className="ip-label">{labels.ipIncomingConnections}</label>
       <ul className="flow-list">
         {incoming.map((edge, index) => {
           const source = project.nodes.find((n) => n.id === edge.from);
