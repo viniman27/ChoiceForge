@@ -76,7 +76,7 @@ ChoiceForge lets you build branching interactive stories by connecting visual no
 | Persistence | `localStorage` key `choiceforge.project.v2` |
 | Desktop | Tauri 2 (`src-tauri/`) with `tauri-plugin-dialog` and `tauri-plugin-fs` |
 | Deployment | Cloudflare Pages |
-| Tests | Node built-in test runner (`node --test`) for domain — 387 tests; Vitest + Testing Library for UI — 51 tests |
+| Tests | Node built-in test runner (`node --test`) for domain — 387 tests; Vitest + Testing Library for UI — 67 tests |
 
 **Required Node version:** `>= 24.15.0` (see `.nvmrc` / `.node-version`).
 
@@ -119,7 +119,7 @@ npm run test:all     # both suites
 Two layers:
 
 - **Domain** (`tests/domain.test.ts`) — pure code generator, importer, linter, layout. Runs under Node's built-in test runner. **387 passing.**
-- **UI** (`tests/ui/`) — React components, the `useProjectStore` hook, i18n coverage, and an `App` smoke test via Vitest + jsdom + Testing Library. **51 passing.**
+- **UI** (`tests/ui/`) — React components, the `useProjectStore` hook, i18n coverage, `App` smoke test, panel error boundaries, and full export → reimport round-trip tests via Vitest + jsdom + Testing Library. **67 passing.**
 
 CI runs both on every push and PR.
 

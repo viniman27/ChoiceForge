@@ -53,9 +53,13 @@ The full session-by-session log lives in [`agents.md`](./agents.md) and includes
 ### Performance
 - **`extractZipEntries` async via Worker** (`src/workers/zipParser.ts`): large project imports (> 256 KB) now decompress off the main thread, eliminating the multi-second freeze on multi-MB ChoiceScript archives with images. Falls back to the sync path on worker error or 30 s timeout.
 
+### Robustness
+- **PanelErrorBoundary** (`src/components/PanelErrorBoundary.tsx`): LeftPanel, the canvas/editor area, and RightPanel are each wrapped in a class-based error boundary. A render crash in one panel shows an inline error card with retry button instead of taking down the whole app; the other panels stay usable and the autosave remains intact.
+- **Round-trip integration tests** (`tests/ui/exportImportRoundtrip.test.ts`): 12 tests run `createExportPackage → unpack → importChoiceScriptArchive` on both the EN and PT sample projects and assert title/author/scenes/variables/achievements all survive. Catches any future regression across the whole generator + importer chain end-to-end.
+
 ### Internal
 - 387 domain-layer tests pass via `node --test` (was 382 before this changelog window).
-- 51 UI tests pass via `npm run test:ui`. Total: **438 tests** across both layers.
+- 67 UI tests pass via `npm run test:ui`. Total: **454 tests** across both layers.
 - `tsconfig.json` adds `allowImportingTsExtensions: true` to support Node's `--experimental-strip-types` runner with the new shared helpers module.
 
 ---
