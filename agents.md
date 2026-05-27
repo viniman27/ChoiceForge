@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 185
+- **Added comprehensive bilingual README (EN + PT-BR).**
+  - **Goal**: project had no top-level README, only `agents.md` (AI context) and `CLAUDE.md` (Claude Code workflow). Created human-facing onboarding docs in English and Portuguese, mutually linked at the top.
+  - **`README.md`** (English): highlights, screenshots/demo placeholder, tech stack, getting started, npm scripts table, architecture diagram, key invariants, full domain model summary, complete node-type table (all 24 types + edge kinds), editing workflow walkthrough, import/export package layout, linter category summary, playtest options, persistence semantics, keyboard shortcut table, Tauri desktop setup, Cloudflare Pages deploy settings, project layout tree, contributing rules (mirrors `agents.md` invariants), roadmap, license/credits.
+  - **`README.pt-BR.md`**: full Portuguese translation of the same sections; preserves all code blocks and shell commands verbatim; uses Brazilian Portuguese.
+  - Both READMEs cross-link at the top via a language selector line.
+  - Note: legacy `.jsx` files at repo root + `ChoiceForge.html` are explicitly called out as legacy in both READMEs.
+  - **Files changed**: `README.md` (new), `README.pt-BR.md` (new), `agents.md`.
+  - **Tests**: 382 passing (no code changes — docs only).
+
 ### 2026-05-20 — Claude Code (claude-sonnet-4-6) — session 184
 - **Tauri v2 desktop app scaffold.**
   - **Goal**: Wrap the web app as a cross-platform desktop app (Windows/macOS/Linux) using Tauri v2, with native file open/save for `.json` project files. Web version (`npm run dev` / `npm run build`) is fully unchanged.
