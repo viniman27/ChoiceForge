@@ -4,6 +4,9 @@ dist/
 npm-debug.log*
 *.local
 
+# Test artifacts
+coverage/
+
 # Tauri / Rust
 src-tauri/target/
 src-tauri/Cargo.lock

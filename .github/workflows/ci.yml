@@ -28,8 +28,11 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Tests
+      - name: Domain tests
         run: npm test
+
+      - name: UI tests
+        run: npm run test:ui
 
       - name: Build
         run: npm run build
