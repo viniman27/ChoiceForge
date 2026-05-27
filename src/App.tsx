@@ -428,12 +428,12 @@ export default function App() {
           onConnectNodes={actions.connectNodes}
           onAddNode={(type, position) => {
             const id = nextNodeId(lintedProject.nodes);
-            actions.addNode(type, id, position);
+            actions.addNode(type, id, position, lang);
             setSelectedId(id);
           }}
           onAddAndConnectNode={(fromId, type, position) => {
             const id = nextNodeId(lintedProject.nodes);
-            actions.addNode(type, id, position);
+            actions.addNode(type, id, position, lang);
             actions.connectNodes(fromId, id);
             setSelectedId(id);
           }}
