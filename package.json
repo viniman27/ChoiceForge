@@ -10,6 +10,10 @@
   "scripts": {
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:ui": "vitest run",
+    "test:ui:watch": "vitest",
+    "test:ui:coverage": "vitest run --coverage",
+    "test:all": "npm run test && npm run test:ui",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "cf:preview": "npm run build && npx wrangler pages dev dist",
@@ -38,7 +42,13 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.7"
   }
 }
