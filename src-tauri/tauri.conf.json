@@ -25,11 +25,16 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["dmg", "msi", "nsis", "deb", "appimage"],
+    "category": "DeveloperTool",
+    "shortDescription": "Visual ChoiceScript editor",
+    "longDescription": "ChoiceForge is a visual node-based editor for ChoiceScript, the language behind Choice of Games' interactive fiction. Build branching stories on a canvas and export valid .txt files.",
+    "homepage": "https://choiceforge.pages.dev",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/icon.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ]
