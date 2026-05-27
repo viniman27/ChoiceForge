@@ -417,6 +417,10 @@ export const i18n: Record<Language, I18nLabels> = {
     privateNotes: "notas privadas",
     privateNotesPlaceholder: "Notas do autor (nunca exportadas)...",
     newOption: "Nova opcao",
+    sourcePreservedBannerTitle: "Fonte importada preservada",
+    sourcePreservedBannerHint: "O canvas e uma previa. A exportacao usa o .txt original ate voce converter esta cena para edicao visual.",
+    convertToVisual: "Converter para edicao visual",
+    convertingScene: "Convertendo cena...",
   },
   en: {
     scenes: "Scenes",
@@ -496,6 +500,10 @@ export const i18n: Record<Language, I18nLabels> = {
     privateNotes: "private notes",
     privateNotesPlaceholder: "Author notes (never exported)...",
     newOption: "New option",
+    sourcePreservedBannerTitle: "Imported source preserved",
+    sourcePreservedBannerHint: "The canvas is a preview. Export uses the original .txt until you convert this scene to visual editing.",
+    convertToVisual: "Convert to visual editing",
+    convertingScene: "Converting scene...",
   },
   es: {
     scenes: "Escenas",
@@ -575,5 +583,9 @@ export const i18n: Record<Language, I18nLabels> = {
     privateNotes: "notas privadas",
     privateNotesPlaceholder: "Notas del autor (nunca exportadas)...",
     newOption: "Nueva opcion",
+    sourcePreservedBannerTitle: "Fuente importada preservada",
+    sourcePreservedBannerHint: "El canvas es una vista previa. La exportacion usa el .txt original hasta que conviertas esta escena a edicion visual.",
+    convertToVisual: "Convertir a edicion visual",
+    convertingScene: "Convirtiendo escena...",
   },
 };
