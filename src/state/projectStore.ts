@@ -179,23 +179,31 @@ export function useProjectStore() {
   useEffect(() => {
     if (!isConvertingScene) return;
     const current = projectRef.current;
-    const sourceText = current.sceneData?.[current.sceneTitle]?.sourceText ?? current.startupSource;
+    const dispatchedScene = current.sceneTitle;
+    const sourceText = current.sceneData?.[dispatchedScene]?.sourceText ?? current.startupSource;
     if (!sourceText) { setIsConvertingScene(false); return; }
     const worker = new Worker(new URL("../workers/sceneParser.ts", import.meta.url), { type: "module" });
     worker.onmessage = (event: MessageEvent<{ ok: boolean; graph?: import("../domain/types").SceneGraph; error?: string }>) => {
       worker.terminate();
       if (!event.data.ok || !event.data.graph) { setIsConvertingScene(false); return; }
       const parsed = event.data.graph;
-      setProjectState((cur) => commitProject(clearActiveSceneSource({
-        ...cur,
-        nodes: parsed.nodes,
-        edges: parsed.edges,
-        sceneData: { ...(cur.sceneData ?? {}), [cur.sceneTitle]: { nodes: parsed.nodes, edges: parsed.edges } },
-      })));
+      setProjectState((cur) => {
+        const targetGraph = cur.sceneData?.[dispatchedScene];
+        if (!targetGraph?.sourceText) return cur;
+        const next = {
+          ...cur,
+          sceneData: { ...(cur.sceneData ?? {}), [dispatchedScene]: { nodes: parsed.nodes, edges: parsed.edges } },
+        };
+        if (cur.sceneTitle === dispatchedScene) {
+          next.nodes = parsed.nodes;
+          next.edges = parsed.edges;
+        }
+        return commitProject(next);
+      });
       setIsConvertingScene(false);
     };
     worker.onerror = () => { worker.terminate(); setIsConvertingScene(false); };
-    worker.postMessage({ sceneName: current.sceneTitle, sourceText });
+    worker.postMessage({ sceneName: dispatchedScene, sourceText });
     return () => worker.terminate();
   }, [isConvertingScene]);
 
@@ -358,7 +366,7 @@ export function useProjectStore() {
           return match ? Math.max(max, Number(match[1])) : max;
         }, 0);
         newId = `n${maxNum + 1}`;
-        const cloned: StoryNode = { ...structuredClone(node), id: newId, x: node.x + 24, y: node.y + node.w + 24 };
+        const cloned: StoryNode = { ...structuredClone(node), id: newId, x: node.x + 24, y: node.y + estimateNodeRenderedHeight(node) + 24 };
         return commitProject(clearActiveSceneSource({
           ...current,
           nodes: [...current.nodes, cloned],
@@ -975,6 +983,17 @@ function removeAchievementCommand(body: string, id: string): string {
     .filter((line) => !new RegExp(`^\\s*\\*achieve\\s+${escapeRegex(id)}\\s*$`, "i").test(line))
     .join("\n")
     .trimEnd();
+}
+
+function estimateNodeRenderedHeight(node: StoryNode): number {
+  let height = 80;
+  if (node.body) height += 60;
+  if (node.prompt) height += 40;
+  if (node.options) height += 30 + node.options.length * 32;
+  if (node.fakeOptions) height += 30 + node.fakeOptions.length * 32;
+  if (node.branches) height += 20 + node.branches.length * 30;
+  if (node.sets?.length) height += 24;
+  return Math.max(120, Math.min(420, height));
 }
 
 function nextAvailableName(base: string, existing: Set<string>): string {
