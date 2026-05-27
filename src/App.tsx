@@ -81,7 +81,7 @@ export default function App() {
   }, [actions]);
 
   const handleNativeSave = useCallback(async () => {
-    const content = JSON.stringify(lintedProject, null, 2);
+    const content = serializeProjectForDisk(lintedProject);
     const path = await nativeSaveProject(content, currentFilePathRef.current ?? undefined);
     if (!path) return;
     setCurrentFilePath(path);
@@ -91,7 +91,7 @@ export default function App() {
   }, [lintedProject]);
 
   const handleNativeSaveAs = useCallback(async () => {
-    const content = JSON.stringify(lintedProject, null, 2);
+    const content = serializeProjectForDisk(lintedProject);
     const path = await nativeSaveProjectAs(content);
     if (!path) return;
     setCurrentFilePath(path);
@@ -972,6 +972,11 @@ function crc32(bytes: Uint8Array): number {
     }
   });
   return (crc ^ 0xffffffff) >>> 0;
+}
+
+function serializeProjectForDisk(project: ChoiceForgeProject): string {
+  const { lints: _lints, ...rest } = project;
+  return JSON.stringify({ ...rest, lints: [] }, null, 2);
 }
 
 function nextNodeId(nodes: StoryNode[]): string {

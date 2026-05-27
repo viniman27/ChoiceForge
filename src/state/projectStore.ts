@@ -247,7 +247,11 @@ export function useProjectStore() {
       saveProjectSnapshot(syncedProject);
     },
     updateMetadata: (patch) => {
-      setTrackedProjectState((current) => commitProject(clearStartupSource({ ...current, ...patch })));
+      setTrackedProjectState((current) => {
+        const affectsStartup = patch.title !== undefined || patch.author !== undefined;
+        const next = { ...current, ...patch };
+        return commitProject(affectsStartup ? clearStartupSource(next) : next);
+      });
     },
     replaceCurrentSceneText: (content) => {
       setTrackedProjectState((current) => {
