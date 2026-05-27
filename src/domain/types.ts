@@ -233,4 +233,8 @@ export interface I18nLabels {
   privateNotes: string;
   privateNotesPlaceholder: string;
   newOption: string;
+  sourcePreservedBannerTitle: string;
+  sourcePreservedBannerHint: string;
+  convertToVisual: string;
+  convertingScene: string;
 }
