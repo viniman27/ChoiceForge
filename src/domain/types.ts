@@ -237,4 +237,12 @@ export interface I18nLabels {
   sourcePreservedBannerHint: string;
   convertToVisual: string;
   convertingScene: string;
+  searchResultsTitle: string;
+  searchNoResults: string;
+  replaceNoMatches: string;
+  replaceInScene: string;
+  replaceInAll: string;
+  noAssetsYet: string;
+  assetFile: string;
+  assetUsageNote: string;
 }

@@ -144,7 +144,7 @@ export function LeftPanel({
                 disabled={!search.trim()}
                 onClick={() => {
                   const count = onReplace(search, replaceText, "scene");
-                  setReplaceStatus(count === 0 ? (labels.words === "words" ? "no matches" : labels.words === "palabras" ? "sin coincidencias" : "nenhuma ocorrência") : `${count} replaced in scene`);
+                  setReplaceStatus(count === 0 ? labels.replaceNoMatches : labels.replaceInScene.replace("{count}", String(count)));
                 }}
               >
                 scene
@@ -155,7 +155,7 @@ export function LeftPanel({
                 disabled={!search.trim()}
                 onClick={() => {
                   const count = onReplace(search, replaceText, "all");
-                  setReplaceStatus(count === 0 ? (labels.words === "words" ? "no matches" : labels.words === "palabras" ? "sin coincidencias" : "nenhuma ocorrência") : `${count} replaced in all`);
+                  setReplaceStatus(count === 0 ? labels.replaceNoMatches : labels.replaceInAll.replace("{count}", String(count)));
                 }}
               >
                 all
@@ -234,9 +234,9 @@ interface SearchResult {
 function SearchResults({ results, labels, query, onOpenResult }: { results: SearchResult[]; labels: I18nLabels; query: string; onOpenResult: (result: SearchResult) => void }) {
   return (
     <div className="search-results">
-      <div className="section-title"><span>{labels.words === "words" ? "results" : "resultados"}</span><span>{results.length}</span></div>
+      <div className="section-title"><span>{labels.searchResultsTitle}</span><span>{results.length}</span></div>
       {results.length === 0 ? (
-        <p className="empty-search">{labels.words === "words" ? "no results" : "nenhum resultado"}</p>
+        <p className="empty-search">{labels.searchNoResults}</p>
       ) : (
         <ul>
           {results.map((result) => (
@@ -586,8 +586,8 @@ function VariablesList({
             const isFirst = index === 0;
             const isLast = index === data.variables.length - 1;
             return (
-              <>
-                <tr key={variable.name}>
+              <React.Fragment key={variable.name}>
+                <tr>
                   <td className="var-move-cell">
                     <button className="var-move-btn" disabled={isFirst} onClick={() => onMoveVariable(variable.name, "up")} title="Move up">↑</button>
                     <button className="var-move-btn" disabled={isLast} onClick={() => onMoveVariable(variable.name, "down")} title="Move down">↓</button>
@@ -643,13 +643,13 @@ function VariablesList({
                   <td><button className="mini-action danger" onClick={() => onDeleteVariable(variable.name)}>del</button></td>
                 </tr>
                 {isExpanded && locs.length > 0 && (
-                  <tr key={`${variable.name}-locs`} className="var-locs-row">
+                  <tr className="var-locs-row">
                     <td colSpan={8}>
                       <VarLocationList locs={locs} onNavigate={onNavigateToNode} />
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>
@@ -852,7 +852,7 @@ function AssetsList({
     <div className="assets-list">
       <div className="section-title"><span>assets</span><button className="ghost-btn" onClick={onAddAsset}>+ asset</button></div>
       {assets.length === 0 ? (
-        <p className="empty-search">{labels.words === "words" ? "no assets yet" : "nenhum asset cadastrado"}</p>
+        <p className="empty-search">{labels.noAssetsYet}</p>
       ) : (
         <ul className="asset-list">
           {assets.map((asset) => (
@@ -870,7 +870,7 @@ function AssetsList({
                   <button className="mini-action danger" onClick={() => onDeleteAsset(asset.id)}>del</button>
                 </div>
                 <label className="asset-file-btn">
-                  {labels.words === "words" ? "file" : "arquivo"}
+                  {labels.assetFile}
                   <input
                     type="file"
                     onChange={(event) => {
@@ -880,7 +880,7 @@ function AssetsList({
                   />
                 </label>
                 <input className="asset-path-edit" value={asset.path} onChange={(event) => onUpdateAsset(asset.id, { path: event.target.value })} aria-label="asset path" />
-                <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder={labels.words === "words" ? "usage or note" : "uso ou observacao"} />
+                <input className="asset-desc-edit" value={asset.desc} onChange={(event) => onUpdateAsset(asset.id, { desc: event.target.value })} aria-label="asset description" placeholder={labels.assetUsageNote} />
                 {asset.fileName && (
                   <div className="asset-file-meta">
                     <span>{asset.fileName}</span>
