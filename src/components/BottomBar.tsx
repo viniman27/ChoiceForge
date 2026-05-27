@@ -69,7 +69,8 @@ export function BottomBar({
                 <button
                   className="con-filter-clear"
                   onClick={() => { setFilterScene(""); setFilterLevel(""); }}
-                  title="Clear filters"
+                  title={labels.bottomClearFilters}
+                  aria-label={labels.bottomClearFilters}
                 >×</button>
               )}
               {isFiltered && (

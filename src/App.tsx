@@ -255,6 +255,7 @@ export default function App() {
       <TopBar
         data={lintedProject}
         lang={lang}
+        labels={i18n[lang]}
         theme={theme}
         density={density}
         view={view}
@@ -552,6 +553,7 @@ export default function App() {
       {snapshotsOpen && (
         <SnapshotPanel
           snapshots={snapshotIndex}
+          labels={i18n[lang]}
           onSave={(name) => actions.saveSnapshot(name)}
           onRestore={(id) => { actions.restoreSnapshot(id); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }}
           onDelete={(id) => actions.deleteSnapshot(id)}

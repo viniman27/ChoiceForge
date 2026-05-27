@@ -1,8 +1,9 @@
-import type { ChoiceForgeProject, Density, EditorView, Language, Theme } from "../domain/types";
+import type { ChoiceForgeProject, Density, EditorView, I18nLabels, Language, Theme } from "../domain/types";
 
 interface TopBarProps {
   data: ChoiceForgeProject;
   lang: Language;
+  labels: I18nLabels;
   theme: Theme;
   density: Density;
   view: EditorView;
@@ -32,7 +33,7 @@ interface TopBarProps {
   onNativeSaveAs?: () => void;
 }
 
-export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
+export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -91,37 +92,37 @@ export function TopBar({ data, lang, theme, density, view, selectedNodeTitle, on
           <option value="medium">medium</option>
           <option value="rich">rich</option>
         </select>
-        <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? "Board" : "Text"}</button>
-        <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">Undo</button>
-        <button className="ghost-btn" onClick={onRedo} disabled={!canRedo} title="Ctrl+Shift+Z">Redo</button>
+        <button className={`ghost-btn ${textModeActive ? "is-active" : ""}`} onClick={onTextMode}>{textModeActive ? labels.topBoardToggle : labels.topTextToggle}</button>
+        <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">{labels.topUndo}</button>
+        <button className="ghost-btn" onClick={onRedo} disabled={!canRedo} title="Ctrl+Shift+Z">{labels.topRedo}</button>
         {onNativeOpen && (
-          <button className="ghost-btn" onClick={onNativeOpen} title="Open project file">Open</button>
+          <button className="ghost-btn" onClick={onNativeOpen} title={labels.topOpen}>{labels.topOpen}</button>
         )}
         {onNativeSave ? (
           <>
-            <button className="ghost-btn" onClick={onNativeSave} title="Save project (Ctrl+S)">
-              {currentFilePath ? "Save" : "Save As…"}
+            <button className="ghost-btn" onClick={onNativeSave} title={`${labels.topSave} (Ctrl+S)`}>
+              {currentFilePath ? labels.topSave : labels.topSaveAs}
             </button>
             {currentFilePath && (
-              <button className="ghost-btn" onClick={onNativeSaveAs} title="Save project to a new file">Save As…</button>
+              <button className="ghost-btn" onClick={onNativeSaveAs} title={labels.topSaveAs}>{labels.topSaveAs}</button>
             )}
           </>
         ) : (
-          <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{lang === "pt" ? "Salvar" : lang === "es" ? "Guardar" : "Save"}</button>
+          <button className="ghost-btn" onClick={onSave} title="Ctrl+S">{labels.topSave}</button>
         )}
-        <button className="ghost-btn" onClick={onSnapshots} title="Named project restore points">{lang === "pt" ? "Snapshots" : lang === "es" ? "Capturas" : "Snapshots"}</button>
+        <button className="ghost-btn" onClick={onSnapshots} title={labels.snapTitle}>{labels.topSnapshots}</button>
         {saveStatus && <span className="save-status">{saveStatus}</span>}
-        <button className="ghost-btn" onClick={onNewProject}>New</button>
+        <button className="ghost-btn" onClick={onNewProject}>{labels.topNew}</button>
         <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
-          {lang === "en" ? "Import" : "Importar"}
+          {labels.topImport}
         </button>
         <button className="ghost-btn" onClick={() => void openImportFolderPicker(onImport)}>
-          {lang === "pt" ? "Pasta" : lang === "es" ? "Carpeta" : "Folder"}
+          {labels.topImportFolder}
         </button>
-        <button className="ghost-btn" onClick={onExport}>{lang === "en" ? "Export" : "Exportar"}</button>
+        <button className="ghost-btn" onClick={onExport}>{labels.export}</button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
-          {lang === "pt" ? "Jogar" : lang === "es" ? "Jugar" : "Play"}
+          {labels.play}
         </button>
         <button className="ghost-btn hg-help-btn" onClick={onHelp} title="Help guide (?)">?</button>
       </div>
