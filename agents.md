@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 187
+- **3 follow-up cleanups: zip compression, helper dedup, drop English default in connectNodes.**
+  - **Zip compression** (`App.tsx`): replaced the hand-rolled `createZipArchive` (~80 lines using STORE method, with `u16`/`u32`/`concatBytes`/`crc32` helpers) with `fflate.zipSync` at level 6. Already-compressed asset extensions (png/jpg/gif/webp/mp3/ogg/mp4/m4a/aac/zip) get level 0 to skip wasted CPU. ChoiceScript text exports should shrink ~70%.
+  - **Helper dedup** (new `src/domain/parsing.ts`): `commandName`, `commandValue`, `stripCommandPrefix`, `gosubTarget`, `generatedNodeLabel` were duplicated 2–4× across `choicescript.ts`, `choicescriptImport.ts`, `graphLayout.ts`, and `projectStore.ts`. Consolidated into one module. choicescript.ts keeps `sourceCommand`/`sourceCommandValue` as local re-export aliases since many callers already use those names.
+    - Required adding `"allowImportingTsExtensions": true` to `tsconfig.json` because Node's `--experimental-strip-types` test runner needs explicit `.ts` extensions on value imports — domain files use `from "./parsing.ts"` everywhere now.
+  - **connectNodes default text** (`projectStore.ts`): when the user dragged a connection from a `choice` node to a target, the default option text was `"Go to ${target.title}"` — hardcoded English. Since the option text is player-facing and almost always edited immediately, just default to `target.title` (which is whatever the user named the target, typically in their working language).
+  - **Tests**: 387 passing (no new tests for these cleanups — behaviour-preserving refactors plus a UX text simplification). Build clean.
+  - **Commits**: `257e48f` (zip compression), `5d393c7` (parsing.ts dedup), `aa571d9` (connectNodes default).
+  - **Still deferred**: i18n for `createStoryNode` defaults ("Imported text input.", "Continue", "Author note.") — needs `lang` plumbed into the store, invasive; `clearStartupSource` aggressive wipe on variable/achievement changes (design tradeoff); `extractZipEntries` synchronous via `unzipSync` (could move to a worker for large zips). `normalizeIdentifier` duplication kept per existing intent in this doc.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 186
 - **Codebase audit pass + 6 high-priority bug fixes.**
   - **Process**: Full read of `src/domain/`, `src/state/projectStore.ts`, `src/App.tsx`, and grep-scan of UI for hardcoded strings, duplicated helpers, and pointer-event handling.
