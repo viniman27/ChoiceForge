@@ -343,6 +343,28 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 194
+- **Backlog cleanup pass: zip worker, ~90-string i18n bulk, a11y, more UI tests.**
+  - **`extractZipEntries` async via Worker** (`src/workers/zipParser.ts`, `App.tsx`): unzipSync ran on the main thread, freezing input for multi-second decompresses on multi-MB ChoiceScript archives with images. New zipParser worker runs decompress off-main; chooses path by size (≤ 256 KB stays sync to avoid worker spin-up overhead; > 256 KB uses the worker with 30 s timeout and sync fallback on error).
+  - **Bulk i18n pass — ~90 strings across 3 batches**:
+    1. LeftPanel chrome (28 keys): variables table column headers + type select + stats select + low label, achievement hidden/desc/uses, scene synopsis/wordGoal/mini-actions (up/down/dup/del), source files summary, asset add.
+    2. GraphCanvas chrome (21 keys): toolbar "dup", filter placeholder, tag label, snap title, SelectionBar count + all 8 align/distribute tooltips + mark-done/todo + tag-all + clear-tags, EdgeDropPicker hint, filter prev/next.
+    3. RightPanel deep inspector (40 keys): #options labels, fake-choice prompt, no-condition, stat-step, target scene, entry label, variable name/initial value/parameter names, filename/alignment/alt-text, achievement assign/remove/field, page-break/label/comment, prompt-text/target-variable, finish/return/ending hints, next scene/end of scene_list, outgoing/incoming connections, logic structure/no-branches/visual flow/connect, option/branch/option effects, "+ effect", choose-asset/missing/select/none placeholders. Threaded labels through 13 inner components (LogicTab, CommandNodeFields, InputNodeFields, AchievementInsert, AchieveNodeFields, SetsList, BranchSets, OptionSets, FakeOptionSets, ChoiceConditionBuilder, FakeChoiceConditionBuilder, OutgoingEdges, IncomingConnections). Renamed local `labels` array in CommandNodeFields to `labelNodes` to avoid shadowing the prop. Dropped two long EN-only hint paragraphs whose info is now carried by the localized field labels.
+    All three sample projects (PT/EN/ES) updated for every key.
+  - **A11y pass**: aria-label + aria-pressed added to icon-only and toggle buttons across LeftPanel (scene/variable/achievement/asset mini-actions get `<action> <entity-name>` labels), GraphCanvas (snap toggle, tag-filter dots, SelectionBar tag buttons), RightPanel (status todo/done, node color tags). Screen readers and keyboard users now get announced names on every button.
+  - **2 new UI test files (+7 tests, total 51)**:
+    - `tests/ui/i18nBulk.test.ts`: enumerates every required I18nLabels key (~90 keys after the bulk passes), loops PT/EN/ES, asserts each is a non-empty string; sanity-checks the languages actually differ; verifies `{count}` interpolation placeholders survive in all three languages.
+    - `tests/ui/appSmoke.test.tsx`: first end-to-end mount of `<App />` through jsdom. Required two polyfills in `tests/ui/setup.ts` — `ResizeObserver` stub (used by GraphCanvas viewport tracking) and a `Worker` mock (the scene/zip parsers new-up Workers, mock is enough for panels to render). Asserts the four left-panel tabs and the Play button render with EN labels.
+  - **Docs**: CHANGELOG.md gained Internationalisation + Accessibility + (extended) Testing subsections; README.md / README.pt-BR.md updated test counts; this entry.
+  - **Tests**: 387 domain + 51 UI = **438 passing**. Build clean.
+  - **Commits**: `2c44fb3` (zip worker), `0ff4ac3` (LeftPanel i18n), `cee097e` (GraphCanvas i18n), `663be14` (RightPanel deep i18n), `6a6742b` (a11y), `8ee6f1a` (i18nBulk + appSmoke tests).
+  - **Backlog cleared this session**: extractZipEntries worker ✓, ~35 chrome i18n strings (turned out to be ~90 once counted properly) ✓, A11y basics ✓, App.tsx integration test ✓.
+  - **Remaining out-of-scope** (judgment calls, not bugs):
+    - `clearStartupSource` aggressive wipe on var/ach mutations — design tradeoff (current behaviour is undoable; alternative is confirmation modal). Not changed.
+    - Variable rename debounce — UX tradeoff (debouncing introduces stale input value during typing). Not changed.
+    - lintProject memoization runs on every state change — only matters on very large projects; no concrete complaint. Not changed.
+    - Wider App integration tests (drive full import → edit → export round-trip) — would need fuller Worker mocks for sceneParser; current smoke test is enough.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 193
 - **UI test layer + 1 real bug caught by tests.**
   - **Motivation**: the project had 387 domain tests but **zero coverage of React components, the store, or any UI flow**. Any regression that touched a component or hook would land silently in `main`. Picked this as the biggest structural gap to close.

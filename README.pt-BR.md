@@ -76,7 +76,7 @@ ChoiceForge permite que você construa histórias interativas com ramificações
 | Persistência | chave `choiceforge.project.v2` do `localStorage` |
 | Desktop | Tauri 2 (`src-tauri/`) com `tauri-plugin-dialog` e `tauri-plugin-fs` |
 | Deploy | Cloudflare Pages |
-| Testes | Test runner nativo do Node (`node --test`) para domínio — 387 testes; Vitest + Testing Library para UI — 44 testes |
+| Testes | Test runner nativo do Node (`node --test`) para domínio — 387 testes; Vitest + Testing Library para UI — 51 testes |
 
 **Versão mínima do Node:** `>= 24.15.0` (veja `.nvmrc` / `.node-version`).
 
@@ -119,7 +119,7 @@ npm run test:all     # ambas as suites
 Duas camadas:
 
 - **Domínio** (`tests/domain.test.ts`) — gerador puro, importador, linter, layout. Roda no test runner nativo do Node. **387 passando.**
-- **UI** (`tests/ui/`) — componentes React, o hook `useProjectStore`, e comportamento i18n via Vitest + jsdom + Testing Library. **44 passando.**
+- **UI** (`tests/ui/`) — componentes React, o hook `useProjectStore`, cobertura de i18n e um smoke test do `App`, via Vitest + jsdom + Testing Library. **51 passando.**
 
 CI roda ambas a cada push e PR.
 
