@@ -2645,6 +2645,48 @@ test("generates fake_choice option body text inline between header and next opti
   assert.ok(!cs.includes("*goto"));
 });
 
+test("preserves paragraph breaks (blank lines) in choice option body", () => {
+  const node: StoryNode = {
+    id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choice",
+    prompt: "Choose:",
+    options: [
+      { text: "Open the door", to: "n2", body: "First paragraph.\n\nSecond paragraph." },
+    ],
+  };
+  const cs = generateNodeChoiceScript(node);
+  assert.ok(
+    cs.includes("    First paragraph.\n\n    Second paragraph."),
+    `expected blank line between paragraphs to be preserved, got:\n${cs}`,
+  );
+});
+
+test("preserves paragraph breaks (blank lines) in fake_choice option body", () => {
+  const node: StoryNode = {
+    id: "n1", type: "fake_choice", x: 0, y: 0, w: 360, title: "fake_choice",
+    prompt: "What do you see?",
+    fakeOptions: [
+      { text: "The door", body: "A heavy oak door.\n\nIts iron handle is cold." },
+    ],
+  };
+  const cs = generateNodeChoiceScript(node);
+  assert.ok(
+    cs.includes("    A heavy oak door.\n\n    Its iron handle is cold."),
+    `expected blank line preserved in fake_choice body, got:\n${cs}`,
+  );
+});
+
+test("trims leading and trailing blank lines from option body", () => {
+  const node: StoryNode = {
+    id: "n1", type: "choice", x: 0, y: 0, w: 360, title: "choice",
+    prompt: "Choose:",
+    options: [
+      { text: "Door", to: "n2", body: "\n\nActual content.\n\n" },
+    ],
+  };
+  const cs = generateNodeChoiceScript(node);
+  assert.ok(cs.includes("  #Door\n    Actual content.\n    *goto"), `unexpected:\n${cs}`);
+});
+
 test("lints undeclared variable in choice option body", () => {
   const project: ChoiceForgeProject = {
     ...minimalProject(),

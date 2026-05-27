@@ -32,7 +32,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     lines.push("*choice");
     node.options?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
-      option.body?.split("\n").filter(Boolean).forEach((line) => lines.push(`    ${line}`));
+      emitOptionBodyLines(option.body, lines);
       option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
       lines.push(`    *goto ${generatedNodeLabel(option.to)}`);
     });
@@ -43,7 +43,7 @@ export function generateNodeChoiceScript(node: StoryNode, edges: StoryEdge[] = [
     lines.push("*fake_choice");
     node.fakeOptions?.forEach((option) => {
       lines.push(`  ${generateOptionHeader(option)}`);
-      option.body?.split("\n").filter(Boolean).forEach((line) => lines.push(`    ${line}`));
+      emitOptionBodyLines(option.body, lines);
       option.sets?.forEach((set) => lines.push(`    ${generateSet(set)}`));
     });
   }
@@ -1717,6 +1717,19 @@ function lintIfNode(
 
 function generateSet(set: VariableSet): string {
   return `*set ${set.var} ${set.op === "=" ? set.val : `${set.op} ${set.val}`}`;
+}
+
+function emitOptionBodyLines(body: string | undefined, lines: string[]): void {
+  if (!body) return;
+  const rawLines = body.split("\n");
+  let first = 0;
+  let last = rawLines.length - 1;
+  while (first <= last && !rawLines[first].trim()) first += 1;
+  while (last >= first && !rawLines[last].trim()) last -= 1;
+  for (let i = first; i <= last; i += 1) {
+    const line = rawLines[i];
+    lines.push(line.trim() ? `    ${line}` : "");
+  }
 }
 
 function generatedNodeLabel(id: string): string {
