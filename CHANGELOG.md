@@ -1,8 +1,27 @@
 # Changelog
 
-All notable changes to ChoiceForge are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project does not yet follow strict SemVer because nothing is published.
+All notable changes to ChoiceForge are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project does not yet follow strict SemVer.
 
 The full session-by-session log lives in [`agents.md`](./agents.md) and includes file paths, rationale, and test counts for every change.
+
+---
+
+## [0.1.0] — 2026-05-27
+
+First public release with desktop installers.
+
+### Desktop release pipeline
+- `.github/workflows/desktop-release.yml`: tag-triggered GitHub Actions workflow that cross-builds macOS (universal Intel+Apple Silicon) `.dmg` and Windows x64 `.msi` installers via `tauri-apps/tauri-action`, then drafts a GitHub Release with both attached. Manual `workflow_dispatch` also supported.
+- Tauri scaffold completed: app icons generated from `public/favicon.svg`, `bundle.targets` explicit, category/short/long description/homepage metadata filled in so the bundlers don't fail.
+- First-launch behaviour: unsigned builds, so macOS asks for right-click → Open and Windows SmartScreen asks for confirmation. Code signing is on the roadmap.
+
+### Dependency triage
+- Closed three major-version Dependabot PRs with explanations (TypeScript 5→6, Vite 4→8, @vitejs/plugin-react 4→5) — those need a coordinated upgrade and don't go in a first public release.
+- Accepted four safe bumps: `@codemirror/view 6.42.1→6.43.0`, `react group 19.2.5→19.2.6`, `actions/setup-node v4→v6`, `actions/checkout v4→v6`.
+
+### Documentation
+- README (EN + PT-BR) rewritten with hero, three big CTAs (Try in browser / Download desktop / Source), and a 'Pick how you want to use it' table. Desktop App promoted to a first-class section.
+- `docs/cloudflare-pages.md` → `docs/deploying.md`: generalised to host-agnostic instructions with a 'common gotchas' section.
 
 ---
 
