@@ -1,3 +1,4 @@
+import { commandName as parseCommandName, commandValue as parseCommandValue, generatedNodeLabel, gosubTarget, stripCommandPrefix } from "./parsing.ts";
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, FakeChoiceOption, LintIssue, SceneGraph, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 const TERMINAL_NODE_TYPES = new Set<StoryNode["type"]>(["ending", "finish", "goto", "goto_scene", "return", "restore_checkpoint"]);
@@ -1734,10 +1735,6 @@ function emitOptionBodyLines(body: string | undefined, lines: string[]): void {
   }
 }
 
-function generatedNodeLabel(id: string): string {
-  return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-}
-
 function isKnownAsset(assets: ChoiceForgeProject["assets"], target: string): boolean {
   const baseName = target.split("/").pop() ?? target;
   return assets.some((asset) => {
@@ -1839,14 +1836,6 @@ function formatStatsLabel(value: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function stripCommandPrefix(value: string, command: string): string {
-  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
-}
-
-function gosubTarget(value: string): string {
-  return stripCommandPrefix(value, "*gosub").split(/\s+/)[0] ?? "";
 }
 
 function checkpointSlot(value: string, command: "*save_checkpoint" | "*restore_checkpoint"): string {
@@ -2015,13 +2004,8 @@ function stripQuotedStrings(expression: string): string {
   return expression.replace(/"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/g, " ");
 }
 
-function sourceCommand(line: string): string | null {
-  return line.match(/^\*([a-z_]+)/i)?.[1].toLowerCase() ?? null;
-}
-
-function sourceCommandValue(line: string, command: string): string {
-  return line.replace(command, "").trim();
-}
+const sourceCommand = parseCommandName;
+const sourceCommandValue = parseCommandValue;
 
 function sourceConditionExpression(line: string, command: string): string {
   const value = sourceCommandValue(line, `*${command}`).trim();

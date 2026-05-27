@@ -1,3 +1,4 @@
+import { commandName as parseCommandName, commandValue as parseCommandValue, generatedNodeLabel } from "./parsing.ts";
 import type { AchievementSummary, AssetSummary, ChoiceCondition, ChoiceForgeProject, ChoiceOption, ChoiceReuse, ConditionalBranch, FakeChoiceOption, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "./types";
 
 export interface ChoiceScriptArchiveEntry {
@@ -691,10 +692,6 @@ function choiceForgeLabel(line: string): string | null {
   return line.trim().match(/^\*label\s+(cf_[a-zA-Z0-9_]+)\s*$/)?.[1] ?? null;
 }
 
-function generatedNodeLabel(id: string): string {
-  return `cf_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-}
-
 function createSceneSummaries(sceneNames: string[], activeScene: string, sceneData: Record<string, SceneGraph>): SceneSummary[] {
   return sceneNames.map((sceneName) => ({
     id: importedSceneId(sceneName),
@@ -728,14 +725,8 @@ function importAssets(entries: ChoiceScriptArchiveEntry[]): AssetSummary[] {
     });
 }
 
-function commandName(line: string): string | null {
-  const match = line.trim().match(/^\*([a-z_]+)/i);
-  return match?.[1].toLowerCase() ?? null;
-}
-
-function commandValue(line: string, command: string): string {
-  return line.trim().replace(command, "").trim();
-}
+const commandName = parseCommandName;
+const commandValue = parseCommandValue;
 
 function simpleCommandNode(command: string, line: string, index: number): (Omit<StoryNode, "id" | "x" | "y" | "w"> & { w?: number }) | null {
   const value = commandValue(line, `*${command}`);

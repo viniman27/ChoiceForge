@@ -3,6 +3,7 @@ import { sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import { layoutProjectGraphs, layoutSceneGraph } from "../domain/graphLayout";
 import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
+import { commandName as parseCommandName, commandValue as parseCommandValue, stripCommandPrefix } from "../domain/parsing";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 
 const STORAGE_KEY = "choiceforge.project.v2";
@@ -1204,13 +1205,8 @@ function reorderScenesFromStartup(scenes: SceneSummary[], sceneNames: string[], 
   ];
 }
 
-function commandName(line: string): string | null {
-  return line.trim().match(/^\*([a-z_]+)/i)?.[1].toLowerCase() ?? null;
-}
-
-function commandValue(line: string, command: string): string {
-  return line.trim().replace(command, "").trim();
-}
+const commandName = parseCommandName;
+const commandValue = parseCommandValue;
 
 function inferVariableType(value: string): VariableSummary["type"] {
   if (/^(true|false)$/i.test(value)) return "boolean";
@@ -1398,10 +1394,6 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
 
     return [];
   });
-}
-
-function stripCommandPrefix(value: string, command: string): string {
-  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
 }
 
 function replaceInputTitle(node: StoryNode, variableName: string): string {

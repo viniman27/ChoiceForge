@@ -1,3 +1,4 @@
+import { gosubTarget, stripCommandPrefix } from "./parsing.ts";
 import type { ChoiceForgeProject, SceneGraph, StoryEdge, StoryNode } from "./types";
 
 export function layoutSceneGraph(graph: SceneGraph, nodeHeights?: Record<string, number>): SceneGraph {
@@ -196,14 +197,6 @@ function deriveNodeEdges(nodes: StoryNode[]): StoryEdge[] {
 
     return [];
   });
-}
-
-function stripCommandPrefix(value: string, command: string): string {
-  return value.replace(command, "").replace(/^[-\s]+/, "").trim();
-}
-
-function gosubTarget(value: string): string {
-  return stripCommandPrefix(value, "*gosub").split(/\s+/)[0] ?? "";
 }
 
 function estimateLayoutNodeHeight(node: StoryNode): number {
