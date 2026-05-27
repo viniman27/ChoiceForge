@@ -1112,8 +1112,10 @@ function parseAchievements(lines: string[], currentAchievements: AchievementSumm
     const visibility = parts[2] ?? "visible";
     const points = Number(parts[3] ?? "0");
     const title = parts.slice(4).join(" ") || current.get(id)?.title || id;
-    const preDesc = lines[index + 1]?.trim() || current.get(id)?.preDesc || title;
-    const postDesc = lines[index + 2]?.trim() || current.get(id)?.postDesc || preDesc;
+    const candidatePre = achievementDescriptionLine(lines, index + 1);
+    const preDesc = candidatePre ?? current.get(id)?.preDesc ?? title;
+    const candidatePost = candidatePre !== null ? achievementDescriptionLine(lines, index + 2) : null;
+    const postDesc = candidatePost ?? current.get(id)?.postDesc ?? preDesc;
     achievements.push({
       id,
       title,
@@ -1125,6 +1127,15 @@ function parseAchievements(lines: string[], currentAchievements: AchievementSumm
     });
   }
   return achievements;
+}
+
+function achievementDescriptionLine(lines: string[], index: number): string | null {
+  const line = lines[index];
+  if (line === undefined) return null;
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("*")) return null;
+  return trimmed;
 }
 
 type StatChartRow =

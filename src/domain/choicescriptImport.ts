@@ -194,8 +194,10 @@ function parseStartup(text: string) {
       const visibility = parts[2] ?? "visible";
       const points = Number(parts[3] ?? "0");
       const titleText = parts.slice(4).join(" ") || id;
-      const preDesc = lines[index + 1]?.trim() ?? titleText;
-      const postDesc = lines[index + 2]?.trim() ?? preDesc;
+      const candidatePre = importAchievementDescriptionLine(lines, index + 1);
+      const preDesc = candidatePre ?? titleText;
+      const candidatePost = candidatePre !== null ? importAchievementDescriptionLine(lines, index + 2) : null;
+      const postDesc = candidatePost ?? preDesc;
       achievements.push({
         id,
         title: titleText,
@@ -209,6 +211,15 @@ function parseStartup(text: string) {
   }
 
   return { title, author, variables, achievements, sceneNames: unique(sceneNames) };
+}
+
+function importAchievementDescriptionLine(lines: string[], index: number): string | null {
+  const line = lines[index];
+  if (line === undefined) return null;
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("*")) return null;
+  return trimmed;
 }
 
 function extractStartupSceneText(text: string): string {

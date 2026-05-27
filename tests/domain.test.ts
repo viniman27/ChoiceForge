@@ -240,6 +240,29 @@ test("imports *achievement declarations from startup.txt into project achievemen
   assert.equal(se?.hidden, true);
 });
 
+test("does not steal next *achievement line as preDesc", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("mygame/startup.txt", [
+      "*title Back to Back",
+      "*author Dev",
+      "*achievement first visible 10 First",
+      "*achievement second visible 10 Second",
+      "  Second pre.",
+      "  Second post.",
+      "*scene_list",
+      "  startup",
+    ].join("\n")),
+  ]);
+
+  const first = project.achievements.find((a) => a.id === "first");
+  const second = project.achievements.find((a) => a.id === "second");
+  assert.ok(first, "first achievement imported");
+  assert.equal(first?.preDesc, "First", "preDesc must fall back to title, not consume the next *achievement line");
+  assert.equal(first?.postDesc, "First");
+  assert.equal(second?.preDesc, "Second pre.");
+  assert.equal(second?.postDesc, "Second post.");
+});
+
 test("imports startup body as prologue without duplicating startup scene", () => {
   const project = importChoiceScriptArchive([
     textEntry("startup.txt", [
