@@ -75,7 +75,8 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
               className="ip-convert-select"
               value=""
               onChange={(event) => {
-                const patch = buildTypeConversionPatch(node, event.target.value as NodeType, project.nodes[0]?.id ?? "n1");
+                const fallbackId = project.nodes.find((candidate) => candidate.id !== node.id)?.id ?? node.id;
+                const patch = buildTypeConversionPatch(node, event.target.value as NodeType, fallbackId);
                 if (patch) onUpdateNode(node.id, patch);
               }}
             >
@@ -153,7 +154,11 @@ function ContentTab({
   const [dragOptIdx, setDragOptIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [writingFocus, setWritingFocus] = useState(false);
-  useEffect(() => setWritingFocus(false), [node.id]);
+  useEffect(() => {
+    setWritingFocus(false);
+    setDragOptIdx(null);
+    setDragOverIdx(null);
+  }, [node.id]);
 
   const moveOption = (from: number, to: number) => {
     const opts = [...(node.options ?? [])];
@@ -1277,7 +1282,7 @@ function removeAchievementCommand(node: StoryNode, achievementId: string, onUpda
 }
 
 function extractAchievementCommands(body: string): string[] {
-  return [...body.matchAll(/^\s*\*achieve\s+([a-z_][\w]*)\s*$/gim)].map((match) => match[1]);
+  return [...body.matchAll(/^[ \t]*\*achieve[ \t]+([a-z_][\w]*)[ \t]*$/gim)].map((match) => match[1]);
 }
 
 function WritingFocusOverlay({
