@@ -65,9 +65,18 @@ These are pulled from `agents.md`. Breaking them will be the first thing a revie
 
 ## Tests
 
-The test suite (`tests/domain.test.ts`) covers the pure domain layer (generator, importer, linter, layout) using Node's built-in test runner. There is no UI/integration test layer yet.
+The project has two test layers:
 
-Before adding domain code, look at the existing tests for the same area and follow the same shape:
+| Layer | Tool | Path | Command |
+|-------|------|------|---------|
+| Domain (pure functions) | Node `--test` | `tests/*.test.ts` | `npm test` |
+| UI (React components, store, integration) | Vitest + Testing Library | `tests/ui/**/*.test.{ts,tsx}` | `npm run test:ui` |
+
+Run both with `npm run test:all`. CI runs both on every push and PR.
+
+### Domain tests
+
+`tests/domain.test.ts` covers the pure domain layer (generator, importer, linter, layout) using Node's built-in test runner. Pattern:
 
 ```ts
 import { test } from "node:test";
@@ -81,9 +90,60 @@ test("describes the specific behaviour you're checking", () => {
 });
 ```
 
-If your change touches `src/domain/`, you must add at least one test that would fail without your change.
+If your change touches `src/domain/`, you must add at least one domain test that would fail without your change.
 
-UI changes don't need automated tests today, but you should manually exercise the affected flow in the dev server (`npm run dev`) and confirm there are no regressions in adjacent flows.
+### UI tests
+
+`tests/ui/` covers React components, the `useProjectStore` hook, and i18n behaviour. Pattern:
+
+```tsx
+import { describe, test, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MyComponent } from "../../src/components/MyComponent.tsx";
+
+describe("MyComponent", () => {
+  test("does the thing", async () => {
+    const onSomething = vi.fn();
+    const user = userEvent.setup();
+    render(<MyComponent onSomething={onSomething} />);
+    await user.click(screen.getByText("Click me"));
+    expect(onSomething).toHaveBeenCalledOnce();
+  });
+});
+```
+
+For store/hook tests, use `renderHook` + `act`:
+
+```ts
+import { renderHook, act } from "@testing-library/react";
+import { useProjectStore } from "../../src/state/projectStore.ts";
+
+test("addNode appends a node", () => {
+  const { result } = renderHook(() => useProjectStore());
+  act(() => result.current.actions.newBlankProject("Test", "Author"));
+  act(() => result.current.actions.addNode("passage", "n_test", { x: 0, y: 0 }));
+  expect(result.current.project.nodes.find((n) => n.id === "n_test")).toBeDefined();
+});
+```
+
+**Tip:** when an action computes an ID inside a setState updater, read the new state to find it rather than relying on the action's return value — React 19 batches updaters and the return value may be stale.
+
+If your change touches `src/components/` or `src/state/`, add a UI test that exercises the new behaviour through the public component or hook API.
+
+### Watch mode
+
+For iterative development:
+
+```bash
+npm run test:ui:watch   # Vitest watch mode
+```
+
+### Coverage
+
+```bash
+npm run test:ui:coverage   # generates HTML + text coverage report in coverage/
+```
 
 ---
 
