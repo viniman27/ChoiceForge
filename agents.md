@@ -343,6 +343,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 196
+- **Final polish: chrome i18n cleanup + OSS housekeeping (SECURITY.md, CODE_OF_CONDUCT.md).**
+  - **Chrome i18n** (`TopBar`, `SnapshotPanel`, `Dashboard`, `BottomBar`): replaced 20+ inline `lang === "pt" ? ... : lang === "es" ? ... : ...` ternaries and pure English strings with proper `I18nLabels` keys. The TopBar inline ternary pattern was a relic from before the i18n labels surface area was built out; cleaning it removes inconsistencies where some buttons handled all three languages and others only handled EN vs not-EN. Added 21 new keys (`topUndo`/`topRedo`/`topNew`/`topOpen`/`topSave`/`topSaveAs`/`topImport`/`topImportFolder`/`topSnapshots`/`topBoardToggle`/`topTextToggle`; `snapTitle`/`snapDesc`/`snapNamePlaceholder`/`snapSaveNow`/`snapEmpty`/`snapRestore`/`snapConfirmRestore`/`snapCancel`; `dashTitle`; `bottomClearFilters`) with PT/EN/ES translations. App.tsx now passes `labels` to `TopBar` and `SnapshotPanel`. SnapshotPanel and BottomBar got aria-label on icon-only buttons too. `i18nBulk.test.ts` was extended to cover the 21 new keys so the assertion catches missing translations automatically.
+  - **`SECURITY.md`**: pre-1.0 support window, private disclosure flow (email + 7-day ack + 30-day disclosure), explicit scope and out-of-scope items, four classes of bug we particularly want reports on (import DoS, script injection through preserved source, path traversal in asset exports, localStorage poisoning).
+  - **`CODE_OF_CONDUCT.md`**: short, written for this project's scale; private reporting channel; proportional enforcement; influenced by Contributor Covenant 2.1 and the Rust CoC but not a verbatim copy. GitHub will surface both files in the repo header once the project goes public.
+  - **CONTRIBUTING.md** gained Code of Conduct and Security sections that link to the two new files.
+  - **Tests**: 387 domain + 67 UI = **454 passing**. Build clean.
+  - **Commits**: `1e35ed0` (chrome i18n), `09c0557` (SECURITY + CoC).
+  - **Counted milestones at this point**:
+    - **~165 i18n labels** across 6 panels (Left, Right, Canvas, Top, Bottom, Dashboard, Snapshot, Inspector deep) — every user-visible chrome string respects PT/EN/ES.
+    - **454 tests** across 8 UI test files + the domain suite, with coverage including i18n key presence, store actions, panel rendering, error boundaries, and full export → reimport round-trips.
+    - **OSS-ready set complete**: README EN/PT, LICENSE (MIT), CONTRIBUTING, CHANGELOG, SECURITY, CODE_OF_CONDUCT, CI, issue/PR templates, Dependabot.
+    - **27 distinct bug fixes shipped** across the audit-and-fix cycles (paragraph breaks in option bodies, worker race in scene conversion, duplicateNode Y offset, achievement parser, base64 O(n²), updateMetadata over-wipe, lints in Tauri save, drag state leak, regex `\s+`, conversion fallback, viewport culling, minimap rect heights, magic n1 root id in 4 places, scene insertion after stats, React Fragment key warning, `labels.words` heuristic, plus 11 more from the earlier audit pass).
+    - **6 structural refactors**: parsing helpers consolidated, zip compression, bundle splitting (904→358 KB), zip worker, panel error boundaries, UI test layer.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 195
 - **Robustness pass: panel error boundaries + full round-trip integration tests.**
   - **PanelErrorBoundary** (`src/components/PanelErrorBoundary.tsx`): class-based React error boundary. Wrapped LeftPanel, the canvas/editor/playview area, and RightPanel in App.tsx. A render crash in any one panel now shows an inline error card (with panel name, the error message, a Retry button, and a hint about autosave) instead of taking down the whole app. Console.error gets a `[ChoiceForge] X panel crashed` prefix so it's obvious in devtools. The TopBar, BottomBar, modal overlays, and HelpGuide stay unwrapped — they need to keep working when an inner panel crashes, and they're simple enough to be unlikely to throw.
