@@ -776,6 +776,35 @@ test("imports and exports restore checkpoint command nodes", () => {
   assert.match(generated, /\*restore_checkpoint major/);
 });
 
+test("treats the first node as root even when its id is not n1", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "imported_root_42", type: "passage", x: 0, y: 0, w: 320, title: "intro", body: "Begin." },
+      { id: "imported_other", type: "ending", x: 0, y: 220, w: 240, title: "*ending" },
+    ],
+    edges: [{ from: "imported_root_42", to: "imported_other", kind: "flow" }],
+  };
+  const project: ChoiceForgeProject = {
+    ...minimalProject(),
+    sceneTitle: "intro",
+    scenes: [
+      { id: "startup", name: "startup", words: 0, nodes: 0, isStart: true },
+      { id: "intro", name: "intro", words: 0, nodes: 2 },
+    ],
+    nodes: graph.nodes,
+    edges: graph.edges,
+    sceneData: { intro: graph },
+  };
+  const issues = lintProject(project);
+  const orphanIssues = issues.filter((i) => i.key === "orphan_node");
+  assert.equal(orphanIssues.length, 0, "first node should not be flagged orphan even when id !== n1");
+  const generated = generateSceneChoiceScript(project, "intro");
+  const rootIndex = generated.indexOf("*label cf_imported_root_42");
+  const otherIndex = generated.indexOf("*label cf_imported_other");
+  assert.ok(rootIndex >= 0 && otherIndex >= 0, "both nodes present");
+  assert.ok(rootIndex < otherIndex, "root node emitted first");
+});
+
 test("warns about restore checkpoints without matching saves anywhere in the project", () => {
   const graph: SceneGraph = {
     nodes: [

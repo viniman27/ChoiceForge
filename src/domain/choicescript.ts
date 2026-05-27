@@ -113,16 +113,17 @@ export function generateSceneChoiceScript(project: ChoiceForgeProject, sceneName
   const edges = mergeGraphEdges(graph.edges, deriveNodeEdges(graph.nodes));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
   edges.forEach((edge) => incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1));
+  const rootId = graph.nodes[0]?.id ?? "";
 
   return [...graph.nodes]
     .sort((a, b) => {
-      if (a.id === "n1") return -1;
-      if (b.id === "n1") return 1;
+      if (a.id === rootId) return -1;
+      if (b.id === rootId) return 1;
       return a.y - b.y || a.x - b.x;
     })
     .map((node) => {
       const section = generateNodeChoiceScript(node, graph.edges);
-      const hasIncoming = (incoming.get(node.id) ?? 0) > 0 || node.id === "n1";
+      const hasIncoming = (incoming.get(node.id) ?? 0) > 0 || node.id === rootId;
       return `${hasIncoming ? "" : "*comment ChoiceForge: orphan visual node\n"}${section}`;
     })
     .join("\n\n");
@@ -639,8 +640,9 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
 
   lintLabels(humanLabels, generatedLabels, issues, sceneName);
 
+  const rootId = graph.nodes[0]?.id ?? "";
   graph.nodes.forEach((node) => {
-    if (node.id !== "n1" && (incoming.get(node.id) ?? 0) === 0) {
+    if (node.id !== rootId && (incoming.get(node.id) ?? 0) === 0) {
       issues.push({ level: "warning", msg: `node "${node.title}" has no incoming connection`, key: "orphan_node", params: { name: node.title }, scene: sceneName, node: node.id });
     }
 
