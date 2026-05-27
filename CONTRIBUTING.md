@@ -194,6 +194,14 @@ For ChoiceScript-runtime issues, include the exported `.txt` file and the line o
 
 ---
 
+## Code of Conduct
+
+By participating you agree to follow the [Code of Conduct](./CODE_OF_CONDUCT.md). It boils down to: be respectful, assume good faith, critique work not people. Report incidents to viniciusdearaujo27@gmail.com with subject `[ChoiceForge CoC]`.
+
+## Security
+
+If you find a security issue (anything in the importer that crashes the tab on a hostile `.zip`, anywhere preserved source could inject script, etc.) **do not open a public issue.** See [SECURITY.md](./SECURITY.md) — email the maintainer privately and we'll coordinate a fix.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the project's MIT License (see [`LICENSE`](./LICENSE)).
