@@ -11,6 +11,7 @@ import { SceneMapView } from "./components/SceneMapView";
 import { GraphCanvas } from "./components/GraphCanvas";
 import { LeftPanel } from "./components/LeftPanel";
 import { OfficialPlayView } from "./components/OfficialPlayView";
+import { PanelErrorBoundary } from "./components/PanelErrorBoundary";
 import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
 import { i18n } from "./data/sampleProject";
@@ -316,6 +317,7 @@ export default function App() {
         onNativeSave={isTauri() ? handleNativeSave : undefined}
         onNativeSaveAs={isTauri() ? handleNativeSaveAs : undefined}
       />
+      <PanelErrorBoundary panelName="Left panel">
       <LeftPanel
         data={lintedProject}
         activeTab={activeTab}
@@ -369,6 +371,7 @@ export default function App() {
         }}
         onReplace={actions.replaceInNodes}
       />
+      </PanelErrorBoundary>
       <button
         className="resize-handle resize-handle-left"
         type="button"
@@ -378,6 +381,7 @@ export default function App() {
           setResizeTarget("left");
         }}
       />
+      <PanelErrorBoundary panelName="Canvas / editor">
       {playOpen ? (
         <OfficialPlayView project={lintedProject} onClose={() => setPlayOpen(false)} />
       ) : generatedDocument ? (
@@ -461,6 +465,7 @@ export default function App() {
           isConvertingScene={isConvertingScene}
         />
       )}
+      </PanelErrorBoundary>
       <button
         className="resize-handle resize-handle-right"
         type="button"
@@ -470,6 +475,7 @@ export default function App() {
           setResizeTarget("right");
         }}
       />
+      <PanelErrorBoundary panelName="Inspector">
       <RightPanel
         node={selectedNode}
         project={lintedProject}
@@ -491,6 +497,7 @@ export default function App() {
           setSelectedId(hasPreserved ? null : "n1");
         }}
       />
+      </PanelErrorBoundary>
       <BottomBar
         data={lintedProject}
         labels={i18n[lang]}
