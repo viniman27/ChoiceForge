@@ -343,6 +343,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 193
+- **UI test layer + 1 real bug caught by tests.**
+  - **Motivation**: the project had 387 domain tests but **zero coverage of React components, the store, or any UI flow**. Any regression that touched a component or hook would land silently in `main`. Picked this as the biggest structural gap to close.
+  - **Infrastructure** (`vitest.config.ts`, `tests/ui/setup.ts`): Vitest + jsdom + Testing Library + user-event + jest-dom matchers. Uses the existing `@vitejs/plugin-react` for transforms so there's no second build pipeline. `npm test` stays the fast domain-only path; `npm run test:ui` runs the new layer; `npm run test:all` runs both. CI workflow runs both before the build. Added `@vitest/coverage-v8` and `coverage/` is gitignored.
+  - **44 UI tests** across four files:
+    - `tests/ui/NewProjectModal.test.tsx` (5): EN/PT language switching, the blank-project callback with typed title+author, close button, Enter-to-submit. Used as the pipeline smoke test.
+    - `tests/ui/projectStore.test.ts` (18): initial state, `updateMetadata` preserves startupSource on `wordGoal` (session-186 fix) and discards on title/author, `addNode` language defaults (EN/PT/ES per session 188), `duplicateNode` Y positioning uses height not width (session 186), variable add/rename/delete with reference propagation, scene add/duplicate/delete, undo/redo, `connectNodes` default option text (session 187).
+    - `tests/ui/LeftPanel.test.tsx` (9): the `labels.words === "words"` heuristic regression caught for ES users — three i18n sites verified across EN/PT/ES (search no-results, search results title, replace status), plus a console.error spy that confirms VariablesList no longer triggers the React key warning (session 192 fix).
+    - `tests/ui/RightPanel.test.tsx` (12): empty-state hint i18n, source-preserved banner localization, Convert button callback, private notes label + placeholder, disabled inputs in sourcePreserved mode, title-edit callback flow (session-190 fixes).
+  - **Bug caught by tests — scene insertion** (`projectStore.ts` `addScene` + `duplicateScene`): both actions appended new scenes to the END of the array via `[...saved.scenes, newScene]`. Since `data.scenes` is rendered in array order by the left panel and the array convention is `[startup, …playable, choicescript_stats]`, the new scene appeared AFTER the stats scene — confusing for users. The fix: insert after the last playable scene via a new `lastIndex` helper. Caught by the addScene UI test that asserted the new scene index is less than the special scene index.
+  - **Documentation**: extended `CONTRIBUTING.md` with a Tests section covering both layers, the renderHook pattern for store tests, watch mode, coverage. Updated `README.md` + `README.pt-BR.md` with the two-suite test commands and counts. Added a Testing section to `CHANGELOG.md`.
+  - **Tests**: 387 domain + 44 UI = **431 passing**. Build clean.
+  - **Commits**: `845c4ea` (Vitest infrastructure), `feb0e3f` (store tests + addScene bug fix), `7f3651c` (LeftPanel tests), `0f54a6a` (RightPanel tests).
+  - **Tip recorded in CONTRIBUTING**: when an action returns an ID computed inside a setState updater (e.g. `duplicateNode`), tests should read state-after rather than the return value — React 19 batches updaters and the return value may be stale.
+  - **Out of scope this session**: integration tests that drive App.tsx end-to-end (would need to mock Worker and fflate); coverage push for GraphCanvas (canvas math + pointer events are harder to test in jsdom); the remaining ~35 chrome i18n strings (LeftPanel chrome + GraphCanvas chrome).
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 192
 - **LeftPanel audit (948 lines) + 2 fixes.**
   - **Audit findings**: catalogued ~17 items. The two real fixes shipped this session; rest are either acceptable-as-is (most chrome strings already always-English, no Spanish regression; expandedVar persistence across tab switches is a UX nit), microoptimizations (per-row `indexOf` is fine for typical achievement counts; rename without debounce only matters on big projects), or deferred (broader chrome i18n).

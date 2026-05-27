@@ -33,8 +33,18 @@ The full session-by-session log lives in [`agents.md`](./agents.md) and includes
 ### Performance
 - **Bundle splitting** via `manualChunks` in `vite.config.ts`: CodeMirror, React, and fflate ship as separate chunks. Main app bundle dropped from 904 KB to 344 KB (under Vite's 500 KB warning threshold).
 
+### Testing
+- **UI test layer** — Vitest + Testing Library scaffold (`vitest.config.ts`, `tests/ui/setup.ts`). New scripts: `test:ui`, `test:ui:watch`, `test:ui:coverage`, `test:all`. CI runs both domain and UI suites.
+- **44 UI tests** across:
+  - `NewProjectModal`: language switching, blank-project flow, close button, Enter-to-submit.
+  - `useProjectStore` (renderHook): initial state, metadata updates that preserve startup source on unrelated changes, language-aware `addNode` defaults (EN/PT/ES), `duplicateNode` Y positioning, variable lifecycle with rename propagation, scene lifecycle, undo/redo, `connectNodes` default option text.
+  - `LeftPanel`: i18n correctness for search results / no-results / replace status across EN/PT/ES (the `labels.words === "words"` heuristic regression), no React key warning when variables tab renders.
+  - `RightPanel`: empty-state hint i18n, source-preserved banner localization (EN/PT/ES), private-notes localization, `Convert` button callback, disabled inputs in sourcePreserved mode, title-edit callback flow.
+- **`addScene` / `duplicateScene` bug** caught by tests: both actions appended new scenes to the end of the array, placing them after `choicescript_stats` instead of before. Fixed via a new `lastIndex` helper.
+
 ### Internal
 - 387 domain-layer tests pass via `node --test` (was 382 before this changelog window).
+- 44 UI tests pass via `npm run test:ui`. Total: **431 tests** across both layers.
 - `tsconfig.json` adds `allowImportingTsExtensions: true` to support Node's `--experimental-strip-types` runner with the new shared helpers module.
 
 ---
