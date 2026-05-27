@@ -468,7 +468,7 @@ export function GraphCanvas({
           onClick={() => selectedId && onDuplicateNode(selectedId)}
           title="Ctrl+D"
         >
-          dup
+          {labels.canvasDup}
         </button>
         <button
           className="canvas-tool danger"
@@ -644,12 +644,12 @@ export function GraphCanvas({
         <button
           className={`zoom-snap${snap ? " is-active" : ""}`}
           onClick={() => setSnap((s) => !s)}
-          title={`Snap to grid — ${snap ? "on" : "off"} (G)`}
+          title={`${labels.canvasSnap} (G)`}
         >
           <SnapIcon />
         </button>
         <span className="zoom-divider" />
-        <span className="zoom-tag-label">tag</span>
+        <span className="zoom-tag-label">{labels.canvasTagLabel}</span>
         {COLOR_TAG_KEYS.map((tag) => (
           <button
             key={tag}
@@ -665,7 +665,7 @@ export function GraphCanvas({
           <button
             className="zoom-color-clear"
             onClick={() => setActiveColorTags(new Set())}
-            title="Clear tag filter"
+            title={labels.canvasClearTagFilter}
           >×</button>
         )}
       </div>
@@ -674,7 +674,7 @@ export function GraphCanvas({
           <input
             ref={filterInputRef}
             className="canvas-filter-input"
-            placeholder="filter nodes… (type:, tag:, status:todo, has:error)"
+            placeholder={labels.canvasFilterPlaceholder}
             title="Text search, or: type:passage · type:choice · tag:red · color:blue · status:todo · status:done · has:note · has:error · has:warning"
             value={canvasFilter}
             onChange={(e) => setCanvasFilter(e.target.value)}
@@ -686,9 +686,9 @@ export function GraphCanvas({
           />
           {activeFilter && filterMatches.length > 0 && (
             <>
-              <button className="canvas-filter-nav" onClick={() => goToFilterResult(-1)} title="Previous match (Shift+Enter)">‹</button>
+              <button className="canvas-filter-nav" onClick={() => goToFilterResult(-1)} title={`${labels.filterPrev} (Shift+Enter)`}>‹</button>
               <span className="canvas-filter-count">{filterResultIdx + 1}/{filterMatches.length}</span>
-              <button className="canvas-filter-nav" onClick={() => goToFilterResult(1)} title="Next match (Enter)">›</button>
+              <button className="canvas-filter-nav" onClick={() => goToFilterResult(1)} title={`${labels.filterNext} (Enter)`}>›</button>
             </>
           )}
           {activeFilter && filterMatches.length === 0 && (
@@ -698,7 +698,7 @@ export function GraphCanvas({
         </div>
       )}
       {selCount > 1 && (
-        <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} onBulkUpdateNodes={onBulkUpdateNodes} />
+        <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} labels={labels} onMoveNodes={onMoveNodes} onBulkUpdateNodes={onBulkUpdateNodes} />
       )}
       <Minimap data={data} density={density} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
       {isConvertingScene && (
@@ -747,7 +747,7 @@ function EdgeDropPicker({
 
   return (
     <div ref={ref} className="edrop-picker" style={style}>
-      <div className="edrop-hint">connect to new node</div>
+      <div className="edrop-hint">{labels.edropConnectHint}</div>
       <div className="edrop-grid">
         {QUICK_TYPES.map((type) => (
           <button
@@ -766,11 +766,12 @@ function EdgeDropPicker({
   );
 }
 
-function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBulkUpdateNodes }: {
+function SelectionBar({ selCount, selectedIds, data, density, labels, onMoveNodes, onBulkUpdateNodes }: {
   selCount: number;
   selectedIds: Set<string>;
   data: ChoiceForgeProject;
   density: Density;
+  labels: I18nLabels;
   onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
   onBulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
 }) {
@@ -843,16 +844,16 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBul
 
   type Btn = { icon: string; title: string; onClick: () => void; disabled?: boolean };
   const groups: (Btn | null)[] = [
-    { icon: "al", title: "Align left edges", onClick: alignLeft },
-    { icon: "ach", title: "Align horizontal centers", onClick: alignCenterH },
-    { icon: "ar", title: "Align right edges", onClick: alignRight },
+    { icon: "al", title: labels.alignLeftTitle, onClick: alignLeft },
+    { icon: "ach", title: labels.alignCenterHTitle, onClick: alignCenterH },
+    { icon: "ar", title: labels.alignRightTitle, onClick: alignRight },
     null,
-    { icon: "at", title: "Align top edges", onClick: alignTop },
-    { icon: "amv", title: "Align vertical centers", onClick: alignMiddleV },
-    { icon: "ab", title: "Align bottom edges", onClick: alignBottom },
+    { icon: "at", title: labels.alignTopTitle, onClick: alignTop },
+    { icon: "amv", title: labels.alignMiddleVTitle, onClick: alignMiddleV },
+    { icon: "ab", title: labels.alignBottomTitle, onClick: alignBottom },
     null,
-    { icon: "dh", title: "Distribute horizontally (need ≥3)", onClick: distributeH, disabled: sel.length < 3 },
-    { icon: "dv", title: "Distribute vertically (need ≥3)", onClick: distributeV, disabled: sel.length < 3 },
+    { icon: "dh", title: labels.distributeHTitle, onClick: distributeH, disabled: sel.length < 3 },
+    { icon: "dv", title: labels.distributeVTitle, onClick: distributeV, disabled: sel.length < 3 },
   ];
 
   const ids = [...selectedIds];
@@ -860,7 +861,7 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBul
 
   return (
     <div className="sel-bar">
-      <span className="sel-bar-count">{selCount} selected</span>
+      <span className="sel-bar-count">{selCount} {labels.selectedCount}</span>
       <div className="sel-bar-sep" />
       {groups.map((btn, i) =>
         btn === null
@@ -872,19 +873,19 @@ function SelectionBar({ selCount, selectedIds, data, density, onMoveNodes, onBul
           )
       )}
       <div className="sel-bar-div" />
-      <button className="sel-bar-btn sel-bar-status" title="Mark all selected as done" onClick={() => setStatus("done")}>✓</button>
-      <button className="sel-bar-btn sel-bar-status" title="Mark all selected as todo" onClick={() => setStatus("todo")}>○</button>
+      <button className="sel-bar-btn sel-bar-status" title={labels.markDoneTitle} onClick={() => setStatus("done")}>✓</button>
+      <button className="sel-bar-btn sel-bar-status" title={labels.markTodoTitle} onClick={() => setStatus("todo")}>○</button>
       <div className="sel-bar-sep" />
       {COLOR_TAG_KEYS.map((tag) => (
         <button
           key={tag}
           className="sel-bar-color-dot"
           style={{ "--ct": COLOR_TAG_VALUES[tag] } as React.CSSProperties}
-          title={`Tag all selected: ${tag}`}
+          title={`${labels.tagAllAs} ${tag}`}
           onClick={() => onBulkUpdateNodes(ids, { colorTag: tag })}
         />
       ))}
-      <button className="sel-bar-btn sel-bar-status" title="Clear color tag from all selected" onClick={() => onBulkUpdateNodes(ids, { colorTag: undefined })}>×</button>
+      <button className="sel-bar-btn sel-bar-status" title={labels.clearTagsTitle} onClick={() => onBulkUpdateNodes(ids, { colorTag: undefined })}>×</button>
     </div>
   );
 }

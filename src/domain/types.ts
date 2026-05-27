@@ -275,4 +275,25 @@ export interface I18nLabels {
   preservedCount: string;
   generatedCount: string;
   addAsset: string;
+  canvasDup: string;
+  canvasFilterPlaceholder: string;
+  canvasTagLabel: string;
+  canvasClearTagFilter: string;
+  canvasSnap: string;
+  selectedCount: string;
+  alignLeftTitle: string;
+  alignCenterHTitle: string;
+  alignRightTitle: string;
+  alignTopTitle: string;
+  alignMiddleVTitle: string;
+  alignBottomTitle: string;
+  distributeHTitle: string;
+  distributeVTitle: string;
+  markDoneTitle: string;
+  markTodoTitle: string;
+  tagAllAs: string;
+  clearTagsTitle: string;
+  edropConnectHint: string;
+  filterPrev: string;
+  filterNext: string;
 }
