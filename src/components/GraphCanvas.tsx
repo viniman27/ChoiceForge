@@ -563,7 +563,8 @@ export function GraphCanvas({
           const vx = -pan.x / zoom, vy = -pan.y / zoom;
           const vw = viewport.width / zoom, vh = viewport.height / zoom;
           const buf = 350;
-          return n.x + n.w >= vx - buf && n.x <= vx + vw + buf && n.y + 600 >= vy - buf && n.y <= vy + vh + buf;
+          const nh = nodeHeightEstimate(n, density);
+          return n.x + n.w >= vx - buf && n.x <= vx + vw + buf && n.y + nh >= vy - buf && n.y <= vy + vh + buf;
         })).map((node) => (
           <NodeCard
             key={node.id}
@@ -699,7 +700,7 @@ export function GraphCanvas({
       {selCount > 1 && (
         <SelectionBar selCount={selCount} selectedIds={selectedIds} data={data} density={density} onMoveNodes={onMoveNodes} onBulkUpdateNodes={onBulkUpdateNodes} />
       )}
-      <Minimap data={data} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
+      <Minimap data={data} density={density} labels={labels} pan={pan} zoom={zoom} viewport={viewport} onPan={onPan} />
       {isConvertingScene && (
         <div className="canvas-parse-overlay">
           <span className="canvas-parse-spinner" />
@@ -1061,6 +1062,7 @@ function edgePath(project: ChoiceForgeProject, from: string, to: string, density
 
 function Minimap({
   data,
+  density,
   labels,
   pan,
   zoom,
@@ -1068,6 +1070,7 @@ function Minimap({
   onPan,
 }: {
   data: ChoiceForgeProject;
+  density: Density;
   labels: I18nLabels;
   pan: { x: number; y: number };
   zoom: number;
@@ -1083,10 +1086,11 @@ function Minimap({
   let minX = visibleRect.x, minY = visibleRect.y;
   let maxX = visibleRect.x + visibleRect.width, maxY = visibleRect.y + visibleRect.height;
   for (const node of data.nodes) {
+    const nh = nodeHeightEstimate(node, density);
     if (node.x < minX) minX = node.x;
     if (node.y < minY) minY = node.y;
     if (node.x + node.w > maxX) maxX = node.x + node.w;
-    if (node.y + 200 > maxY) maxY = node.y + 200;
+    if (node.y + nh > maxY) maxY = node.y + nh;
   }
   minX -= 40; minY -= 40; maxX += 40; maxY += 40;
   const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
@@ -1117,7 +1121,8 @@ function Minimap({
         })}
         {data.nodes.map((node) => {
           const color = typeColors[node.type];
-          return <rect key={node.id} x={node.x} y={node.y} width={node.w} height="60" rx="8" fill={color.tint} stroke={color.dot} strokeWidth="2" />;
+          const nh = nodeHeightEstimate(node, density);
+          return <rect key={node.id} x={node.x} y={node.y} width={node.w} height={nh} rx="8" fill={color.tint} stroke={color.dot} strokeWidth="2" />;
         })}
         <rect
           className="minimap-viewport"
