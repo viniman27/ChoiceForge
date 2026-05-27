@@ -20,5 +20,16 @@ export default defineConfig({
       : "es2022",
     minify: process.env.TAURI_ENV_DEBUG ? false : "esbuild",
     sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("@codemirror") || id.includes("@lezer")) return "codemirror";
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) return "react";
+          if (id.includes("fflate")) return "fflate";
+          return undefined;
+        },
+      },
+    },
   },
 });
