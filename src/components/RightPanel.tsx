@@ -26,7 +26,7 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       <aside className="right-panel">
         <div className="empty-inspector">
           <h3>{labels.inspector}</h3>
-          <p>Select a node on the canvas to inspect and edit it.</p>
+          <p>{labels.inspectorEmpty}</p>
         </div>
       </aside>
     );
@@ -91,8 +91,8 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       </div>
       {sourcePreserved && (
         <div className="ip-source-lock">
-          <span>Imported source is preserved. Inspector edits are disabled until this scene is converted to visual editing.</span>
-          <button className="ghost-btn" onClick={onConvertSource}>Convert</button>
+          <span>{labels.sourcePreservedNotice}</span>
+          <button className="ghost-btn" onClick={onConvertSource}>{labels.convert}</button>
         </div>
       )}
 
@@ -120,10 +120,10 @@ export function RightPanel({ node, project, labels, onUpdateNode, onAddFlowEdge,
       </div>
 
       <div className="ip-notes">
-        <label className="ip-notes-label">✎ private notes</label>
+        <label className="ip-notes-label">✎ {labels.privateNotes}</label>
         <textarea
           className="ip-notes-area"
-          placeholder="Author notes (never exported)…"
+          placeholder={labels.privateNotesPlaceholder}
           disabled={sourcePreserved}
           value={node.note ?? ""}
           onChange={(e) => onUpdateNode(node.id, { note: e.target.value || undefined })}
@@ -282,7 +282,7 @@ function ContentTab({
             </li>
           ))}
         </ul>
-        <button className="ghost-btn" onClick={() => addOption(node, project, onUpdateNode)}>{labels.addOption}</button>
+        <button className="ghost-btn" onClick={() => addOption(node, project, labels.newOption, onUpdateNode)}>{labels.addOption}</button>
       </div>
     );
   }
@@ -323,7 +323,7 @@ function ContentTab({
             </li>
           ))}
         </ul>
-        <button className="ghost-btn" onClick={() => addFakeOption(node, onUpdateNode)}>{labels.addOption}</button>
+        <button className="ghost-btn" onClick={() => addFakeOption(node, labels.newOption, onUpdateNode)}>{labels.addOption}</button>
       </div>
     );
   }
@@ -1155,9 +1155,9 @@ function updateChoiceCondition(
   updateOption(node, optionIndex, { cond: { ...option.cond!, expr: buildConditionExpression(variable?.name ?? next.variable, operator, value, variable) } }, onUpdateNode);
 }
 
-function addOption(node: StoryNode, project: ChoiceForgeProject, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+function addOption(node: StoryNode, project: ChoiceForgeProject, defaultText: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
   const fallbackTarget = project.nodes.find((target) => target.id !== node.id)?.id ?? node.id;
-  onUpdateNode(node.id, { options: [...(node.options ?? []), { text: "New option", to: fallbackTarget, cond: null }] });
+  onUpdateNode(node.id, { options: [...(node.options ?? []), { text: defaultText, to: fallbackTarget, cond: null }] });
 }
 
 function removeOption(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
@@ -1194,8 +1194,8 @@ function updateFakeChoiceCondition(
   updateFakeOption(node, optionIndex, { cond: { ...option.cond!, expr: buildConditionExpression(variable?.name ?? next.variable, operator, value, variable) } }, onUpdateNode);
 }
 
-function addFakeOption(node: StoryNode, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
-  onUpdateNode(node.id, { fakeOptions: [...(node.fakeOptions ?? []), { text: "New option", cond: null }] });
+function addFakeOption(node: StoryNode, defaultText: string, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
+  onUpdateNode(node.id, { fakeOptions: [...(node.fakeOptions ?? []), { text: defaultText, cond: null }] });
 }
 
 function removeFakeOption(node: StoryNode, index: number, onUpdateNode: (id: string, patch: Partial<StoryNode>) => void) {
