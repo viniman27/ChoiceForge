@@ -34,17 +34,28 @@ The full session-by-session log lives in [`agents.md`](./agents.md) and includes
 - **Bundle splitting** via `manualChunks` in `vite.config.ts`: CodeMirror, React, and fflate ship as separate chunks. Main app bundle dropped from 904 KB to 344 KB (under Vite's 500 KB warning threshold).
 
 ### Testing
-- **UI test layer** — Vitest + Testing Library scaffold (`vitest.config.ts`, `tests/ui/setup.ts`). New scripts: `test:ui`, `test:ui:watch`, `test:ui:coverage`, `test:all`. CI runs both domain and UI suites.
-- **44 UI tests** across:
+- **UI test layer** — Vitest + Testing Library scaffold (`vitest.config.ts`, `tests/ui/setup.ts` with `ResizeObserver` and `Worker` polyfills). New scripts: `test:ui`, `test:ui:watch`, `test:ui:coverage`, `test:all`. CI runs both domain and UI suites.
+- **51 UI tests** across:
   - `NewProjectModal`: language switching, blank-project flow, close button, Enter-to-submit.
   - `useProjectStore` (renderHook): initial state, metadata updates that preserve startup source on unrelated changes, language-aware `addNode` defaults (EN/PT/ES), `duplicateNode` Y positioning, variable lifecycle with rename propagation, scene lifecycle, undo/redo, `connectNodes` default option text.
   - `LeftPanel`: i18n correctness for search results / no-results / replace status across EN/PT/ES (the `labels.words === "words"` heuristic regression), no React key warning when variables tab renders.
   - `RightPanel`: empty-state hint i18n, source-preserved banner localization (EN/PT/ES), private-notes localization, `Convert` button callback, disabled inputs in sourcePreserved mode, title-edit callback flow.
+  - `i18nBulk`: loops every required `I18nLabels` key (~90 keys) and asserts each is non-empty in PT/EN/ES; verifies `{count}` interpolation placeholders.
+  - `appSmoke`: end-to-end mount of `<App />` through jsdom, checks the four left-panel tabs and the Play button render with EN labels.
 - **`addScene` / `duplicateScene` bug** caught by tests: both actions appended new scenes to the end of the array, placing them after `choicescript_stats` instead of before. Fixed via a new `lastIndex` helper.
+
+### Internationalisation
+- **~90 user-facing strings** across the three main panels and inspector now respect the editor language (PT/EN/ES) — previously hardcoded English regardless of selection. Covers variable table chrome, achievement chrome, scene mini-actions, asset chrome, canvas toolbar and SelectionBar tooltips, EdgeDropPicker hint, filter bar, the entire inspector (per-node-type labels, condition builder, sets/branch/option effects, command nodes, achievement assignment, image/sound fields, finish/return/ending hints, outgoing/incoming connections labels). Two long EN-only hint paragraphs removed since the localised field labels carry the meaning.
+
+### Accessibility
+- **`aria-label` / `aria-pressed`** added to icon-only and toggle buttons across LeftPanel (scene/variable/achievement/asset mini-actions), GraphCanvas (snap toggle, tag-filter dots, SelectionBar color-tag buttons), and RightPanel (status todo/done toggle, node color tags). Screen readers can now announce every action with its target.
+
+### Performance
+- **`extractZipEntries` async via Worker** (`src/workers/zipParser.ts`): large project imports (> 256 KB) now decompress off the main thread, eliminating the multi-second freeze on multi-MB ChoiceScript archives with images. Falls back to the sync path on worker error or 30 s timeout.
 
 ### Internal
 - 387 domain-layer tests pass via `node --test` (was 382 before this changelog window).
-- 44 UI tests pass via `npm run test:ui`. Total: **431 tests** across both layers.
+- 51 UI tests pass via `npm run test:ui`. Total: **438 tests** across both layers.
 - `tsconfig.json` adds `allowImportingTsExtensions: true` to support Node's `--experimental-strip-types` runner with the new shared helpers module.
 
 ---
