@@ -576,11 +576,16 @@ export function useProjectStore() {
         const name = nextAvailableName("new_scene", new Set(current.scenes.map((scene) => scene.name)));
         const graph = createEmptySceneGraph(name);
         const scene: SceneSummary = { id: name, name, words: countSceneWords(graph.nodes), nodes: graph.nodes.length, current: true };
+        const blanked = saved.scenes.map((candidate) => ({ ...candidate, current: false }));
+        const lastPlayableIdx = lastIndex(blanked, (s) => !s.isStart && !s.special);
+        const insertAt = lastPlayableIdx >= 0 ? lastPlayableIdx + 1 : blanked.findIndex((s) => s.special);
+        const safeInsertAt = insertAt < 0 ? blanked.length : insertAt;
+        const nextScenes = [...blanked.slice(0, safeInsertAt), scene, ...blanked.slice(safeInsertAt)];
         return commitProject(clearStartupSource({
           ...saved,
           sceneTitle: name,
           sceneSubtitle: `${name}.txt - ${scene.words.toLocaleString()} words`,
-          scenes: [...saved.scenes.map((candidate) => ({ ...candidate, current: false })), scene],
+          scenes: nextScenes,
           nodes: graph.nodes,
           edges: graph.edges,
           sceneData: { ...(saved.sceneData ?? {}), [name]: graph },
@@ -663,9 +668,14 @@ export function useProjectStore() {
         const scene = saved.scenes.find((candidate) => candidate.id === id);
         if (!scene) return current;
         const name = nextAvailableName(`${scene.name}_copy`, new Set(saved.scenes.map((candidate) => candidate.name)));
+        const newScene = { ...scene, id: name, name, current: false, isStart: false, special: false };
+        const lastPlayableIdx = lastIndex(saved.scenes, (s) => !s.isStart && !s.special);
+        const insertAt = lastPlayableIdx >= 0 ? lastPlayableIdx + 1 : saved.scenes.findIndex((s) => s.special);
+        const safeInsertAt = insertAt < 0 ? saved.scenes.length : insertAt;
+        const nextScenes = [...saved.scenes.slice(0, safeInsertAt), newScene, ...saved.scenes.slice(safeInsertAt)];
         return commitProject(clearStartupSource({
           ...saved,
-          scenes: [...saved.scenes, { ...scene, id: name, name, current: false, isStart: false, special: false }],
+          scenes: nextScenes,
           sceneData: { ...(saved.sceneData ?? {}), [name]: structuredClone(saved.sceneData?.[scene.name] ?? createEmptySceneGraph(name)) },
         }));
       });
@@ -984,6 +994,13 @@ function removeAchievementCommand(body: string, id: string): string {
     .filter((line) => !new RegExp(`^\\s*\\*achieve\\s+${escapeRegex(id)}\\s*$`, "i").test(line))
     .join("\n")
     .trimEnd();
+}
+
+function lastIndex<T>(arr: T[], predicate: (value: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i -= 1) {
+    if (predicate(arr[i])) return i;
+  }
+  return -1;
 }
 
 function estimateNodeRenderedHeight(node: StoryNode): number {
