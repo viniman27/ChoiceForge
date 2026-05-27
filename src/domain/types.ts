@@ -227,4 +227,10 @@ export interface I18nLabels {
   lintWarningsOnly: string;
   lintAllScenes: string;
   lintNoMatch: string;
+  inspectorEmpty: string;
+  sourcePreservedNotice: string;
+  convert: string;
+  privateNotes: string;
+  privateNotesPlaceholder: string;
+  newOption: string;
 }
