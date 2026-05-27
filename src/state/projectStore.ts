@@ -95,7 +95,7 @@ export interface ProjectActions {
   bulkUpdateNodes: (ids: string[], patch: Partial<StoryNode>) => void;
   moveNode: (id: string, x: number, y: number) => void;
   layoutNodes: (nodeHeights?: Record<string, number>) => void;
-  addNode: (type: NodeType, id: string, position: { x: number; y: number }) => void;
+  addNode: (type: NodeType, id: string, position: { x: number; y: number }, lang?: Language) => void;
   duplicateNode: (id: string) => string | null;
   deleteNode: (id: string) => void;
   moveNodes: (moves: { id: string; x: number; y: number }[]) => void;
@@ -343,10 +343,10 @@ export function useProjectStore() {
         ...layoutSceneGraph({ nodes: current.nodes, edges: current.edges }, nodeHeights),
       }));
     },
-    addNode: (type, id, position) => {
+    addNode: (type, id, position, lang) => {
       setTrackedProjectState((current) => {
         if (current.nodes.some((node) => node.id === id)) return current;
-        const node = createStoryNode(type, id, position, current);
+        const node = createStoryNode(type, id, position, current, lang ?? "en");
         return commitProject(clearActiveSceneSource({
           ...current,
           nodes: [...current.nodes, node],
@@ -1403,13 +1403,58 @@ function replaceInputTitle(node: StoryNode, variableName: string): string {
   return node.title;
 }
 
-function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject): StoryNode {
+interface NodeDefaults {
+  passageBody: string;
+  choicePrompt: string;
+  fakeChoicePrompt: string;
+  fakeChoiceOption: string;
+  pageBreakLabel: string;
+  commentBody: string;
+  inputTextPrompt: string;
+  inputNumberPrompt: string;
+}
+
+const NODE_DEFAULTS: Record<Language, NodeDefaults> = {
+  en: {
+    passageBody: "New narrative passage.",
+    choicePrompt: "What happens next?",
+    fakeChoicePrompt: "What do you notice?",
+    fakeChoiceOption: "Look closer.",
+    pageBreakLabel: "Continue",
+    commentBody: "Author note.",
+    inputTextPrompt: "Enter a response.",
+    inputNumberPrompt: "Enter a number.",
+  },
+  pt: {
+    passageBody: "Nova passagem narrativa.",
+    choicePrompt: "O que acontece agora?",
+    fakeChoicePrompt: "O que voce observa?",
+    fakeChoiceOption: "Olhar mais de perto.",
+    pageBreakLabel: "Continuar",
+    commentBody: "Nota do autor.",
+    inputTextPrompt: "Digite uma resposta.",
+    inputNumberPrompt: "Digite um numero.",
+  },
+  es: {
+    passageBody: "Nuevo pasaje narrativo.",
+    choicePrompt: "Que sucede a continuacion?",
+    fakeChoicePrompt: "Que observas?",
+    fakeChoiceOption: "Mirar mas de cerca.",
+    pageBreakLabel: "Continuar",
+    commentBody: "Nota del autor.",
+    inputTextPrompt: "Escribe una respuesta.",
+    inputNumberPrompt: "Escribe un numero.",
+  },
+};
+
+function createStoryNode(type: NodeType, id: string, position: { x: number; y: number }, project: ChoiceForgeProject, lang: Language): StoryNode {
   const title = nextAvailableName(defaultNodeTitle(type), new Set(project.nodes.map((node) => node.title)));
   const base = { id, type, x: position.x, y: position.y, w: defaultNodeWidth(type), title };
+  const defaults = NODE_DEFAULTS[lang] ?? NODE_DEFAULTS.en;
 
-  if (type === "passage") return { ...base, body: "New narrative passage." };
-  if (type === "choice") return { ...base, prompt: "What happens next?", options: [] };
-  if (type === "fake_choice") return { ...base, prompt: "What do you notice?", fakeOptions: [{ text: "Look closer.", cond: null }] };
+  if (type === "passage") return { ...base, body: defaults.passageBody };
+  if (type === "choice") return { ...base, prompt: defaults.choicePrompt, options: [] };
+  if (type === "fake_choice") return { ...base, prompt: defaults.fakeChoicePrompt, fakeOptions: [{ text: defaults.fakeChoiceOption, cond: null }] };
   if (type === "if") return { ...base, branches: [{ kind: "if", expr: "true", to: project.nodes[0]?.id ?? id }] };
   if (type === "set") {
     const firstVariable = project.variables[0]?.name ?? "variable";
@@ -1423,15 +1468,15 @@ function createStoryNode(type: NodeType, id: string, position: { x: number; y: n
   if (type === "finish") return { ...base, title: "*finish" };
   if (type === "checkpoint") return { ...base, title: `*save_checkpoint ${title}` };
   if (type === "restore_checkpoint") return { ...base, title: "*restore_checkpoint" };
-  if (type === "page_break") return { ...base, title: "*page_break Continue" };
-  if (type === "comment") return { ...base, title: "*comment", body: "Author note." };
+  if (type === "page_break") return { ...base, title: `*page_break ${defaults.pageBreakLabel}` };
+  if (type === "comment") return { ...base, title: "*comment", body: defaults.commentBody };
   if (type === "input_text") {
     const variable = firstVariable(project, "string") ?? project.variables[0]?.name ?? "text";
-    return { ...base, title: `*input_text ${variable}`, inputVar: variable, body: "Enter a response." };
+    return { ...base, title: `*input_text ${variable}`, inputVar: variable, body: defaults.inputTextPrompt };
   }
   if (type === "input_number") {
     const variable = firstVariable(project, "number") ?? project.variables[0]?.name ?? "number";
-    return { ...base, title: `*input_number ${variable}`, inputVar: variable, inputMin: "0", inputMax: "100", body: "Enter a number." };
+    return { ...base, title: `*input_number ${variable}`, inputVar: variable, inputMin: "0", inputMax: "100", body: defaults.inputNumberPrompt };
   }
   if (type === "rand") {
     const variable = firstVariable(project, "number") ?? project.variables[0]?.name ?? "number";
