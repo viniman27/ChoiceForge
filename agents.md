@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 189
+- **OSS polish: bundle splitting, issue/PR templates, Dependabot, CHANGELOG.**
+  - **Bundle splitting** (`vite.config.ts`): added `manualChunks` rule that pulls `@codemirror/*` + `@lezer/*`, `react`/`react-dom`/`scheduler`, and `fflate` into separate vendor chunks. Main app bundle dropped from 904 KB to 344 KB. No more Vite >500 KB warning. Total bytes shipped is slightly higher because of chunk-splitting overhead, but first-load parallelism + cache reuse across deploys both improve.
+  - **GitHub issue + PR templates** (`.github/ISSUE_TEMPLATE/*.yml`, `.github/pull_request_template.md`): YAML issue forms for bug reports (steps, expected, actual, env) and feature requests (problem-first framing). `config.yml` disables blank issues and points users at the ChoiceScript wiki and Choice of Games site. PR template includes the invariant checklist (purity of `choicescript.ts`, `commitProject` discipline, identifier normalization, etc.) lifted from CONTRIBUTING.
+  - **Dependabot** (`.github/dependabot.yml`): weekly npm updates with grouped PRs for CodeMirror, Tauri, and React ecosystems (keeps PR count manageable since CodeMirror alone has ~6 packages); monthly updates for the CI workflow's actions/* pins; weekly cargo updates for Tauri Rust crates under `src-tauri/`. All PRs labelled `dependencies`.
+  - **CHANGELOG.md** (`CHANGELOG.md`): Keep-a-Changelog-style. Captures everything user-facing since the bilingual README (Added / Fixed / Performance / Internal). Points at `agents.md` for the per-session diary with file paths and rationale.
+  - **Tests**: 387 passing, build clean (now under 500 KB warning).
+  - **Commits**: `1cb1e55` (bundle split), `228517d` (issue + PR templates), `d905e15` (Dependabot), `d55516b` (CHANGELOG).
+  - **Still deferred**: `extractZipEntries` async via worker (synchronous `unzipSync` blocks main on big zips); `clearStartupSource` aggressive wipe on var/ach mutations (real design tradeoff, current behaviour is defensible since changes are undoable); UI/integration test layer (no Vitest/Playwright). `SECURITY.md` and `CODE_OF_CONDUCT.md` not yet added — can wait until the repo is actually public.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 188
 - **Open-source readiness pass: CI, CONTRIBUTING, finish i18n.**
   - **GitHub Actions CI** (`.github/workflows/ci.yml`): runs `npx tsc --noEmit`, `npm test`, and `npm run build` on every push to `main` and every PR. Pulls Node version from `.nvmrc` and caches npm. 10-minute timeout.
