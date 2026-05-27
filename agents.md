@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 191
+- **GraphCanvas audit (1133 lines) + 3 fixes.**
+  - **Audit findings**: catalogued ~25 items. The three real fixes shipped this session; ~20 are either acceptable-in-practice (idempotent double-fire on connect end because store rejects duplicate options/branches/edges; substring match in `type:choice` filter is intentional) or deferred (large surface of canvas-chrome English strings: "dup", AlignIcon titles, "Mark all selected as done", "Filtering by ..." tooltip, etc.).
+  - **Fix 1 — viewport culling height** (`GraphCanvas.tsx:566`): the off-screen culling filter used `n.y + 600` as the assumed node height. Nodes taller than 600px (long passage + many choice options + many *if branches) would flicker out of view when scrolled to the viewport edge. Now uses `nodeHeightEstimate(node, density)` which is already used for edge midpoints and fit-view bounds.
+  - **Fix 2 — Minimap maxY + node rects** (`GraphCanvas.tsx:1089, 1120`): minimap's viewBox extent used `node.y + 200` for the bottom bound, and every node rect was drawn at a fixed `height="60"` regardless of actual size. The minimap cropped tall nodes and gave a wrong sense of relative node sizes. Both now use `nodeHeightEstimate`. Minimap takes a new `density` prop.
+  - **Fix 3 — Canvas i18n** (`types.ts`, `sampleProject.ts`, `GraphCanvas.tsx`): the most-visible canvas chrome strings were hardcoded in English regardless of language setting — the source-preserved banner (title + hint), the "Convert to visual editing" CTA, and the "Converting scene…" overlay during async parse. Added 4 new `I18nLabels` keys (`sourcePreservedBannerTitle`, `sourcePreservedBannerHint`, `convertToVisual`, `convertingScene`) with PT/EN/ES translations.
+  - **Tests**: 387 passing. Build clean.
+  - **Commits**: `c5ba8f9` (height fixes), `871f53f` (canvas i18n).
+  - **Deferred from canvas audit**: the broader chrome English strings (toolbar "dup", filter placeholder, AlignIcon titles for distribute/align buttons, "Mark all selected as done/todo", "Tag all selected: red", "Clear tag filter", "selected" count suffix, the source-preserved banner is now done). Each would need its own `I18nLabels` key — a future bulk pass when appetite for that surface area exists. Total remaining canvas-i18n strings: ~20.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 190
 - **RightPanel audit (1620 lines) + 5 fixes.**
   - **Audit findings**: catalogued one bug per category — magic root-id fallback in type conversion, drag-state leak across node switches, an `\s+` regex pattern in `extractAchievementCommands` that was safe in practice but inconsistent with the session-178 hardening elsewhere, and six hardcoded English strings visible no matter the UI language (empty state, source-preserved banner, Convert button, private-notes label + placeholder, New option default).
