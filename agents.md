@@ -343,6 +343,17 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 190
+- **RightPanel audit (1620 lines) + 5 fixes.**
+  - **Audit findings**: catalogued one bug per category — magic root-id fallback in type conversion, drag-state leak across node switches, an `\s+` regex pattern in `extractAchievementCommands` that was safe in practice but inconsistent with the session-178 hardening elsewhere, and six hardcoded English strings visible no matter the UI language (empty state, source-preserved banner, Convert button, private-notes label + placeholder, New option default).
+  - **Fix 1 — magic 'n1' root removed** (`RightPanel.tsx`): `buildTypeConversionPatch` was called with `project.nodes[0]?.id ?? "n1"` as the fallback target for new options/branches during type conversion (e.g., `fake_choice → choice`). Imported projects whose first node id isn't "n1" would get options pointing at a non-existent node. Now uses `project.nodes.find((n) => n.id !== node.id)?.id ?? node.id` — first non-self id, falling back to a self-loop only in the single-node-scene edge case.
+  - **Fix 2 — drag state reset on node switch** (`RightPanel.tsx`): `dragOptIdx` and `dragOverIdx` state on `ContentTab` was not cleared when the selected node changed; a half-finished drag on one node could leak into the next selection. Extended the existing `useEffect([node.id])` (which already reset `writingFocus`) to clear the drag state too.
+  - **Fix 3 — `extractAchievementCommands` regex hardening** (`RightPanel.tsx`): replaced `\s+` (matches newlines) with `[ \t]+` for consistency with the same fix in `choicescript.ts` from session 178. The `^...$` + `m` flag prevented cross-line matches in practice, but the conservative form is what the rest of the codebase uses.
+  - **Fix 4 — Inspector strings i18n** (`types.ts`, `sampleProject.ts`, `RightPanel.tsx`): added six new `I18nLabels` keys (`inspectorEmpty`, `sourcePreservedNotice`, `convert`, `privateNotes`, `privateNotesPlaceholder`, `newOption`) with PT/EN/ES translations. RightPanel now threads `labels.newOption` through `addOption`/`addFakeOption`. The six previously-hardcoded English strings now respect the editor language.
+  - **Tests**: 387 passing. Build clean. No regressions.
+  - **Commits**: `bd9d012` (root id + drag reset + regex), `730bb72` (i18n).
+  - **Out-of-scope this session**: the inspector has many more English strings inside the various per-node-type branches (`#options`, `fake choice prompt`, `target scene`, `entry label (optional)`, `effects when this branch wins`, `stat effects`, etc.) — they would each require a labels key. Skipped for this pass; the six fixed here cover the always-visible chrome (empty state, source banner, notes, default option text). Per-node-type labels can come in a future pass when there's appetite for the much-larger I18nLabels surface area.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 189
 - **OSS polish: bundle splitting, issue/PR templates, Dependabot, CHANGELOG.**
   - **Bundle splitting** (`vite.config.ts`): added `manualChunks` rule that pulls `@codemirror/*` + `@lezer/*`, `react`/`react-dom`/`scheduler`, and `fflate` into separate vendor chunks. Main app bundle dropped from 904 KB to 344 KB. No more Vite >500 KB warning. Total bytes shipped is slightly higher because of chunk-splitting overhead, but first-load parallelism + cache reuse across deploys both improve.
