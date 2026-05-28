@@ -25,7 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "msi", "nsis", "deb", "appimage"],
+    "targets": ["app", "dmg", "msi", "nsis", "deb", "appimage"],
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "shortDescription": "Visual ChoiceScript editor",
