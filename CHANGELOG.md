@@ -28,6 +28,18 @@ First public release with desktop installers.
 ## [Unreleased]
 
 ### Added
+- **Desktop autosave to the open `.json` file** (1.5 s debounce after any change). Previously the desktop app only autosaved to the webview's localStorage and the on-disk file stayed stale until you hit Ctrl+S explicitly. Now the file is kept in sync. Web mode is unchanged.
+- **Dirty indicator in the desktop window title** (`●` prefix) while there are unsaved-to-disk changes; clears once the autosave completes.
+- **HelpGuide expanded with three new tabs**:
+  - **Patterns** — six common story structures (linear chain, branching with merge, conditional fallthrough, subroutine, cross-scene flow, loop with exit) as ASCII mini-diagrams.
+  - **Cheatsheet** — condensed ChoiceScript syntax reference grouped by category.
+  - **FAQ** — 12 entries focused on real gotchas, opening with the question "Do I need to use `*label` nodes?".
+- **Enriched Node Types tab** — each of the 24 nodes now shows the generated CS command, a description, "Use when:" guidance, and (for nodes with common misuse) a "Skip when:" warning.
+
+### Changed
+- **`unreferenced_label` lint message** is now actionable: instead of just stating the fact, it suggests deleting the `*label` node if it's only a flow target. EN, PT, ES.
+
+### Added
 - **Bilingual README** (`README.md` English, `README.pt-BR.md` Portuguese) with full project overview, getting-started, architecture, all 24 node types, editing workflow, import/export, linter, playtest, Tauri desktop setup, Cloudflare Pages deploy, and contributing rules.
 - **MIT License** (`LICENSE`) with a trademark notice clarifying that "ChoiceScript" remains a Choice of Games LLC trademark and the MIT grant does not extend to it.
 - **CONTRIBUTING.md** with the eight non-negotiable invariants, code style, testing expectations, and the new-node-type / new-scene-action checklists.
