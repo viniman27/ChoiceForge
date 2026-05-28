@@ -49,12 +49,16 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
             <input
               value={data.title}
               aria-label="project title"
+              placeholder="title"
+              title={data.title || "Project title"}
               onChange={(event) => onMetadataChange({ title: event.target.value, author: data.author })}
             />
             <span className="dim">/</span>
             <input
               value={data.author}
               aria-label="project author"
+              placeholder="author"
+              title={data.author || "Project author"}
               onChange={(event) => onMetadataChange({ title: data.title, author: event.target.value })}
             />
           </span>
@@ -113,10 +117,18 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
         <button className="ghost-btn" onClick={onSnapshots} title={labels.snapTitle}>{labels.topSnapshots}</button>
         {saveStatus && <span className="save-status">{saveStatus}</span>}
         <button className="ghost-btn" onClick={onNewProject}>{labels.topNew}</button>
-        <button className="ghost-btn" onClick={() => void openImportPicker(onImport)}>
+        <button
+          className="ghost-btn"
+          onClick={() => void openImportPicker(onImport)}
+          title="Import one or more files: ChoiceForge .json, ChoiceScript .zip, or individual .txt scenes"
+        >
           {labels.topImport}
         </button>
-        <button className="ghost-btn" onClick={() => void openImportFolderPicker(onImport)}>
+        <button
+          className="ghost-btn"
+          onClick={() => void openImportFolderPicker(onImport)}
+          title="Import a folder: pick a directory and all .txt scenes inside it are imported as one project (shortcut for ChoiceScript game directories)"
+        >
           {labels.topImportFolder}
         </button>
         <button className="ghost-btn" onClick={onExport}>{labels.export}</button>

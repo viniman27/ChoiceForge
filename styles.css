@@ -127,8 +127,22 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: var(--paper-2);
   border-bottom: 1px solid var(--paper-edge);
 }
-.brand { display: flex; align-items: center; gap: 12px; padding-left: 18px; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 18px;
+  min-width: 0;
+  overflow: hidden;
+}
+.brand-mark { flex-shrink: 0; }
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+  flex: 1;
+}
 .brand-name { font-family: var(--ff-mono); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .brand-project { font-size: 11px; color: var(--ink-mute); font-family: var(--ff-mono); }
 .brand-project-edit {
@@ -139,22 +153,34 @@ input, select, textarea { font-family: inherit; color: inherit; }
   font-family: var(--ff-mono);
   font-size: 11px;
   color: var(--ink-mute);
+  overflow: hidden;
 }
 .brand-project-edit input {
-  width: clamp(72px, 9vw, 170px);
-  min-width: 0;
-  padding: 1px 2px;
+  flex: 1 1 0;
+  min-width: 40px;
+  max-width: 170px;
+  padding: 1px 4px;
   border: 1px solid transparent;
   border-radius: var(--r-1);
   background: transparent;
   color: var(--ink-mute);
   font: inherit;
+  text-overflow: ellipsis;
+}
+.brand-project-edit input:hover {
+  background: var(--paper-1);
 }
 .brand-project-edit input:focus {
   border-color: var(--paper-edge);
   background: var(--paper-1);
   color: var(--ink);
   outline: none;
+  max-width: none;
+  flex: 2 1 0;
+}
+.brand-project-edit .dim {
+  flex-shrink: 0;
+  padding: 0 2px;
 }
 .bread { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .bread code { font-size: 12px; padding: 2px 6px; background: var(--paper-3); border-radius: var(--r-1); }
