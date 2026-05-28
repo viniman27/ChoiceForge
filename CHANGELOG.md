@@ -27,6 +27,15 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-05-28
+
+### Fixed
+- **Quicktest crashed with FATAL on every project** — the v0.4.0 `ValidationView` ran `Scene.execute()` (the normal player runtime) instead of the official `autotester()` exhaustive DFS. The player runtime expects UI input on every `*choice` so it threw on the first choice node in every project. Replaced the srcdoc with a faithful port of `quicktest.html`: per-scene `autotester()` invocation, full stub set (`printFooter`, `printShareLinks`, `clearScreen`, `safeCall`, ~25 others), `gotoSceneLabels` pre-scan, `Scene.prototype.warning` capture, and `Scene.prototype.verifySceneFile` that rejects unknown scene references. Quicktest now actually walks every path through every scene and reports the same errors the Choice of Games review tool would.
+- **Update check cache removed** — previously the GitHub Releases poll was cached 6 h in localStorage, so a user on v0.3.0 might not see a freshly published v0.4.0 banner for up to 6 hours. Per user request: "tem versão nova avisa, simples assim". Every launch now hits the API directly with `Cache-Control: no-store`. Legacy cache key cleaned up on first run.
+
+### Added
+- **Sample-project quicktest regression test** (`tests/ui/sampleProjectValidation.test.ts`): 6 new tests (lint + quicktest × PT/EN/ES) that pull the sample project through the same engine the in-app Validate panel runs. Any future regression where the sample no longer passes the official autotester fails CI before publish.
+
 ## [0.4.0] — 2026-05-28
 
 ### Added
