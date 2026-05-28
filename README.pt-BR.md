@@ -7,7 +7,7 @@
 [**🎮 Abrir no navegador**](https://choiceforge.pages.dev) · [**💾 Baixar desktop**](https://github.com/viniman27/ChoiceForge/releases/latest) · [**📖 English**](./README.md)
 
 [![CI](https://github.com/viniman27/ChoiceForge/actions/workflows/ci.yml/badge.svg)](https://github.com/viniman27/ChoiceForge/actions/workflows/ci.yml)
-![testes](https://img.shields.io/badge/testes-454_passando-brightgreen)
+![testes](https://img.shields.io/badge/testes-476_passando-brightgreen)
 ![licen%C3%A7a](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
 
 </div>
@@ -99,7 +99,7 @@ npm run preview      # preview estático de ./dist
 
 ```bash
 npm test             # testes de domínio (387 testes, node --test)
-npm run test:ui      # testes de UI / store / round-trip (67 testes, Vitest)
+npm run test:ui      # testes de UI / store / round-trip (89 testes, Vitest)
 npm run test:all     # ambas as suites
 ```
 
@@ -387,7 +387,7 @@ ChoiceForge/
 ├── src-tauri/                        # Wrapper desktop Tauri v2
 ├── tests/
 │   ├── domain.test.ts                # 387 testes da camada de domínio pura
-│   └── ui/                           # 67 testes: componentes, store, i18n, round-trip, App smoke
+│   └── ui/                           # 89 testes: componentes, store, i18n, round-trip, update check, App smoke
 ├── public/                           # Assets estáticos + redirect SPA + arquivos do runtime oficial
 ├── agents.md                         # Contexto autoritativo pra agentes de IA (arquitetura + log de sessões)
 ├── CLAUDE.md                         # Regras de workflow do Claude Code

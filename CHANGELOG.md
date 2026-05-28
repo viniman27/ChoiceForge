@@ -27,9 +27,12 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-28
+
 ### Added
 - **Desktop autosave to the open `.json` file** (1.5 s debounce after any change). Previously the desktop app only autosaved to the webview's localStorage and the on-disk file stayed stale until you hit Ctrl+S explicitly. Now the file is kept in sync. Web mode is unchanged.
 - **Dirty indicator in the desktop window title** (`●` prefix) while there are unsaved-to-disk changes; clears once the autosave completes.
+- **In-app update check** — on launch the app checks the GitHub Releases API once (cached 6 h), compares the latest tag against the running version, and shows a top-of-screen banner with "View release" / "Later" / "Turn off" when a newer release is available. Opt-out is permanent; "Later" dismisses for the current version only.
 - **HelpGuide expanded with three new tabs**:
   - **Patterns** — six common story structures (linear chain, branching with merge, conditional fallthrough, subroutine, cross-scene flow, loop with exit) as ASCII mini-diagrams.
   - **Cheatsheet** — condensed ChoiceScript syntax reference grouped by category.
@@ -38,6 +41,16 @@ First public release with desktop installers.
 
 ### Changed
 - **`unreferenced_label` lint message** is now actionable: instead of just stating the fact, it suggests deleting the `*label` node if it's only a flow target. EN, PT, ES.
+
+### Fixed
+- **CodeMirror crash on large imports** (`ranges must be added sorted by from position to startside`). The ChoiceScript highlight builder added decorations in two separate passes per line (`${var}` then `@{var ...}`), violating CodeMirror's RangeSetBuilder strict ordering whenever the two patterns appeared on the same line. All candidate ranges are now collected, sorted by position, and deduped before being fed to the builder. Crashed the canvas whenever a large preserved-source scene tried to render.
+
+### Documentation
+- **macOS Gatekeeper workaround** — README install instructions (EN + PT) and the GitHub Release notes template now spell out the actual unblock path on modern macOS (System Settings → Privacy & Security → "Open Anyway", or `xattr -dr com.apple.quarantine`). Right-click → Open is no longer sufficient on macOS 15+.
+
+### Internal
+- 387 domain + 89 UI = **476 tests passing** (was 454 in v0.1.0).
+- `__APP_VERSION__` injected by Vite (and Vitest) from `package.json` at build time. Bumping the package version now flows through to the update-check banner automatically.
 
 ### Added
 - **Bilingual README** (`README.md` English, `README.pt-BR.md` Portuguese) with full project overview, getting-started, architecture, all 24 node types, editing workflow, import/export, linter, playtest, Tauri desktop setup, Cloudflare Pages deploy, and contributing rules.

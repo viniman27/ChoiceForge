@@ -7,7 +7,7 @@
 [**🎮 Try it in your browser**](https://choiceforge.pages.dev) · [**💾 Download desktop**](https://github.com/viniman27/ChoiceForge/releases/latest) · [**📖 Português**](./README.pt-BR.md)
 
 [![CI](https://github.com/viniman27/ChoiceForge/actions/workflows/ci.yml/badge.svg)](https://github.com/viniman27/ChoiceForge/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-454_passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-476_passing-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
 </div>
@@ -99,7 +99,7 @@ npm run preview      # static preview of ./dist
 
 ```bash
 npm test             # domain tests (387 tests, node --test)
-npm run test:ui      # UI / store / round-trip tests (67 tests, Vitest)
+npm run test:ui      # UI / store / round-trip tests (89 tests, Vitest)
 npm run test:all     # both suites
 ```
 
@@ -387,7 +387,7 @@ ChoiceForge/
 ├── src-tauri/                        # Tauri v2 desktop wrapper
 ├── tests/
 │   ├── domain.test.ts                # 387 tests over the pure domain layer
-│   └── ui/                           # 67 tests: components, store, i18n, round-trips, App smoke
+│   └── ui/                           # 89 tests: components, store, i18n, round-trips, update check, App smoke
 ├── public/                           # Static assets + SPA redirect + official runtime files
 ├── agents.md                         # Authoritative AI-agent context (architecture + session log)
 ├── CLAUDE.md                         # Claude Code workflow rules
