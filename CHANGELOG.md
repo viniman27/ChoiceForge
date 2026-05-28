@@ -27,6 +27,17 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-05-28
+
+### Fixed
+- **Desktop export ZIP did nothing** — the export button used the browser `<a download>` pattern (`URL.createObjectURL` + simulated click) which silently no-ops in the Tauri webview. Added `nativeExportZip()` that pops the Tauri save dialog and writes the ZIP bytes through `plugin-fs::writeFile`. New `fs:allow-write-file` capability granted. Web export path unchanged.
+- **Randomtest UI hung at "Running…" after a fatal error** — `randomtest.js` sets `processExit = true` and breaks the iteration loop on the first error, never emitting the closing `Time: Xs` line. Our completion handler only watched for `Time:`, so the panel never settled. Now also settles immediately on `RANDOMTEST FAILED`.
+- **Sample project's `*restore_checkpoint` demo broke randomtest** — `restore_checkpoint` is forbidden inside randomtest (per CoG runtime). The sample's "Restaurar o checkpoint antes de seguir." option is now guarded with `*if (not(choice_randomtest))`, so randomtest never picks it but quicktest still exhausts both branches.
+- **`choice_randomtest` and friends no longer trigger `undef_var` warnings** — added the 18 ChoiceScript runtime / test-harness built-ins (`choice_randomtest`, `choice_quicktest`, `choice_purchase_supported`, `choice_save_allowed`, etc.) to `EXPRESSION_RESERVED` so conditions referencing them lint clean.
+
+### Changed
+- **Update check now re-runs on window focus** (debounced to once every 5 minutes). Previously the check fired exactly once at app launch — so if you started the app *before* a new release was published, you'd never see the banner until the next restart. Alt-tabbing back to ChoiceForge now retriggers the check.
+
 ## [0.4.2] — 2026-05-28
 
 ### Fixed

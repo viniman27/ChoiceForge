@@ -296,8 +296,10 @@ stats = ${safeJson(initialStats)};
       if (passed === null && /^RANDOMTEST PASSED/.test(msg)) passed = true;
       if (passed === null && /^RANDOMTEST FAILED/.test(msg)) passed = false;
 
-      // Completion: randomtest emits "Time: Xs" as the very last line.
-      if (!settled && /^Time:/.test(msg)) {
+      // randomtest emits "Time: Xs" only on the PASSED path. On a fatal error
+      // it sets processExit=true and skips the closing block, so we have to
+      // settle on RANDOMTEST FAILED itself or the UI hangs at "Running…".
+      if (!settled && (/^Time:/.test(msg) || /^RANDOMTEST FAILED/.test(msg))) {
         settled = true;
         finish(passed === true && errorCount === 0, false);
       }

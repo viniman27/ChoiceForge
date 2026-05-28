@@ -42,6 +42,19 @@ export async function nativeWriteProject(content: string, path: string): Promise
   await writeTextFile(path, content);
 }
 
+export async function nativeExportZip(bytes: Uint8Array, suggestedName: string): Promise<string | null> {
+  if (!isTauri()) return null;
+  const { save } = await import("@tauri-apps/plugin-dialog");
+  const { writeFile } = await import("@tauri-apps/plugin-fs");
+  const chosen = await save({
+    filters: [{ name: "ChoiceForge Export", extensions: ["zip"] }],
+    defaultPath: suggestedName,
+  });
+  if (!chosen) return null;
+  await writeFile(chosen, bytes);
+  return chosen;
+}
+
 export async function setWindowTitle(title: string): Promise<void> {
   if (!isTauri()) return;
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
