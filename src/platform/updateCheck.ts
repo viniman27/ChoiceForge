@@ -65,10 +65,17 @@ export function isDismissed(version: string): boolean {
 
 export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo | null> {
   clearLegacyCache();
-  if (isUpdateCheckOptedOut()) return null;
+  if (isUpdateCheckOptedOut()) {
+    console.log("[ChoiceForge] update check skipped (user opted out)");
+    return null;
+  }
+  console.log(`[ChoiceForge] checking for updates (current: v${currentVersion}, tauri: ${isTauri()})`);
   if (isTauri()) {
     const tauriResult = await checkViaTauriUpdater();
-    if (tauriResult) return tauriResult;
+    if (tauriResult) {
+      console.log(`[ChoiceForge] tauri updater reports v${tauriResult.version} available`);
+      return tauriResult;
+    }
     // fall through to GitHub Releases poll if the Tauri updater can't reach the endpoint
   }
   try {
@@ -76,13 +83,25 @@ export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo
       cache: "no-store",
       headers: { Accept: "application/vnd.github+json" },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[ChoiceForge] github releases API returned ${res.status}`);
+      return null;
+    }
     const data = await res.json() as { tag_name?: string; html_url?: string };
     const tag = typeof data.tag_name === "string" ? data.tag_name.replace(/^v/, "") : null;
     const url = typeof data.html_url === "string" ? data.html_url : null;
-    if (!tag || !url) return null;
-    return isNewer(tag, currentVersion) ? { version: tag, url, canAutoInstall: false } : null;
-  } catch {
+    if (!tag || !url) {
+      console.warn("[ChoiceForge] github releases response missing tag/url", data);
+      return null;
+    }
+    if (isNewer(tag, currentVersion)) {
+      console.log(`[ChoiceForge] github releases reports v${tag} available (current v${currentVersion})`);
+      return { version: tag, url, canAutoInstall: false };
+    }
+    console.log(`[ChoiceForge] no update — github latest is v${tag}, current v${currentVersion}`);
+    return null;
+  } catch (err) {
+    console.warn("[ChoiceForge] update check failed:", err);
     return null;
   }
 }
@@ -91,13 +110,17 @@ async function checkViaTauriUpdater(): Promise<UpdateInfo | null> {
   try {
     const { check } = await import("@tauri-apps/plugin-updater");
     const update = await check();
-    if (!update) return null;
+    if (!update) {
+      console.log("[ChoiceForge] tauri updater: no update available");
+      return null;
+    }
     return {
       version: update.version,
       url: `https://github.com/viniman27/ChoiceForge/releases/tag/v${update.version}`,
       canAutoInstall: true,
     };
-  } catch {
+  } catch (err) {
+    console.warn("[ChoiceForge] tauri updater check failed (falling back to GitHub API):", err);
     return null;
   }
 }
