@@ -137,14 +137,25 @@ Instaladores nativos publicados na [**página de Releases**](https://github.com/
 #### macOS
 
 1. Abra o `.dmg` e arraste o **ChoiceForge** pra **Aplicativos**.
-2. A primeira execução é bloqueada pelo Gatekeeper porque o build ainda não é code-signed. **Botão direito → *Abrir* pode não bastar no macOS 15+** — o Gatekeeper avisa *"O Apple não pode verificar se este app não tem malware."* Duas opções:
-   - **Caminho fácil (Ajustes)**: tente abrir o app → feche o diálogo do Gatekeeper → abra **Ajustes do Sistema → Privacidade e Segurança** → role até "ChoiceForge foi bloqueado..." → clique em **Abrir Mesmo Assim** → confirme.
-   - **Caminho terminal (um comando)**: remova a flag de quarentena que o Gatekeeper consulta:
-     ```bash
-     xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
-     ```
-     Depois é só dar duplo clique normalmente.
-3. Após a primeira abertura bem-sucedida, o macOS lembra da sua escolha — execuções seguintes funcionam normalmente.
+2. A primeira execução é bloqueada pelo Gatekeeper porque o build ainda não é code-signed. **Botão direito → Abrir não funciona mais no macOS 15+** — o Gatekeeper mostra *"A Apple não pode verificar se o item ChoiceForge está livre de algum malware"* com **só "Mover para o Lixo" / "OK"** como opções.
+
+   **Escolha um dos dois caminhos pra desbloquear:**
+
+   **A. Terminal (um comando, funciona em qualquer versão do macOS):** abra o Terminal e rode
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
+   ```
+   Depois é só dar duplo clique no ChoiceForge normalmente.
+
+   **B. Ajustes do Sistema (sem Terminal):**
+   1. Clique em **OK** no diálogo de bloqueio (**NÃO** clique em "Mover para o Lixo" — isso apaga o app).
+   2. Abra **Ajustes do Sistema → Privacidade e Segurança**.
+   3. Role até o fim da seção **Segurança** — vai aparecer uma linha *"ChoiceForge foi bloqueado para proteger seu Mac"* com um botão **Abrir Mesmo Assim** do lado. O macOS só mostra essa linha por cerca de 1 hora depois do diálogo de bloqueio.
+   4. Clique em **Abrir Mesmo Assim** → digite sua senha se pedir → no próximo diálogo clique em **Abrir**.
+
+3. Depois de qualquer um dos dois caminhos, a primeira abertura bem-sucedida é lembrada — toda execução seguinte funciona sem prompts.
+
+> O comando de Terminal é mais rápido e confiável entre versões do macOS. O caminho de Ajustes está aí pra quem prefere não usar Terminal.
 
 #### Windows
 

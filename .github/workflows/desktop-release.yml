@@ -66,10 +66,10 @@ jobs:
             ### Installing on macOS
 
             1. Open the `.dmg` and drag **ChoiceForge** to **Applications**.
-            2. First launch is blocked by Gatekeeper because this build isn't code-signed. **Right-click → Open is not enough on macOS 15+.** Use one of:
-               - **System Settings → Privacy & Security → "Open Anyway"** after the block dialog appears, or
-               - Terminal: `xattr -dr com.apple.quarantine /Applications/ChoiceForge.app`
-            3. After the first open, macOS remembers your choice.
+            2. First launch is blocked by Gatekeeper. The dialog only offers **"Move to Trash" / "OK"** — right-click → Open does **not** work on macOS 15+. Pick one:
+               - **Terminal (fastest):** `xattr -dr com.apple.quarantine /Applications/ChoiceForge.app` then double-click.
+               - **Settings:** click **OK** (not Trash!) → **System Settings → Privacy & Security** → scroll to the Security section → **Open Anyway** beside the "ChoiceForge was blocked" row → confirm with your password.
+            3. After either path, every subsequent launch works without prompts.
 
             ### Installing on Windows
 

@@ -137,14 +137,25 @@ Native installers are published on the [**Releases page**](https://github.com/vi
 #### macOS
 
 1. Open the `.dmg` and drag **ChoiceForge** to **Applications**.
-2. The first launch is blocked by Gatekeeper because the build is not yet code-signed. **Right-click → *Open* may not be enough on macOS 15+** — Gatekeeper will say *"Apple could not verify this app is free of malware."* Two options:
-   - **Easy fix (Settings)**: try to open the app → close the Gatekeeper dialog → open **System Settings → Privacy & Security** → scroll to "ChoiceForge was blocked…" → click **Open Anyway** → confirm.
-   - **Terminal fix (one command)**: remove the quarantine flag that Gatekeeper checks:
-     ```bash
-     xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
-     ```
-     Then double-click as normal.
-3. After the first successful open, macOS remembers your choice — subsequent launches work normally.
+2. The first launch is blocked by Gatekeeper because this build isn't code-signed. **Right-click → Open no longer works on macOS 15+** — Gatekeeper shows *"Apple could not verify this app is free of malware"* with **only "Move to Trash" / "OK"** as options.
+
+   **Pick one of these two unblock paths:**
+
+   **A. Terminal (one command, works on every macOS version):** open Terminal and run
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
+   ```
+   Then double-click ChoiceForge normally.
+
+   **B. System Settings (no Terminal needed):**
+   1. Click **OK** on the block dialog (**NOT** "Move to Trash" — that deletes the app).
+   2. Open **System Settings → Privacy & Security**.
+   3. Scroll to the bottom of the **Security** section — you'll see a row that says *"ChoiceForge was blocked to protect your Mac"* with a small **Open Anyway** button beside it. macOS only shows this row for ~1 hour after the block dialog.
+   4. Click **Open Anyway** → enter your password if prompted → in the next dialog click **Open**.
+
+3. After either path, the first successful open is remembered — every subsequent launch works without prompts.
+
+> The Terminal command is faster and more reliable across macOS versions. The Settings path is there for users who prefer not to use Terminal.
 
 #### Windows
 
