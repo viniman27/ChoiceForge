@@ -19,7 +19,7 @@ import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceSc
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
-import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, setWindowTitle } from "./platform/fileSystem";
+import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
 
@@ -59,6 +59,8 @@ export default function App() {
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const currentFilePathRef = useRef<string | null>(null);
   currentFilePathRef.current = currentFilePath;
+  const [dirtyOnDisk, setDirtyOnDisk] = useState(false);
+  const lastWrittenSerialisedRef = useRef<string | null>(null);
   const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
 
   const handleNativeOpen = useCallback(async () => {
@@ -68,6 +70,8 @@ export default function App() {
       const project = JSON.parse(result.content) as ChoiceForgeProject;
       actions.setProject(project);
       setCurrentFilePath(result.path);
+      lastWrittenSerialisedRef.current = result.content;
+      setDirtyOnDisk(false);
       setSelectedId("n1");
       setGeneratedDocumentId(null);
       setGeneratedDocumentLine(null);
@@ -86,6 +90,8 @@ export default function App() {
     const path = await nativeSaveProject(content, currentFilePathRef.current ?? undefined);
     if (!path) return;
     setCurrentFilePath(path);
+    lastWrittenSerialisedRef.current = content;
+    setDirtyOnDisk(false);
     const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
     void setWindowTitle(`ChoiceForge — ${name}`);
     setSaveStatus(`Saved to ${name}`);
@@ -96,6 +102,8 @@ export default function App() {
     const path = await nativeSaveProjectAs(content);
     if (!path) return;
     setCurrentFilePath(path);
+    lastWrittenSerialisedRef.current = content;
+    setDirtyOnDisk(false);
     const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
     void setWindowTitle(`ChoiceForge — ${name}`);
     setSaveStatus(`Saved as ${name}`);
@@ -189,6 +197,42 @@ export default function App() {
     const handle = window.setTimeout(() => setSaveStatus(""), 3500);
     return () => window.clearTimeout(handle);
   }, [saveStatus]);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    const serialised = serializeProjectForDisk(lintedProject);
+    if (lastWrittenSerialisedRef.current === null) {
+      lastWrittenSerialisedRef.current = serialised;
+      return;
+    }
+    if (serialised === lastWrittenSerialisedRef.current) {
+      if (dirtyOnDisk) setDirtyOnDisk(false);
+      return;
+    }
+    if (!dirtyOnDisk) setDirtyOnDisk(true);
+    const path = currentFilePathRef.current;
+    if (!path) return;
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await nativeWriteProject(serialised, path);
+          lastWrittenSerialisedRef.current = serialised;
+          setDirtyOnDisk(false);
+        } catch (err) {
+          console.error("[ChoiceForge] desktop autosave failed", err);
+        }
+      })();
+    }, 1500);
+    return () => window.clearTimeout(handle);
+  }, [lintedProject, dirtyOnDisk]);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    const baseName = currentFilePath ? (currentFilePath.replace(/\\/g, "/").split("/").pop() ?? "project.json") : null;
+    const prefix = dirtyOnDisk ? "● " : "";
+    const title = baseName ? `${prefix}ChoiceForge — ${baseName}` : `${prefix}ChoiceForge`;
+    void setWindowTitle(title);
+  }, [currentFilePath, dirtyOnDisk]);
 
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
