@@ -1,13 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject } from "../domain/types";
+import { isTauri, nativeSaveBytes } from "../platform/fileSystem";
 
-type Tab = "quicktest" | "randomtest";
+type Tab = "ready" | "quicktest" | "randomtest";
 
 interface Props {
   project: ChoiceForgeProject;
   onClose: () => void;
 }
+
+interface TestResult {
+  ok: boolean;
+  errorCount: number;
+  warningCount?: number;
+  fatal?: boolean;
+  iterations?: number;
+  log: string;
+  ranAt: number;
+}
+
+const COG_MIN_WORDS = 25000;
+const COG_MIN_RANDOMTEST_ITERATIONS = 10000;
 
 interface SceneContent {
   [filename: string]: string;
@@ -104,12 +118,14 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
   var lineCount = 0;
   var MAX_LINES = 5000;
 
+  var allLines = [];
   function appendLine(msg, cls) {
+    allLines.push(msg);
     if (lineCount > MAX_LINES) {
       if (lineCount === MAX_LINES + 1) {
         var d = document.createElement("div");
         d.className = "line warn";
-        d.textContent = "(log truncated at " + MAX_LINES + " lines)";
+        d.textContent = "(log truncated in display at " + MAX_LINES + " lines — full log still saved to download buffer)";
         logEl.appendChild(d);
       }
       lineCount++;
@@ -194,7 +210,7 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
     ? "Quicktest passed. " + sceneFiles.length + " scenes, no errors."
     : "Quicktest failed: " + errorCount + " error(s)" + (warningCount ? ", " + warningCount + " warning(s)" : "") + ".";
 
-  parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount }, "*");
+  parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount, log: allLines.join("\n") }, "*");
 })();
 </script>
 </body>
@@ -239,13 +255,15 @@ stats = ${safeJson(initialStats)};
   var MAX_LINES = 5000;
   var doneIterations = 0;
   var totalIterations = ${iterations};
+  var allLines = [];
 
   function appendLine(msg, cls) {
+    allLines.push(msg);
     if (lineCount > MAX_LINES) {
       if (lineCount === MAX_LINES + 1) {
         var d = document.createElement("div");
         d.className = "line";
-        d.textContent = "(log truncated at " + MAX_LINES + " lines — open browser devtools to see all)";
+        d.textContent = "(log truncated in display at " + MAX_LINES + " lines — full log still saved to download buffer)";
         logEl.appendChild(d);
       }
       lineCount++;
@@ -263,7 +281,7 @@ stats = ${safeJson(initialStats)};
     statusEl.textContent = ok
       ? "Randomtest passed (" + totalIterations + " iterations, no errors)."
       : "Randomtest finished with " + errorCount + " error event(s)" + (fatal ? " (fatal)" : "") + ".";
-    parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount, fatal: !!fatal }, "*");
+    parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount, fatal: !!fatal, iterations: totalIterations, log: allLines.join("\n") }, "*");
   }
 
   Promise.all([
@@ -335,13 +353,21 @@ stats = ${safeJson(initialStats)};
 }
 
 export function ValidationView({ project, onClose }: Props) {
-  const [tab, setTab] = useState<Tab>("quicktest");
+  const [tab, setTab] = useState<Tab>("ready");
   const [iterations, setIterations] = useState(1000);
   const [seed, setSeed] = useState(0);
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; errorCount: number; warningCount?: number; fatal?: boolean } | null>(null);
+  const [qtResult, setQtResult] = useState<TestResult | null>(null);
+  const [rtResult, setRtResult] = useState<TestResult | null>(null);
   const [srcdoc, setSrcdoc] = useState<string>("");
   const [iframeKey, setIframeKey] = useState(0);
+  const projectKey = useMemo(() => `${project.scenes.length}:${project.nodes.length}:${project.variables.length}:${project.achievements.length}`, [project]);
+  const projectKeyRef = useRef(projectKey);
+  if (projectKeyRef.current !== projectKey) {
+    projectKeyRef.current = projectKey;
+    if (qtResult) setQtResult(null);
+    if (rtResult) setRtResult(null);
+  }
 
   const sceneContent = useMemo(() => buildSceneContent(project), [project]);
   const startupSceneList = useMemo(() => {
@@ -370,22 +396,32 @@ export function ValidationView({ project, onClose }: Props) {
     const handler = (e: MessageEvent) => {
       const data = e.data;
       if (!data || typeof data !== "object") return;
-      if (data.type === "quicktest:done" || data.type === "randomtest:done") {
+      const log = typeof data.log === "string" ? data.log : "";
+      if (data.type === "quicktest:done") {
         setRunning(false);
-        setResult({ ok: !!data.ok, errorCount: data.errorCount | 0, warningCount: data.warningCount, fatal: !!data.fatal });
+        setQtResult({ ok: !!data.ok, errorCount: data.errorCount | 0, warningCount: data.warningCount, fatal: !!data.fatal, log, ranAt: Date.now() });
+      } else if (data.type === "randomtest:done") {
+        setRunning(false);
+        setRtResult({ ok: !!data.ok, errorCount: data.errorCount | 0, fatal: !!data.fatal, iterations: data.iterations | 0, log, ranAt: Date.now() });
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, []);
 
-  const runTest = useCallback(() => {
-    setResult(null);
+  const runTest = useCallback((forceTab?: Tab, forceIterations?: number) => {
+    const targetTab = forceTab ?? tab;
+    const targetIters = forceIterations ?? iterations;
+    if (forceTab && forceTab !== tab) setTab(forceTab);
+    if (forceIterations && forceIterations !== iterations) setIterations(forceIterations);
+    if (targetTab === "ready") return;
+    if (targetTab === "quicktest") setQtResult(null);
+    else setRtResult(null);
     setRunning(true);
-    if (tab === "quicktest") {
+    if (targetTab === "quicktest") {
       setSrcdoc(buildQuicktestSrcdoc(sceneContent, startupSceneList));
     } else {
-      setSrcdoc(buildRandomtestSrcdoc(sceneContent, iterations, seed, startupSceneList, initialStats));
+      setSrcdoc(buildRandomtestSrcdoc(sceneContent, targetIters, seed, startupSceneList, initialStats));
     }
     setIframeKey((k) => k + 1);
   }, [tab, sceneContent, startupSceneList, initialStats, iterations, seed]);
@@ -393,15 +429,41 @@ export function ValidationView({ project, onClose }: Props) {
   const switchTab = (next: Tab) => {
     setTab(next);
     setSrcdoc("");
-    setResult(null);
     setRunning(false);
   };
+
+  const result = tab === "quicktest" ? qtResult : tab === "randomtest" ? rtResult : null;
+  const downloadCurrentLog = useCallback(() => {
+    if (!result || !result.log) return;
+    const stamp = new Date(result.ranAt).toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const name = `${project.title.replace(/[^a-zA-Z0-9._-]/g, "_")}-${tab}-${stamp}.txt`;
+    const bytes = new TextEncoder().encode(result.log + "\n");
+    if (isTauri()) {
+      void nativeSaveBytes(bytes, name, "Test log", ["txt"]).catch((err) => {
+        console.error("[ChoiceForge] log download failed", err);
+        window.alert(`Save failed: ${err?.message ?? String(err)}`);
+      });
+      return;
+    }
+    const blob = new Blob([bytes], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [result, tab, project.title]);
+
+  const checks = useMemo(() => computeReadyChecks(project, qtResult, rtResult), [project, qtResult, rtResult]);
+  const requiredPass = checks.filter((c) => c.required).every((c) => c.status === "pass");
+  const allPass = checks.every((c) => c.status === "pass");
 
   return (
     <div className="official-play validation-view">
       <div className="official-play-head">
         <h1>Validate for submission</h1>
         <div className="validation-tabs">
+          <button className={`validation-tab ${tab === "ready" ? "is-active" : ""}`} onClick={() => switchTab("ready")}>Ready?</button>
           <button className={`validation-tab ${tab === "quicktest" ? "is-active" : ""}`} onClick={() => switchTab("quicktest")}>Quicktest</button>
           <button className={`validation-tab ${tab === "randomtest" ? "is-active" : ""}`} onClick={() => switchTab("randomtest")}>Randomtest</button>
         </div>
@@ -409,48 +471,210 @@ export function ValidationView({ project, onClose }: Props) {
           <button className="icon-btn" onClick={onClose} title="Close">✕</button>
         </div>
       </div>
-      <div className="validation-controls">
-        {tab === "quicktest" ? (
-          <p className="validation-hint">
-            <strong>Quicktest</strong> walks every possible path through every scene exhaustively. Catches missing labels, undefined variables, runtime errors. Choice of Games requires this to pass with zero errors before submission.
-          </p>
-        ) : (
-          <>
-            <p className="validation-hint">
-              <strong>Randomtest</strong> plays the game N times randomly. Catches errors in rare paths and reports line coverage. Choice of Games typically requires <strong>≥ 10 000 iterations</strong> with zero errors.
-            </p>
-            <label className="validation-field">
-              <span>Iterations</span>
-              <input type="number" min={10} max={100000} step={100} value={iterations} disabled={running} onChange={(e) => setIterations(Math.max(10, Math.min(100000, parseInt(e.target.value, 10) || 1000)))} />
-            </label>
-            <label className="validation-field">
-              <span>Seed</span>
-              <input type="number" value={seed} disabled={running} onChange={(e) => setSeed(parseInt(e.target.value, 10) || 0)} />
-            </label>
-          </>
-        )}
-        <button className="ghost-btn validation-run-btn" onClick={runTest} disabled={running}>
-          {running ? "Running…" : `Run ${tab}`}
-        </button>
-        {result && (
-          <span className={`validation-result-pill ${result.ok ? "ok" : "fail"}`}>
-            {result.ok ? "✓ passed" : `✗ ${result.errorCount} error${result.errorCount !== 1 ? "s" : ""}${result.fatal ? " (fatal)" : ""}`}
-          </span>
-        )}
-      </div>
-      {srcdoc ? (
-        <iframe
-          key={iframeKey}
-          ref={iframeRef}
-          className="official-play-iframe validation-iframe"
-          srcDoc={srcdoc}
-          title={tab === "quicktest" ? "Quicktest results" : "Randomtest results"}
+      {tab === "ready" ? (
+        <ReadyPanel
+          checks={checks}
+          requiredPass={requiredPass}
+          allPass={allPass}
+          running={running}
+          onRunQuicktest={() => runTest("quicktest")}
+          onRunRandomtest10k={() => runTest("randomtest", COG_MIN_RANDOMTEST_ITERATIONS)}
         />
       ) : (
-        <div className="validation-empty">
-          <p>Click <strong>Run {tab}</strong> above to start. Results appear here.</p>
-        </div>
+        <>
+          <div className="validation-controls">
+            {tab === "quicktest" ? (
+              <p className="validation-hint">
+                <strong>Quicktest</strong> walks every possible path through every scene exhaustively. Catches missing labels, undefined variables, runtime errors. Choice of Games requires this to pass with zero errors before submission.
+              </p>
+            ) : (
+              <>
+                <p className="validation-hint">
+                  <strong>Randomtest</strong> plays the game N times randomly. Catches errors in rare paths and reports line coverage. Choice of Games typically requires <strong>≥ {COG_MIN_RANDOMTEST_ITERATIONS.toLocaleString()} iterations</strong> with zero errors.
+                </p>
+                <label className="validation-field">
+                  <span>Iterations</span>
+                  <input type="number" min={10} max={100000} step={100} value={iterations} disabled={running} onChange={(e) => setIterations(Math.max(10, Math.min(100000, parseInt(e.target.value, 10) || 1000)))} />
+                </label>
+                <label className="validation-field">
+                  <span>Seed</span>
+                  <input type="number" value={seed} disabled={running} onChange={(e) => setSeed(parseInt(e.target.value, 10) || 0)} />
+                </label>
+              </>
+            )}
+            <button className="ghost-btn validation-run-btn" onClick={() => runTest()} disabled={running}>
+              {running ? "Running…" : `Run ${tab}`}
+            </button>
+            {result && (
+              <>
+                <span className={`validation-result-pill ${result.ok ? "ok" : "fail"}`}>
+                  {result.ok ? "✓ passed" : `✗ ${result.errorCount} error${result.errorCount !== 1 ? "s" : ""}${result.fatal ? " (fatal)" : ""}`}
+                </span>
+                {result.log && (
+                  <button className="ghost-btn validation-download-btn" onClick={downloadCurrentLog} title="Save full log to .txt">
+                    ⬇ Download log
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          {srcdoc ? (
+            <iframe
+              key={iframeKey}
+              ref={iframeRef}
+              className="official-play-iframe validation-iframe"
+              srcDoc={srcdoc}
+              title={tab === "quicktest" ? "Quicktest results" : "Randomtest results"}
+            />
+          ) : (
+            <div className="validation-empty">
+              <p>Click <strong>Run {tab}</strong> above to start. Results appear here.</p>
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+interface ReadyCheck {
+  id: string;
+  label: string;
+  status: "pass" | "warn" | "fail" | "pending";
+  detail: string;
+  required: boolean;
+  action?: () => void;
+  actionLabel?: string;
+}
+
+function computeReadyChecks(project: ChoiceForgeProject, qt: TestResult | null, rt: TestResult | null): ReadyCheck[] {
+  const errorCount = project.lints.filter((l) => l.level === "error").length;
+  const warningCount = project.lints.filter((l) => l.level === "warning").length;
+  const totalWords = project.scenes.reduce((sum, s) => sum + s.words, 0);
+  const hasAchievements = project.achievements.length > 0;
+  const hasStatChart = /\*stat_chart\b/.test(project.statsSource ?? "");
+
+  const qtStatus: ReadyCheck["status"] = !qt ? "pending" : qt.ok ? "pass" : "fail";
+  const rtStatus: ReadyCheck["status"] = !rt
+    ? "pending"
+    : rt.ok && (rt.iterations ?? 0) >= COG_MIN_RANDOMTEST_ITERATIONS
+      ? "pass"
+      : rt.ok
+        ? "warn"
+        : "fail";
+
+  return [
+    {
+      id: "lint",
+      label: "No lint errors",
+      status: errorCount === 0 ? "pass" : "fail",
+      detail: `${errorCount} error${errorCount === 1 ? "" : "s"}, ${warningCount} warning${warningCount === 1 ? "" : "s"}`,
+      required: true,
+    },
+    {
+      id: "wordcount",
+      label: `Word count ≥ ${COG_MIN_WORDS.toLocaleString()}`,
+      status: totalWords >= COG_MIN_WORDS ? "pass" : "warn",
+      detail: `${totalWords.toLocaleString()} words written`,
+      required: false,
+    },
+    {
+      id: "achievements",
+      label: "Has achievements",
+      status: hasAchievements ? "pass" : "warn",
+      detail: hasAchievements ? `${project.achievements.length} defined` : "none defined (CoG recommends 30+ for paid games)",
+      required: false,
+    },
+    {
+      id: "statschart",
+      label: "Has *stat_chart in stats screen",
+      status: hasStatChart ? "pass" : "warn",
+      detail: hasStatChart ? "yes" : "missing — players won't see stat bars",
+      required: false,
+    },
+    {
+      id: "quicktest",
+      label: "Quicktest passes",
+      status: qtStatus,
+      detail: !qt
+        ? "not yet run this session"
+        : qt.ok
+          ? `${qt.errorCount} errors, ${qt.warningCount ?? 0} warnings`
+          : `${qt.errorCount} error${qt.errorCount === 1 ? "" : "s"}${qt.fatal ? " (fatal)" : ""}`,
+      required: true,
+      actionLabel: qt ? "Re-run" : "Run",
+    },
+    {
+      id: "randomtest",
+      label: `Randomtest ≥ ${COG_MIN_RANDOMTEST_ITERATIONS.toLocaleString()} iterations passes`,
+      status: rtStatus,
+      detail: !rt
+        ? "not yet run this session"
+        : rt.ok
+          ? `${(rt.iterations ?? 0).toLocaleString()} iterations${(rt.iterations ?? 0) < COG_MIN_RANDOMTEST_ITERATIONS ? " (below CoG recommended)" : ""}`
+          : `${rt.errorCount} error${rt.errorCount === 1 ? "" : "s"}${rt.fatal ? " (fatal)" : ""}`,
+      required: true,
+      actionLabel: rt ? "Re-run with 10k" : "Run with 10k",
+    },
+  ];
+}
+
+interface ReadyPanelProps {
+  checks: ReadyCheck[];
+  requiredPass: boolean;
+  allPass: boolean;
+  running: boolean;
+  onRunQuicktest: () => void;
+  onRunRandomtest10k: () => void;
+}
+
+function ReadyPanel({ checks, requiredPass, allPass, running, onRunQuicktest, onRunRandomtest10k }: ReadyPanelProps) {
+  const passed = checks.filter((c) => c.status === "pass").length;
+  return (
+    <div className="ready-panel">
+      <div className={`ready-summary ${requiredPass ? (allPass ? "is-perfect" : "is-required") : "is-blocked"}`}>
+        <span className="ready-summary-icon">{requiredPass ? (allPass ? "🎉" : "✓") : "⚠"}</span>
+        <div className="ready-summary-text">
+          <strong>
+            {requiredPass
+              ? allPass
+                ? "Ready to submit — all checks pass."
+                : `Required checks pass. ${checks.length - passed} recommendation${checks.length - passed === 1 ? "" : "s"} remaining.`
+              : "Not ready yet — required checks failing or pending."}
+          </strong>
+          <span className="ready-summary-sub">{passed} / {checks.length} checks pass · CoG submission readiness</span>
+        </div>
+      </div>
+      <ul className="ready-list">
+        {checks.map((check) => (
+          <li key={check.id} className={`ready-item is-${check.status}`}>
+            <span className="ready-item-icon" aria-hidden="true">
+              {check.status === "pass" ? "✓" : check.status === "fail" ? "✗" : check.status === "warn" ? "!" : "○"}
+            </span>
+            <div className="ready-item-body">
+              <div className="ready-item-label">
+                {check.label}
+                {check.required && <span className="ready-item-req">required</span>}
+              </div>
+              <div className="ready-item-detail">{check.detail}</div>
+            </div>
+            {check.id === "quicktest" && (
+              <button className="ghost-btn ready-item-action" disabled={running} onClick={onRunQuicktest}>
+                {check.actionLabel}
+              </button>
+            )}
+            {check.id === "randomtest" && (
+              <button className="ghost-btn ready-item-action" disabled={running} onClick={onRunRandomtest10k}>
+                {check.actionLabel}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="ready-footnote">
+        Required checks must pass before Choice of Games will accept your submission.
+        Recommended checks (word count, achievements, stat chart) make for a better release but aren't strictly mandatory for the technical review.
+      </p>
     </div>
   );
 }

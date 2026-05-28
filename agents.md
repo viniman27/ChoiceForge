@@ -343,6 +343,26 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 206
+- **v0.5.0: `Ready?` tab + Download log button — pre-launch polish for forum/Reddit announcement.**
+  - Context: about to do a public release on CoG forum and r/choiceofgames, and the user wanted the validation panel to feel "submit-ready" before strangers start clicking around. Previously: user has to run Quicktest, switch tab, run Randomtest, also remember to check wordcount, achievements, *stat_chart, lint. Now: a single Ready? panel with all six checks.
+  - **`ReadyPanel`** (in `ValidationView.tsx`): new component with a 6-row checklist:
+    1. Lint errors == 0 (required)
+    2. Word count ≥ 25 000 (recommended)
+    3. Has achievements (recommended)
+    4. Has `*stat_chart` in stats source (recommended) — detected by `/\*stat_chart\b/` against `project.statsSource`
+    5. Quicktest passes (required, in-session state)
+    6. Randomtest ≥ 10 000 iterations passes (required, in-session state)
+    Each row: status icon (pass/warn/fail/pending) + label + detail line. Quicktest/Randomtest rows get a "Run" / "Re-run with 10k" button that switches to the respective tab and triggers the run with the right iteration count. Summary banner at top has three states: blocked (red, required checks failing), required-pass (yellow, recommendations remain), perfect (green, all 6 pass).
+  - **Result persistence across tab switches** — refactored `result` into `qtResult` + `rtResult` separately, so switching `Ready? ↔ Quicktest ↔ Randomtest` doesn't wipe state. Invalidated automatically when project key (scenes:nodes:variables:achievements counts) changes — uses a ref-comparison pattern so we don't need a full deep-equality check.
+  - **Download log button** — both srcdocs now accumulate every `appendLine` call into an `allLines` JS array and ship the full `\n`-joined log in the `done` postMessage payload. Parent stores it on `qtResult.log` / `rtResult.log` and the new "⬇ Download log" button (visible after a run) writes to a timestamped `.txt` via `nativeSaveBytes` (desktop) or `<a download>` (web). Filename pattern: `{projectTitle}-{quicktest|randomtest}-{ISO timestamp}.txt`. Lines beyond the 5000-line display truncation are still in the download buffer — display label updated to clarify that.
+  - **`nativeSaveBytes(bytes, name, label, extensions)`** in `platform/fileSystem.ts` — generic binary save. Refactored `nativeExportZip` to delegate to it. Both share the same Tauri save dialog + writeFile pattern.
+  - **Tab default**: `Ready?` is now the first/default tab when opening the Validate panel. Forces the user to see the readiness summary first.
+  - **CSS** (~110 lines in `styles.css`): new `.ready-panel`, `.ready-summary` (3 state variants), `.ready-list`, `.ready-item` (4 state variants), `.ready-item-icon`, `.ready-item-req` (the "required" red pill), `.ready-item-action` button, plus `.validation-download-btn`. Reuses existing `--paper-1/2/edge`, `--ink/2/mute`, `--r-1/2` design tokens.
+  - **v0.5.0** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 domain + 96 UI = **483 passing**. Build clean.
+  - **Next**: commit, tag v0.5.0, push. Once the desktop release builds, publish + tell user the announcement text is ready to go on COG forum + Reddit.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 205
 - **v0.4.4: Enable DevTools in desktop production builds.**
   - User asked how to see console logs on Windows. In Tauri 2 production builds, DevTools is OFF by default — F12 does nothing. Added `"devtools"` feature to `tauri = { version = "2", features = [...] }` in `src-tauri/Cargo.toml`. Now F12 / Ctrl+Shift+I (Win) / Cmd+Option+I (mac) opens the WebView inspector with Console + Network + DOM tabs.

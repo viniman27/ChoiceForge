@@ -43,11 +43,20 @@ export async function nativeWriteProject(content: string, path: string): Promise
 }
 
 export async function nativeExportZip(bytes: Uint8Array, suggestedName: string): Promise<string | null> {
+  return nativeSaveBytes(bytes, suggestedName, "ChoiceForge Export", ["zip"]);
+}
+
+export async function nativeSaveBytes(
+  bytes: Uint8Array,
+  suggestedName: string,
+  filterLabel: string,
+  extensions: string[],
+): Promise<string | null> {
   if (!isTauri()) return null;
   const { save } = await import("@tauri-apps/plugin-dialog");
   const { writeFile } = await import("@tauri-apps/plugin-fs");
   const chosen = await save({
-    filters: [{ name: "ChoiceForge Export", extensions: ["zip"] }],
+    filters: [{ name: filterLabel, extensions }],
     defaultPath: suggestedName,
   });
   if (!chosen) return null;
