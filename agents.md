@@ -343,6 +343,16 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 207
+- **v0.5.1: hotfix for v0.5.0 — Quicktest/Randomtest UI hung at "Running…" forever + stat_chart check uses generated stats.**
+  - **Critical bug discovered**: user reported in v0.5.0 both Quicktest and Randomtest were "rodando pra sempre" (running forever). Reproduced via playwright + chromium against the dev server: iframe mounts, page error `Invalid or unexpected token`. Bisect with node `--check` localized to line 106: `log: allLines.join("` followed by a real newline. Root cause: in `buildQuicktestSrcdoc` and `buildRandomtestSrcdoc`, the new v0.5.0 `log: allLines.join("\n")` had `\n` as a TS-template-literal newline, which became an actual newline character in the emitted JS source. The browser parsed `"...` as the start of a string literal but hit an unescaped LF before the closing `"`, threw a SyntaxError at parse time, and `postMessage` was never executed. UI stayed at "Running…" because the parent never received the done message. **Fix**: changed both to `"\\n"` so the emitted JS reads `"\n"` correctly.
+  - **Regression test** (`tests/ui/validationViewLifecycle.test.tsx`, 3 tests): renders ValidationView with the lint-augmented sample, simulates Run click, verifies (1) the iframe mounts with srcdoc containing `quicktest:done` and `allLines.join`, (2) posting a synthetic `quicktest:done` message unsets `running` and shows the "✓ passed" pill + "Download log" button, (3) clicking Run from the Ready tab auto-switches to the Quicktest tab and spawns the iframe. Catches this class of bug before release.
+  - **Sample readiness check fix** (`computeReadyChecks`): the v0.5.0 `*stat_chart` check looked only at `project.statsSource`, missing the fact that `generateStatsChoiceScript` auto-builds a `*stat_chart` block from variables with `showInStats !== false`. User wanted the sample project to demonstrate this. Now uses `generateStatsChoiceScript(project)` as the source for the `/\*stat_chart\b/` test — sample passes ✓ and any future project without explicit statsSource also gets a correct reading.
+  - **v0.5.1** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 domain + 99 UI = **486 passing** (3 new lifecycle tests). Build clean. Playwright manual confirmation: Quicktest → ✓ passed, Randomtest → ✓ passed on the sample.
+  - **Internal**: installed playwright + chromium (with `--no-save`, NOT in package.json) for the reproducer — not a project dep, just an investigative tool.
+  - **Next**: commit, tag v0.5.1, push. CRITICAL: publish ASAP since v0.5.0 web users currently can't run any tests.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 206
 - **v0.5.0: `Ready?` tab + Download log button — pre-launch polish for forum/Reddit announcement.**
   - Context: about to do a public release on CoG forum and r/choiceofgames, and the user wanted the validation panel to feel "submit-ready" before strangers start clicking around. Previously: user has to run Quicktest, switch tab, run Randomtest, also remember to check wordcount, achievements, *stat_chart, lint. Now: a single Ready? panel with all six checks.

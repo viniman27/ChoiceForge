@@ -27,6 +27,12 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-05-28
+
+### Fixed
+- **CRITICAL: Quicktest and Randomtest hung at "Running…" forever in v0.5.0** — the new "Download log" feature added `log: allLines.join("\n")` to the iframe `postMessage` payload, but `\n` inside a TypeScript template literal was emitted as a literal newline character into the generated JS source. The browser parsed the srcdoc, hit `log: allLines.join("` followed by an actual line break inside the string literal, threw `SyntaxError: Invalid or unexpected token`, and never executed the `postMessage` call — so the parent never learned the test finished. Both srcdocs now use `"\\n"` so the emitted JS reads `"\n"` correctly. Added `tests/ui/validationViewLifecycle.test.tsx` (3 tests) covering the iframe-mount + message-receive flow so this regression can't reach release again.
+- **`Has *stat_chart` check now uses the generated stats output** instead of just `project.statsSource`. Projects with no custom stats source still get a real `*stat_chart` auto-built from `variables` (those with `showInStats !== false`), and the readiness checklist now reflects that — the sample project's row correctly shows ✓ instead of warning about a missing stat chart.
+
 ## [0.5.0] — 2026-05-28
 
 ### Added
