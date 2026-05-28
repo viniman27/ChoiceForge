@@ -36,6 +36,12 @@ export async function nativeSaveProjectAs(content: string): Promise<string | nul
   return nativeSaveProject(content, undefined);
 }
 
+export async function nativeWriteProject(content: string, path: string): Promise<void> {
+  if (!isTauri()) return;
+  const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+  await writeTextFile(path, content);
+}
+
 export async function setWindowTitle(title: string): Promise<void> {
   if (!isTauri()) return;
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
