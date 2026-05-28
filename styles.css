@@ -259,6 +259,54 @@ input, select, textarea { font-family: inherit; color: inherit; }
 .canvas-toolbar-resize:hover {
   border-color: var(--accent-1);
 }
+.update-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--accent-1);
+  color: var(--paper-1);
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--paper-edge);
+}
+.update-banner-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.update-banner-text {
+  flex: 1;
+}
+.update-banner-text strong {
+  font-weight: 700;
+}
+.update-banner-cta {
+  background: var(--paper-1);
+  color: var(--ink);
+  border: none;
+  padding: 5px 12px;
+  border-radius: var(--r-1);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.update-banner-cta:hover {
+  background: var(--paper-2);
+}
+.update-banner-btn {
+  background: transparent;
+  color: var(--paper-1);
+  border: 1px solid rgba(255,255,255,0.4);
+  padding: 4px 10px;
+  border-radius: var(--r-1);
+  font-size: 11px;
+  cursor: pointer;
+}
+.update-banner-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.7);
+}
+
 .source-preserved-banner {
   position: absolute;
   z-index: 5;

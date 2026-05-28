@@ -20,6 +20,7 @@ import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { checkForUpdate, dismissUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
 
@@ -61,6 +62,8 @@ export default function App() {
   currentFilePathRef.current = currentFilePath;
   const [dirtyOnDisk, setDirtyOnDisk] = useState(false);
   const lastWrittenSerialisedRef = useRef<string | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateOptedOut, setUpdateOptedOut] = useState(() => isUpdateCheckOptedOut());
   const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
 
   const handleNativeOpen = useCallback(async () => {
@@ -234,6 +237,19 @@ export default function App() {
     void setWindowTitle(title);
   }, [currentFilePath, dirtyOnDisk]);
 
+  useEffect(() => {
+    if (updateOptedOut) return;
+    let cancelled = false;
+    void (async () => {
+      const info = await checkForUpdate(__APP_VERSION__);
+      if (cancelled) return;
+      if (info && !isDismissed(info.version)) {
+        setUpdateInfo(info);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [updateOptedOut]);
+
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
   const generatedDocument = generatedDocumentId ? createGeneratedDocument(generatedDocumentId, lintedProject) : null;
   const currentSceneSourcePreserved = Boolean(lintedProject.sceneData?.[lintedProject.sceneTitle]?.sourceText);
@@ -296,6 +312,13 @@ export default function App() {
 
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
+      {updateInfo && (
+        <UpdateBanner
+          info={updateInfo}
+          onDismiss={() => { dismissUpdate(updateInfo.version); setUpdateInfo(null); }}
+          onTurnOff={() => { setUpdateCheckOptOut(true); setUpdateOptedOut(true); setUpdateInfo(null); }}
+        />
+      )}
       <TopBar
         data={lintedProject}
         lang={lang}
@@ -985,6 +1008,23 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 function serializeProjectForDisk(project: ChoiceForgeProject): string {
   const { lints: _lints, ...rest } = project;
   return JSON.stringify({ ...rest, lints: [] }, null, 2);
+}
+
+function UpdateBanner({ info, onDismiss, onTurnOff }: { info: UpdateInfo; onDismiss: () => void; onTurnOff: () => void }) {
+  const openRelease = () => {
+    window.open(info.url, "_blank", "noopener,noreferrer");
+  };
+  return (
+    <div className="update-banner" role="status">
+      <span className="update-banner-icon" aria-hidden="true">⬆</span>
+      <span className="update-banner-text">
+        <strong>ChoiceForge {info.version}</strong> is available.
+      </span>
+      <button className="update-banner-cta" onClick={openRelease}>View release</button>
+      <button className="update-banner-btn" onClick={onDismiss} title="Dismiss until next release">Later</button>
+      <button className="update-banner-btn" onClick={onTurnOff} title="Stop checking for updates">Turn off</button>
+    </div>
+  );
 }
 
 function nextNodeId(nodes: StoryNode[]): string {
