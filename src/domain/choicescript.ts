@@ -866,7 +866,7 @@ function lintSceneGraph(project: ChoiceForgeProject, graph: SceneGraph, sceneNam
   );
   humanLabels.forEach(({ node, label }) => {
     if (label && !referencedLabels.has(label)) {
-      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, key: "unreferenced_label", params: { name: label }, scene: sceneName, node: node.id });
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced — if this is just a flow target you can delete the *label node; flow connections work without an explicit label`, key: "unreferenced_label", params: { name: label }, scene: sceneName, node: node.id });
     }
   });
 
@@ -1127,7 +1127,7 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
   const referencedLabelSet = new Set(referencedLabels.map(({ label }) => label));
   labels.forEach((lineNumber, label) => {
     if (!referencedLabelSet.has(label)) {
-      issues.push({ level: "info", msg: `*label "${label}" is never referenced by any *goto or *gosub`, key: "unreferenced_label", params: { name: label }, scene: sceneName, line: lineNumber });
+      issues.push({ level: "info", msg: `*label "${label}" is never referenced — if this is just a flow target you can delete the *label node; flow connections work without an explicit label`, key: "unreferenced_label", params: { name: label }, scene: sceneName, line: lineNumber });
     }
   });
   if (!hasGosub) {
