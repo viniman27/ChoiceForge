@@ -343,6 +343,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 202
+- **v0.4.1: Quicktest critical fix + update check cooldown removed.**
+  - **User-reported issue**: ran v0.4.0 Validate on the sample project, got a crash error. Also: update banner didn't appear after v0.4.0 publish.
+  - **Diagnosis of the Quicktest crash**:
+    - Ran the official `embeddable-autotester.js` against the sample's generated `.txt` in a Node + jsdom harness — 0 errors, 0 warnings. So the sample IS clean.
+    - That meant the bug was in `ValidationView`, not the sample. Re-read my v0.4.0 srcdoc: I had used `Scene.execute()` (the normal player runtime that needs UI for `*choice`) instead of `autotester(text, nav, sceneName, gotoLabels)` (the exhaustive DFS). The very first `*choice` node would throw because there's no choice UI in the iframe.
+    - Rewrote `buildQuicktestSrcdoc` as a faithful port of upstream `quicktest.html`: ~25 stub functions (`printFooter`, `printShareLinks`, `clearScreen`, `safeCall`, etc.), full `Scene.prototype.verifySceneFile`/`verifyImage`/`warning` overrides, per-scene `autotester()` invocation, two-pass `gotoSceneLabels` collection from `*goto_scene` / `*gosub_scene` commands across all scenes (mirrors quicktest.html lines 332-372). Now identical to what CoG's review tool runs.
+  - **Update check cooldown** (`src/platform/updateCheck.ts`): user said "tem versão nova avisa, simples assim" — removed the 6 h localStorage cache entirely. Every launch hits `https://api.github.com/.../releases/latest` directly with `Cache-Control: no-store`. Dismiss + opt-out persistence still works. Legacy `choiceforge.updateCheck.v1` key is cleaned up on first run via `clearLegacyCache()`. Dropped the unused `CachedCheck` type, `readCache`/`writeCache`/`resolveCached` helpers.
+  - **Sample-project regression test** (`tests/ui/sampleProjectValidation.test.ts`): 6 new tests, 2 per language (PT/EN/ES). Each runs the actual `lintProject` + the actual `autotester()` from `public/test/embeddable-autotester.js` in jsdom — same scripts that the in-app Validate panel runs. If a future change breaks the sample, CI fails before publish. This is the test the user wanted: "lembro que existem 2 testes que um projeto precisa minimamente passar para poder ser submetido para publicação".
+  - **v0.4.1** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 domain + 96 UI = **483 passing**. Build clean.
+  - **Commits**: this one (update-check cooldown removal + ValidationView quicktest fix + sample regression test + version bump).
+  - **Next**: tag v0.4.1 — first patch release. From v0.3.0+ users with the bundled updater plugin can install via the "Install & restart" banner. Web auto-deploys on push.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 201
 - **v0.4.0: Validate for submission panel + TopBar layout fix.**
   - **TopBar layout fix** (`styles.css` + `TopBar.tsx`): user reported the title/author inputs sometimes get squashed and overlapped on narrower viewports. Root cause: `.brand` and `.brand-text` didn't have `min-width:0` so they ignored their grid track shrink contract, and inputs used `clamp(72px, 9vw, 170px)` fixed widths summing to ~190px even at the smallest case. Fixed with min-width:0 + overflow:hidden propagated down, flex:1 1 0 + min-width:40px on inputs (so they share leftover space), focus expansion (active input flex grows to 2 1 0), text-overflow:ellipsis, plus `placeholder="title"/"author"` and native title attribute so collapsed values still communicate purpose.

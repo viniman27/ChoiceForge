@@ -49,6 +49,7 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
   .warn { color: #b60; }
   .info { color: #555; }
   .ok { color: #060; }
+  .scene-header { color: #246; font-weight: 600; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -57,10 +58,44 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
 <script src="${base}/play/util.js"></script>
 <script src="${base}/play/scene.js"></script>
 <script src="${base}/play/navigator.js"></script>
+<script>
+  // Stubs replicated from the official quicktest.html so the engine
+  // can execute scenes without a UI.
+  window.printFooter = function(){};
+  window.printShareLinks = function(){};
+  window.printLink = function(){};
+  window.printButton = function(){};
+  window.printImage = function(){};
+  window.showPassword = function(){};
+  window.achieve = function(){};
+  window.loginForm = function(){};
+  window.printDiscount = function(){};
+  window.isRegistered = function(){return false;};
+  window.isRegisterAllowed = function(){return false;};
+  window.isRestorePurchasesSupported = function(){return false;};
+  window.isFullScreenAdvertisingSupported = function(){return false;};
+  window.areSaveSlotsSupported = function(){return false;};
+  window.isAdvertisingSupported = function(){return false;};
+  window.isPrerelease = function(){return false;};
+  window.showFullScreenAdvertisementButton = function(m, cb){cb();};
+  window.initStore = function(){return false;};
+  window.safeCall = function(obj, fn){ return obj ? fn.call(obj) : fn.call(); };
+  window.clearScreen = function(code){ if (typeof code === "function") code.call(); };
+  window.saveCookie = function(cb){ if (cb) cb.call(); };
+  window.doneLoading = function(){};
+  window.changeTitle = function(){};
+  window.printBody = function(){};
+  window.println = function(){};
+  window.gotoSceneLabels = {};
+  window.uncoveredScenes = [];
+  window.success = true;
+</script>
 <script src="${base}/test/embeddable-autotester.js"></script>
 <script>
 (function(){
   var sceneContent = ${safeJson(sceneContent)};
+  var sceneFiles = Object.keys(sceneContent);
+  var knownSceneNames = sceneFiles.map(function(n){return n.replace(/\\.txt$/,"");});
   var sceneList = ${safeJson(startupSceneList)};
   var logEl = document.getElementById("log");
   var statusEl = document.getElementById("status");
@@ -87,60 +122,79 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
     lineCount++;
   }
 
-  // Capture console output from autotester
-  var origLog = console.log;
-  var origErr = console.error;
-  console.log = function() {
-    var msg = Array.prototype.slice.call(arguments).map(String).join(" ");
-    appendLine(msg, /error|fail|cannot|undefined|missing/i.test(msg) ? "err" : "info");
-    origLog.apply(console, arguments);
-  };
-  console.error = function() {
-    errorCount++;
-    var msg = Array.prototype.slice.call(arguments).map(String).join(" ");
-    appendLine(msg, "err");
-    origErr.apply(console, arguments);
-  };
-
-  // Configure Scene class to fetch from in-memory sceneContent
-  Scene.prototype.loadSceneFast = function loadSceneFast(name) {
-    var n = (name || this.name) + ".txt";
-    var text = sceneContent[n];
-    if (text === undefined) {
-      throw new Error("Scene file does not exist: " + n);
-    }
-    this.lines = text.replace(/\\r/g, "").split("\\n");
-    this.parseLabels();
-    this.loaded = true;
-  };
-  Scene.prototype.loadScene = Scene.prototype.loadSceneFast;
-  Scene.prototype.verifySceneFile = function(name) { /* permissive */ };
-  Scene.prototype.verifyImage = function(name) { /* permissive */ };
-
-  window.knownScenes = Object.keys(sceneContent).map(function(n){return n.replace(/\\.txt$/,"");});
+  window.knownScenes = sceneFiles;
   window.knownImages = {};
   window.warnings = [];
 
-  try {
-    var nav = new SceneNavigator(sceneList);
-    var startup = new Scene("startup", {}, nav);
-    startup.loadSceneFast("startup");
-    startup.execute();
+  // Permissive verifies — every scene we generated is "known"; images
+  // are exported as binaries in the .zip but not present here.
+  Scene.prototype.verifySceneFile = function(name) {
+    if (knownSceneNames.indexOf(name) < 0) {
+      throw new Error("Scene referenced but not defined: " + name);
+    }
+  };
+  Scene.prototype.verifyImage = function(){};
+  // Tracking: capture every Scene.warning the engine emits.
+  Scene.prototype.warning = function(message) {
+    warningCount++;
+    appendLine((this.lineMsg ? this.lineMsg() : "") + "WARNING " + message, "warn");
+  };
 
-    var ok = errorCount === 0;
-    statusEl.className = ok ? "ok" : "fail";
-    statusEl.textContent = ok
-      ? "Quicktest passed. No errors found."
-      : "Quicktest failed: " + errorCount + " error(s).";
+  // Capture all console.log output during autotest.
+  var origLog = console.log;
+  console.log = function(){
+    var msg = Array.prototype.slice.call(arguments).map(function(a){return typeof a === "string" ? a : String(a);}).join(" ");
+    var isErr = /error|cannot|undefined|missing|not declared|invalid|line \\d+:/i.test(msg);
+    if (isErr) errorCount++;
+    appendLine(msg, isErr ? "err" : "info");
+    origLog.apply(console, arguments);
+  };
 
-    parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount }, "*");
-  } catch (err) {
-    errorCount++;
-    appendLine("FATAL: " + (err && err.message ? err.message : String(err)), "err");
-    statusEl.className = "fail";
-    statusEl.textContent = "Quicktest crashed: " + (err && err.message ? err.message : err);
-    parent.postMessage({ type: "quicktest:done", ok: false, errorCount: errorCount, warningCount: warningCount, fatal: true }, "*");
+  // First pass: scan scenes for *goto_scene / *gosub_scene targets and
+  // build gotoSceneLabels — mirrors the loop in quicktest.html lines 332-372.
+  for (var i = 0; i < sceneFiles.length; i++) {
+    var sn = knownSceneNames[i];
+    var lines = sceneContent[sceneFiles[i]].split("\\n");
+    for (var j = 0; j < lines.length; j++) {
+      var m = /^\\s*\\*(\\w+)(.*)/.exec(lines[j]);
+      if (!m) continue;
+      var cmd = m[1].toLowerCase();
+      if (cmd === "goto_scene" || cmd === "gosub_scene") {
+        var data = (m[2] || "").trim();
+        var parts = /(\\S+)\\s*(\\S*)/.exec(data);
+        if (parts && parts[2]) {
+          if (!window.gotoSceneLabels[parts[1]]) window.gotoSceneLabels[parts[1]] = [];
+          window.gotoSceneLabels[parts[1]].push({ origin: sn, originLine: j, label: parts[2] });
+        }
+      }
+    }
   }
+
+  // Set up nav with the scene_list ordering so *finish knows what's next.
+  window.nav = new SceneNavigator(sceneList);
+  window.stats = {};
+
+  // Run autotester per scene — exhaustive DFS over every *choice path.
+  for (var k = 0; k < sceneFiles.length; k++) {
+    var sceneName = knownSceneNames[k];
+    if (sceneName === "choicescript_stats") continue; // not exercised by autotest
+    appendLine("scene: " + sceneName, "scene-header");
+    var sceneText = sceneContent[sceneFiles[k]];
+    try {
+      autotester(sceneText, window.nav, sceneName, window.gotoSceneLabels[sceneName]);
+    } catch (err) {
+      errorCount++;
+      appendLine("[" + sceneName + "] " + (err && err.message ? err.message : err), "err");
+    }
+  }
+
+  var ok = errorCount === 0;
+  statusEl.className = ok ? "ok" : "fail";
+  statusEl.textContent = ok
+    ? "Quicktest passed. " + sceneFiles.length + " scenes, no errors."
+    : "Quicktest failed: " + errorCount + " error(s)" + (warningCount ? ", " + warningCount + " warning(s)" : "") + ".";
+
+  parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount }, "*");
 })();
 </script>
 </body>
