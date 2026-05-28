@@ -343,6 +343,22 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 201
+- **v0.4.0: Validate for submission panel + TopBar layout fix.**
+  - **TopBar layout fix** (`styles.css` + `TopBar.tsx`): user reported the title/author inputs sometimes get squashed and overlapped on narrower viewports. Root cause: `.brand` and `.brand-text` didn't have `min-width:0` so they ignored their grid track shrink contract, and inputs used `clamp(72px, 9vw, 170px)` fixed widths summing to ~190px even at the smallest case. Fixed with min-width:0 + overflow:hidden propagated down, flex:1 1 0 + min-width:40px on inputs (so they share leftover space), focus expansion (active input flex grows to 2 1 0), text-overflow:ellipsis, plus `placeholder="title"/"author"` and native title attribute so collapsed values still communicate purpose.
+  - **Import vs Folder buttons**: user asked if they're redundant. They're not — Folder uses `showDirectoryPicker` / `webkitdirectory` to grab all .txt in a folder at once (shortcut for full CS game dirs), Import is for individual .json/.zip/.txt. Kept both with explicit tooltips spelling out the difference. The visual redundancy concern is resolved.
+  - **Validate for submission panel** (`src/components/ValidationView.tsx`, `public/test/*`): biggest piece of this session. Two new validators required by Choice of Games for any submission:
+    - **Quicktest**: walks every possible path through every scene exhaustively (DFS). Catches missing *labels, undefined variables, runtime errors. Required to pass with zero errors.
+    - **Randomtest**: plays the game N random times (default 1000, configurable up to 100k). Catches errors in rare paths and reports coverage. CoG typically requires >= 10k iterations error-free.
+    - **Implementation**: copied `embeddable-autotester.js`, `randomtest.js`, `seedrandom.js` from the official `dfabulich/choicescript` repo into `public/test/`. ValidationView component builds an HTML srcdoc inline (similar pattern to OfficialPlayView), loading the CS engine scripts from `/play/` and the test scripts from `/test/`. For Quicktest, runs the autotester synchronously in the iframe and counts console.error calls. For Randomtest, spawns the official worker via fetched-and-concatenated scripts (handles cross-origin Worker limitation), feeds it the in-memory sceneContent, and listens for `Tested N` progress messages. Both report final status via `parent.postMessage` back to ChoiceForge so the panel shows ✓ passed / ✗ N errors. Log truncated at 5000 lines to keep DOM size manageable.
+    - **TopBar**: new `onValidate` prop, `✓ Validate` button between Snapshots and Play.
+    - **App.tsx**: `validateOpen` state, same pattern as `playOpen`. ValidationView wraps inside the existing canvas/editor PanelErrorBoundary so it inherits crash isolation.
+    - **CSS**: ~80 lines of `.validation-*` styles covering tabs, controls (hint, iterations/seed inputs, run button, result pill), iframe container, and empty state. Reuses `.official-play-head` chrome for visual consistency with the Play modal.
+  - **v0.4.0** bumped in package.json, tauri.conf.json, Cargo.toml. CHANGELOG entry covers Added (Validate panel), Fixed (top bar layout), Changed (Import/Folder tooltips).
+  - **Tests**: 387 domain + 90 UI = **477 passing**. Build clean.
+  - **Commits**: `922b177` (TopBar layout + Import tooltips), this commit (ValidationView + v0.4.0 bump).
+  - **Next**: tag v0.4.0 — first release with Choice of Games submission validators. From v0.3.0+ users can auto-update to v0.4.0 via Install & restart.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 200
 - **Real auto-update via tauri-plugin-updater + Gatekeeper doc clarification.**
   - **Gatekeeper clarification** (`README.md` EN/PT + `desktop-release.yml` template + v0.2.0 release notes via `gh release edit`): user shipped v0.2.0 and reported the macOS 15+ block dialog has ONLY "Move to Trash" / "OK" — no "Open Anyway" anywhere. The Settings path requires (1) clicking OK *not* Trash, (2) opening System Settings → Privacy & Security, (3) scrolling to a "ChoiceForge was blocked" row that only appears for ~1 hour after the block dialog. Rewrote the install instructions to promote the Terminal command (`xattr -dr com.apple.quarantine`) as the primary path since it's foolproof across macOS versions, with the Settings path spelled out as alternative.
