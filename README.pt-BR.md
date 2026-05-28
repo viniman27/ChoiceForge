@@ -134,8 +134,25 @@ Instaladores nativos publicados na [**página de Releases**](https://github.com/
 
 ### Instalação
 
-- **macOS**: abra o `.dmg`, arraste o **ChoiceForge** pra **Aplicativos**. Primeira execução: clique com botão direito → *Abrir* → confirmar (ainda não tem code-signing).
-- **Windows**: rode o `.msi`. O SmartScreen pode pedir confirmação (ainda não tem code-signing).
+#### macOS
+
+1. Abra o `.dmg` e arraste o **ChoiceForge** pra **Aplicativos**.
+2. A primeira execução é bloqueada pelo Gatekeeper porque o build ainda não é code-signed. **Botão direito → *Abrir* pode não bastar no macOS 15+** — o Gatekeeper avisa *"O Apple não pode verificar se este app não tem malware."* Duas opções:
+   - **Caminho fácil (Ajustes)**: tente abrir o app → feche o diálogo do Gatekeeper → abra **Ajustes do Sistema → Privacidade e Segurança** → role até "ChoiceForge foi bloqueado..." → clique em **Abrir Mesmo Assim** → confirme.
+   - **Caminho terminal (um comando)**: remova a flag de quarentena que o Gatekeeper consulta:
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
+     ```
+     Depois é só dar duplo clique normalmente.
+3. Após a primeira abertura bem-sucedida, o macOS lembra da sua escolha — execuções seguintes funcionam normalmente.
+
+#### Windows
+
+1. Rode o `.msi` (ou o `.exe` installer). O SmartScreen do Windows vai bloquear porque o build ainda não é code-signed (*"O Windows protegeu seu PC"*).
+2. Clique em **Mais informações → Executar mesmo assim** pra confirmar.
+3. Execuções seguintes funcionam normalmente.
+
+> Certificados de code-signing pras duas plataformas estão no roadmap. Até lá, esses prompts fazem parte do fluxo de instalação.
 
 ### O que o desktop adiciona sobre a versão web
 
