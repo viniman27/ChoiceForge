@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "vitest";
-import { isNewer, isUpdateCheckOptedOut, setUpdateCheckOptOut, isDismissed, dismissUpdate } from "../../src/platform/updateCheck.ts";
+import { isNewer, isUpdateCheckOptedOut, setUpdateCheckOptOut, isDismissed, dismissUpdate, type UpdateInfo } from "../../src/platform/updateCheck.ts";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -66,5 +66,13 @@ describe("opt-out and dismiss persistence", () => {
   test("dismissed version is per-version (a new release re-shows the banner)", () => {
     dismissUpdate("0.2.0");
     expect(isDismissed("0.3.0")).toBe(false);
+  });
+});
+
+describe("UpdateInfo shape", () => {
+  test("UpdateInfo type carries version, url, and canAutoInstall flag", () => {
+    const info: UpdateInfo = { version: "0.3.0", url: "https://example", canAutoInstall: true };
+    expect(info.version).toBe("0.3.0");
+    expect(info.canAutoInstall).toBe(true);
   });
 });

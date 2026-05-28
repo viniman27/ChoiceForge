@@ -306,6 +306,11 @@ input, select, textarea { font-family: inherit; color: inherit; }
   background: rgba(255,255,255,0.12);
   border-color: rgba(255,255,255,0.7);
 }
+.update-banner-error {
+  font-size: 11px;
+  opacity: 0.85;
+  font-style: italic;
+}
 
 .source-preserved-banner {
   position: absolute;

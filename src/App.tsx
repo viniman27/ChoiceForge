@@ -20,7 +20,7 @@ import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
 import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
-import { checkForUpdate, dismissUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type UpdateInfo } from "./platform/updateCheck";
+import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type InstallProgress, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
 
@@ -1011,16 +1011,52 @@ function serializeProjectForDisk(project: ChoiceForgeProject): string {
 }
 
 function UpdateBanner({ info, onDismiss, onTurnOff }: { info: UpdateInfo; onDismiss: () => void; onTurnOff: () => void }) {
+  const [progress, setProgress] = useState<InstallProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const openRelease = () => {
     window.open(info.url, "_blank", "noopener,noreferrer");
   };
+  const installAndRestart = async () => {
+    setError(null);
+    setProgress({ phase: "downloading", downloaded: 0, total: null });
+    const ok = await installUpdate(setProgress);
+    if (!ok) {
+      setProgress(null);
+      setError("Install failed — opening the release page instead.");
+      openRelease();
+    }
+  };
+
+  if (progress) {
+    const pct = progress.phase === "downloading" && progress.total
+      ? Math.round((progress.downloaded ?? 0) / progress.total * 100)
+      : null;
+    const label = progress.phase === "downloading"
+      ? (pct !== null ? `Downloading ${pct}%` : "Downloading…")
+      : progress.phase === "installing" ? "Installing…" : "Restarting…";
+    return (
+      <div className="update-banner" role="status">
+        <span className="update-banner-icon" aria-hidden="true">⬆</span>
+        <span className="update-banner-text"><strong>{label}</strong></span>
+      </div>
+    );
+  }
+
   return (
     <div className="update-banner" role="status">
       <span className="update-banner-icon" aria-hidden="true">⬆</span>
       <span className="update-banner-text">
         <strong>ChoiceForge {info.version}</strong> is available.
+        {error && <span className="update-banner-error"> {error}</span>}
       </span>
-      <button className="update-banner-cta" onClick={openRelease}>View release</button>
+      {info.canAutoInstall ? (
+        <button className="update-banner-cta" onClick={() => void installAndRestart()}>Install &amp; restart</button>
+      ) : (
+        <button className="update-banner-cta" onClick={openRelease}>View release</button>
+      )}
+      {info.canAutoInstall && (
+        <button className="update-banner-btn" onClick={openRelease} title="Open release notes in browser">Notes</button>
+      )}
       <button className="update-banner-btn" onClick={onDismiss} title="Dismiss until next release">Later</button>
       <button className="update-banner-btn" onClick={onTurnOff} title="Stop checking for updates">Turn off</button>
     </div>

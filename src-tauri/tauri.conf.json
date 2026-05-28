@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ChoiceForge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.choiceforge.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,6 +26,7 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "msi", "nsis", "deb", "appimage"],
+    "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "shortDescription": "Visual ChoiceScript editor",
     "longDescription": "ChoiceForge is a visual node-based editor for ChoiceScript, the language behind Choice of Games' interactive fiction. Build branching stories on a canvas and export valid .txt files.",
@@ -38,5 +39,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/viniman27/ChoiceForge/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUxQTZENTUyNzY1MjJFRDEKUldUUkxsSjJVdFdtVWVCY1UrbTZGaDZKOTlnTExER2MrQmV3OXByOXZONVIxeVFOR0JLbG1SNDgK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
