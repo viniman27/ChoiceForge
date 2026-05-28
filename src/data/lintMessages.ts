@@ -104,8 +104,8 @@ export const lintMessages: LintTranslations = {
     es: "variable \"{name}\" declarada pero nunca leida",
   },
   unreferenced_label: {
-    pt: "*label \"{name}\" nunca referenciado por *goto ou *gosub",
-    es: "*label \"{name}\" nunca referenciado por *goto o *gosub",
+    pt: "*label \"{name}\" nunca referenciado — se for so um alvo de flow, voce pode deletar o *label; conexoes de flow funcionam sem label explicito",
+    es: "*label \"{name}\" nunca referenciado — si solo es un destino de flow, puedes borrar el *label; las conexiones de flow funcionan sin un label explicito",
   },
   gosub_no_return: {
     pt: "cena \"{name}\" tem nos *gosub mas nenhum no *return",
