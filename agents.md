@@ -343,6 +343,20 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-sonnet-4-6) — session 203
+- **v0.4.2: Randomtest `nav is not defined` fix + diagnostic logging on update check.**
+  - **User-reported issues** (both after testing v0.4.1):
+    1. Randomtest still failed with `ReferenceError: nav is not defined`.
+    2. v0.4.0 install never showed a v0.4.1 update banner.
+  - **Randomtest bug** (`src/components/ValidationView.tsx::buildRandomtestSrcdoc`): the v0.4.1 srcdoc concatenated `util.js + scene.js + navigator.js + seedrandom.js + randomtest.js` into a single Worker Blob, but `randomtest.js` line 180 calls `nav.setStartingStatsClone(stats)` *at load time* inside the `if (typeof importScripts != "undefined")` block. In the official upstream flow `nav` and `stats` come from `web/<gameName>/mygame.js`, which `randomtest.js` `importScripts` would load — but my Blob skips that step (Scene is already defined, so the importScripts branch at line 130 is bypassed). Fixed by injecting a `mygame.js`-style shim between `seedrandom.js` and `randomtest.js` in the Blob: `nav = new SceneNavigator([startup, …playable scenes])` + `stats = {…initial values built from project.variables…}`. `gameName` and `slurps` are already declared as top-level `var` in randomtest.js itself, so they don't need shimming.
+  - **Randomtest progress/completion detection rewritten**: previously matched random words like "error"/"fail"/"missing" anywhere in the output → false positives on normal lines. Now keys off the official `RANDOMTEST PASSED` / `RANDOMTEST FAILED` markers and the trailing `Time:` line for unambiguous completion. Error counter only fires on `RANDOMTEST FAILED`, `ERROR:`, or `WARNING ` lines. Progress UI ticks via `*****Seed N` markers.
+  - **Update check diagnostic logging** (`src/platform/updateCheck.ts`): every launch now logs `[ChoiceForge] checking for updates (current: vX, tauri: Y)` and one of: `tauri updater: no update`, `tauri updater check failed (falling back…): <err>`, `github releases API returned <status>`, `github releases reports vX available`, or `no update — github latest is vX`. Earlier silent `catch {}` returning null made it impossible to tell whether the Tauri plugin had crashed or the API was rate-limited.
+  - **`window.__cfCheckForUpdate()` devtools hook** (`App.tsx`): manual force-check that bypasses the dismissed-version filter. Useful for diagnosing why a banner didn't appear.
+  - **v0.4.0 → v0.4.1 banner**: the cache *was* removed in v0.4.1, but only for future versions. v0.4.0 still has the old 6-h `localStorage` cache code, so a user who launched v0.4.0 once before v0.4.1 was published gets "0.4.0 is latest" cached for up to 6 hours. Documented this in the v0.4.2 CHANGELOG with instructions to download v0.4.2 manually once.
+  - **v0.4.2** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 passing. Build clean.
+  - **Next**: commit, tag v0.4.2, push. Once v0.4.2 ships, users on v0.4.1 will see the banner automatically; users still stuck on v0.4.0 need a one-time manual download.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 202
 - **v0.4.1: Quicktest critical fix + update check cooldown removed.**
   - **User-reported issue**: ran v0.4.0 Validate on the sample project, got a crash error. Also: update banner didn't appear after v0.4.0 publish.

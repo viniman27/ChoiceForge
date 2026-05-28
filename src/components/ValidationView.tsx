@@ -201,8 +201,14 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
 </html>`;
 }
 
-function buildRandomtestSrcdoc(sceneContent: SceneContent, iterations: number, seed: number): string {
+function buildRandomtestSrcdoc(sceneContent: SceneContent, iterations: number, seed: number, sceneList: string[], initialStats: Record<string, string | number | boolean>): string {
   const base = window.location.origin;
+  // Inject nav + stats setup before randomtest.js runs (in normal flow this
+  // comes from web/mygame/mygame.js which we don't have).
+  const mygameShim = `
+nav = new SceneNavigator(${safeJson(sceneList)});
+stats = ${safeJson(initialStats)};
+`;
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -232,6 +238,7 @@ function buildRandomtestSrcdoc(sceneContent: SceneContent, iterations: number, s
   var lineCount = 0;
   var MAX_LINES = 5000;
   var doneIterations = 0;
+  var totalIterations = ${iterations};
 
   function appendLine(msg, cls) {
     if (lineCount > MAX_LINES) {
@@ -251,66 +258,74 @@ function buildRandomtestSrcdoc(sceneContent: SceneContent, iterations: number, s
     lineCount++;
   }
 
-  // Spawn the official randomtest worker
-  var worker;
-  fetch("${base}/test/randomtest.js")
-    .then(function(r){ return r.text(); })
-    .then(function(workerSource){
-      return fetch("${base}/test/seedrandom.js").then(function(r){ return r.text(); }).then(function(seedSource){
-        return fetch("${base}/play/scene.js").then(function(r){ return r.text(); }).then(function(sceneSource){
-          return fetch("${base}/play/navigator.js").then(function(r){ return r.text(); }).then(function(navSource){
-            return fetch("${base}/play/util.js").then(function(r){ return r.text(); }).then(function(utilSource){
-              var combined = [utilSource, sceneSource, navSource, seedSource, workerSource].join("\\n;\\n");
-              worker = new Worker(URL.createObjectURL(new Blob([combined], { type: "text/javascript" })));
-              worker.onmessage = function(e) {
-                var msg = e.data && e.data.msg ? e.data.msg : String(e.data);
-                var isErr = /error|fail|cannot|undefined|missing|unable/i.test(msg);
-                if (isErr) errorCount++;
-                appendLine(msg, isErr ? "err" : "");
-                if (/^Tested (\\d+) /.test(msg)) {
-                  var m = msg.match(/^Tested (\\d+) /);
-                  if (m) {
-                    doneIterations = parseInt(m[1], 10);
-                    statusEl.textContent = "Iteration " + doneIterations + " / ${iterations}…";
-                  }
-                }
-                if (msg.indexOf("Total time") === 0 || /Tested ${iterations}/.test(msg)) {
-                  var ok = errorCount === 0;
-                  statusEl.className = ok ? "ok" : "fail";
-                  statusEl.textContent = ok
-                    ? "Randomtest passed (" + ${iterations} + " iterations, no errors)."
-                    : "Randomtest finished with " + errorCount + " error event(s).";
-                  parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount }, "*");
-                }
-              };
-              worker.onerror = function(err) {
-                errorCount++;
-                appendLine("Worker error: " + (err.message || err), "err");
-                statusEl.className = "fail";
-                statusEl.textContent = "Randomtest worker crashed.";
-                parent.postMessage({ type: "randomtest:done", ok: false, errorCount: errorCount, fatal: true }, "*");
-              };
-              worker.postMessage({
-                iterations: ${iterations},
-                randomSeed: ${seed},
-                showText: false,
-                showCoverage: false,
-                highlightGenderPronouns: false,
-                showChoices: false,
-                avoidUsedOptions: true,
-                recordBalance: false,
-                sceneContent: sceneContent
-              });
-            });
-          });
-        });
-      });
-    })
-    .catch(function(err){
-      appendLine("Failed to load test runner: " + err.message, "err");
-      statusEl.className = "fail";
-      statusEl.textContent = "Setup failed: " + err.message;
+  function finish(ok, fatal) {
+    statusEl.className = ok ? "ok" : "fail";
+    statusEl.textContent = ok
+      ? "Randomtest passed (" + totalIterations + " iterations, no errors)."
+      : "Randomtest finished with " + errorCount + " error event(s)" + (fatal ? " (fatal)" : "") + ".";
+    parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount, fatal: !!fatal }, "*");
+  }
+
+  Promise.all([
+    fetch("${base}/play/util.js").then(function(r){ return r.text(); }),
+    fetch("${base}/play/scene.js").then(function(r){ return r.text(); }),
+    fetch("${base}/play/navigator.js").then(function(r){ return r.text(); }),
+    fetch("${base}/test/seedrandom.js").then(function(r){ return r.text(); }),
+    fetch("${base}/test/randomtest.js").then(function(r){ return r.text(); }),
+  ]).then(function(parts){
+    var combined = [parts[0], parts[1], parts[2], parts[3], ${safeJson(mygameShim)}, parts[4]].join("\\n;\\n");
+    var worker = new Worker(URL.createObjectURL(new Blob([combined], { type: "text/javascript" })));
+    var settled = false;
+
+    var passed = null; // null = unknown, true = passed, false = failed
+    worker.onmessage = function(e) {
+      var msg = (e.data && typeof e.data.msg === "string") ? e.data.msg : String(e.data);
+      var isFailLine = /^RANDOMTEST FAILED/.test(msg) || /^ERROR:/.test(msg) || /^WARNING /.test(msg);
+      if (isFailLine) errorCount++;
+      appendLine(msg, isFailLine ? "err" : "");
+
+      // Progress: each iteration prints "*****Seed N".
+      var im = msg.match(/^\\*{5}Seed\\s+(\\d+)/);
+      if (im) {
+        doneIterations = parseInt(im[1], 10) + 1;
+        if (statusEl.classList.contains("run")) {
+          statusEl.textContent = "Iteration " + doneIterations + " / " + totalIterations + "…";
+        }
+      }
+
+      if (passed === null && /^RANDOMTEST PASSED/.test(msg)) passed = true;
+      if (passed === null && /^RANDOMTEST FAILED/.test(msg)) passed = false;
+
+      // Completion: randomtest emits "Time: Xs" as the very last line.
+      if (!settled && /^Time:/.test(msg)) {
+        settled = true;
+        finish(passed === true && errorCount === 0, false);
+      }
+    };
+
+    worker.onerror = function(err) {
+      if (settled) return;
+      settled = true;
+      errorCount++;
+      appendLine("Worker error: " + (err.message || err), "err");
+      finish(false, true);
+    };
+
+    worker.postMessage({
+      iterations: totalIterations,
+      randomSeed: ${seed},
+      showText: false,
+      showCoverage: false,
+      highlightGenderPronouns: false,
+      showChoices: false,
+      avoidUsedOptions: true,
+      recordBalance: false,
+      sceneContent: sceneContent
     });
+  }).catch(function(err){
+    appendLine("Failed to load test runner: " + err.message, "err");
+    finish(false, true);
+  });
 })();
 </script>
 </body>
@@ -330,6 +345,21 @@ export function ValidationView({ project, onClose }: Props) {
   const startupSceneList = useMemo(() => {
     const playable = project.scenes.filter((s) => !s.isStart && !s.special).map((s) => s.name);
     return ["startup", ...playable];
+  }, [project]);
+  const initialStats = useMemo(() => {
+    const stats: Record<string, string | number | boolean> = {};
+    for (const v of project.variables) {
+      const raw = v.initial;
+      if (v.type === "number") {
+        const n = Number(raw);
+        stats[v.name] = Number.isFinite(n) ? n : 0;
+      } else if (v.type === "boolean") {
+        stats[v.name] = raw === "true";
+      } else {
+        stats[v.name] = raw ?? "";
+      }
+    }
+    return stats;
   }, [project]);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -353,10 +383,10 @@ export function ValidationView({ project, onClose }: Props) {
     if (tab === "quicktest") {
       setSrcdoc(buildQuicktestSrcdoc(sceneContent, startupSceneList));
     } else {
-      setSrcdoc(buildRandomtestSrcdoc(sceneContent, iterations, seed));
+      setSrcdoc(buildRandomtestSrcdoc(sceneContent, iterations, seed, startupSceneList, initialStats));
     }
     setIframeKey((k) => k + 1);
-  }, [tab, sceneContent, startupSceneList, iterations, seed]);
+  }, [tab, sceneContent, startupSceneList, initialStats, iterations, seed]);
 
   const switchTab = (next: Tab) => {
     setTab(next);

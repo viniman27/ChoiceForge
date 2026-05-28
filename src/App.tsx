@@ -240,15 +240,19 @@ export default function App() {
   }, [currentFilePath, dirtyOnDisk]);
 
   useEffect(() => {
-    if (updateOptedOut) return;
     let cancelled = false;
-    void (async () => {
+    const run = async (force = false) => {
+      if (!force && updateOptedOut) return;
       const info = await checkForUpdate(__APP_VERSION__);
       if (cancelled) return;
-      if (info && !isDismissed(info.version)) {
+      if (info && (force || !isDismissed(info.version))) {
         setUpdateInfo(info);
       }
-    })();
+      return info;
+    };
+    if (!updateOptedOut) void run(false);
+    // Devtools hook so users can manually trigger a check without UI.
+    (window as unknown as { __cfCheckForUpdate?: () => Promise<UpdateInfo | null | undefined> }).__cfCheckForUpdate = () => run(true);
     return () => { cancelled = true; };
   }, [updateOptedOut]);
 

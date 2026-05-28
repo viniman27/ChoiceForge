@@ -27,6 +27,19 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-05-28
+
+### Fixed
+- **Randomtest crashed with `ReferenceError: nav is not defined`** — the v0.4.1 randomtest srcdoc concatenated `util.js + scene.js + navigator.js + seedrandom.js + randomtest.js` into a single Worker Blob, but never declared the `nav` and `stats` globals that `randomtest.js` expects to be pre-populated by `web/<gameName>/mygame.js`. The Worker hit line 180 (`nav.setStartingStatsClone(stats)`) immediately on load and threw. Injected a shim between `seedrandom.js` and `randomtest.js` that defines `nav = new SceneNavigator([scene_list])` and `stats = {…initial values from project variables…}` — same pattern an exported game's `mygame.js` would use. Randomtest now runs cleanly and reports per-iteration progress + final `RANDOMTEST PASSED / FAILED` line.
+- **Randomtest completion / error detection rewritten** — previously matched random words ("error", "fail", "missing") in any output line, producing false positives on completely normal output. Now detects the official `RANDOMTEST PASSED` / `RANDOMTEST FAILED` markers and the trailing `Time:` line for unambiguous completion, and only counts `RANDOMTEST FAILED`, `ERROR:`, and `WARNING ` lines as errors.
+
+### Added
+- **Diagnostic logging on every update check** — `checkForUpdate` now logs `[ChoiceForge] checking for updates (current: vX.Y.Z, tauri: true/false)` on every launch and either confirms `no update — github latest is vX.Y.Z` or warns with the failure reason (HTTP status, missing fields, exception). Earlier silent-null returns made it impossible to tell whether the Tauri updater plugin had crashed, the GitHub API was rate-limited, or there genuinely was no new release.
+- **`window.__cfCheckForUpdate()` devtools hook** — manual force-check that bypasses the dismissed-version filter, useful when diagnosing why a banner didn't appear.
+
+### Notes for v0.4.0 / v0.4.1 users
+- The 6-hour `localStorage` cache was removed in 0.4.1 but it affects when you get the *next* check on your *current* version. If you're on 0.4.0 and the v0.4.1 banner never appeared, the cache was holding "0.4.0 is latest" for up to 6 hours past the v0.4.1 release. Download v0.4.2 manually from [Releases](https://github.com/viniman27/ChoiceForge/releases) once, then auto-update will work normally from then on.
+
 ## [0.4.1] — 2026-05-28
 
 ### Fixed
