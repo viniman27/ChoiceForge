@@ -210,7 +210,7 @@ function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: stri
     ? "Quicktest passed. " + sceneFiles.length + " scenes, no errors."
     : "Quicktest failed: " + errorCount + " error(s)" + (warningCount ? ", " + warningCount + " warning(s)" : "") + ".";
 
-  parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount, log: allLines.join("\n") }, "*");
+  parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount, log: allLines.join("\\n") }, "*");
 })();
 </script>
 </body>
@@ -281,7 +281,7 @@ stats = ${safeJson(initialStats)};
     statusEl.textContent = ok
       ? "Randomtest passed (" + totalIterations + " iterations, no errors)."
       : "Randomtest finished with " + errorCount + " error event(s)" + (fatal ? " (fatal)" : "") + ".";
-    parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount, fatal: !!fatal, iterations: totalIterations, log: allLines.join("\n") }, "*");
+    parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount, fatal: !!fatal, iterations: totalIterations, log: allLines.join("\\n") }, "*");
   }
 
   Promise.all([
@@ -552,7 +552,9 @@ function computeReadyChecks(project: ChoiceForgeProject, qt: TestResult | null, 
   const warningCount = project.lints.filter((l) => l.level === "warning").length;
   const totalWords = project.scenes.reduce((sum, s) => sum + s.words, 0);
   const hasAchievements = project.achievements.length > 0;
-  const hasStatChart = /\*stat_chart\b/.test(project.statsSource ?? "");
+  // Check the *generated* stats script, not just user-provided source — auto-stats
+  // from variables with showInStats !== false counts as a real *stat_chart too.
+  const hasStatChart = /\*stat_chart\b/.test(generateStatsChoiceScript(project));
 
   const qtStatus: ReadyCheck["status"] = !qt ? "pending" : qt.ok ? "pass" : "fail";
   const rtStatus: ReadyCheck["status"] = !rt
