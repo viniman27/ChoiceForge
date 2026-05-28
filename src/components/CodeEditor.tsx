@@ -123,27 +123,41 @@ const targetLineHighlight = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
-function buildChoiceScriptDecorations(state: EditorState): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>();
+export function buildChoiceScriptDecorations(state: EditorState): DecorationSet {
+  type Range = { from: number; to: number; decoration: Decoration };
+  const ranges: Range[] = [];
   for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
     const line = state.doc.line(lineNumber);
     const text = line.text;
     const command = text.match(/^(\s*)(\*[a-z_]+)/i);
     if (command?.[2]) {
       const from = line.from + command[1].length;
-      builder.add(from, from + command[2].length, Decoration.mark({ class: "cm-cs-command" }));
+      ranges.push({ from, to: from + command[2].length, decoration: Decoration.mark({ class: "cm-cs-command" }) });
     }
     const option = text.match(/^(\s*)(#.*)$/);
     if (option?.[2]) {
       const from = line.from + option[1].length;
-      builder.add(from, line.to, Decoration.mark({ class: "cm-cs-option" }));
+      ranges.push({ from, to: line.to, decoration: Decoration.mark({ class: "cm-cs-option" }) });
     }
     for (const variable of text.matchAll(/\$\{[a-zA-Z_][\w]*\}/g)) {
-      builder.add(line.from + variable.index, line.from + variable.index + variable[0].length, Decoration.mark({ class: "cm-cs-variable" }));
+      const from = line.from + (variable.index ?? 0);
+      ranges.push({ from, to: from + variable[0].length, decoration: Decoration.mark({ class: "cm-cs-variable" }) });
     }
     for (const multi of text.matchAll(/@\{[^}]+\}/g)) {
-      builder.add(line.from + multi.index, line.from + multi.index + multi[0].length, Decoration.mark({ class: "cm-cs-multi" }));
+      const from = line.from + (multi.index ?? 0);
+      ranges.push({ from, to: from + multi[0].length, decoration: Decoration.mark({ class: "cm-cs-multi" }) });
     }
+  }
+  ranges.sort((a, b) => a.from - b.from || a.to - b.to);
+  const builder = new RangeSetBuilder<Decoration>();
+  let lastFrom = -1;
+  let lastTo = -1;
+  for (const range of ranges) {
+    if (range.from < lastTo) continue;
+    if (range.from === lastFrom && range.to === lastTo) continue;
+    builder.add(range.from, range.to, range.decoration);
+    lastFrom = range.from;
+    lastTo = range.to;
   }
   return builder.finish();
 }
