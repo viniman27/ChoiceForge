@@ -27,6 +27,16 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-28
+
+### Added
+- **`Ready?` tab in Validate for submission** — new default tab with a 6-point CoG submission readiness checklist: no lint errors (required), word count ≥ 25 000, has achievements, has `*stat_chart`, quicktest passes (required), randomtest ≥ 10 000 iterations passes (required). Each row shows a status icon (✓ pass / ! warn / ✗ fail / ○ pending) and a detail line; the test rows have a one-click "Run" / "Run with 10k" button. Live summary banner at top calls out whether required checks pass, recommendations remain, or you're ready to ship. Designed to replace the "run four things separately, mentally track what's done" workflow with a single glance.
+- **Download log button** in Quicktest / Randomtest tabs — saves the full test output (including the lines beyond the 5000-line display truncation) to a timestamped `.txt` file. On desktop opens the native save dialog; on web triggers a browser download. Useful for pasting into CoG submission tickets or sharing with co-authors.
+- **`nativeSaveBytes(bytes, name, label, extensions)`** helper in `platform/fileSystem.ts` — generic Tauri save dialog + binary write. Used by both the ZIP export and the new log download.
+
+### Changed
+- Quicktest and randomtest results now **persist across tab switches within the session** and the same project — switching between `Ready?`, `Quicktest`, and `Randomtest` no longer wipes the last result. Invalidated automatically when the project's scene/node/variable/achievement counts change.
+
 ## [0.4.4] — 2026-05-28
 
 ### Added
