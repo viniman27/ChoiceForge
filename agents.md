@@ -343,6 +343,29 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-27 — Claude Code (claude-opus-4-7) — session 198
+- **Three UX decisions resolved via discussion: keep `label` node + actionable lint hint, expanded HelpGuide, desktop autosave to .json file with dirty indicator.**
+  - **Decision recap** (recorded so future agents understand the rationale):
+    - **`label` node stays.** User asked if it should be removed given the synthetic `*label cf_n*` mechanism. Removing would break: importing existing CS, `*gosub`/`*gosub_scene` (need named targets), human-readable .txt exports, cross-scene jumps with entry labels. Solution: keep node + reinforce the existing `unreferenced_label` lint with actionable text + document the "when to use *label" decision in the HelpGuide FAQ and Node Types tab.
+    - **HelpGuide expansion accepted.** Three new tabs (Patterns, Cheatsheet, FAQ) + enriched Node Types with command / use-when / skip-when fields per node.
+    - **Desktop autosave: option B (autosave to .json) + dirty indicator.** User confirmed expectation that desktop behaves like a typical app — close+reopen should see latest changes on disk, not just localStorage.
+  - **Desktop autosave + dirty indicator** (`App.tsx`, `platform/fileSystem.ts`):
+    - New `nativeWriteProject(content, path)` silent variant (no Save As dialog).
+    - 1.5 s debounced autosave loop in App.tsx: compares serialised project against `lastWrittenSerialisedRef`; if changed and a `currentFilePath` exists, writes the new content silently. Web mode unaffected.
+    - Window title prefixed with `●` while there are unsaved-to-disk changes; cleared on flush. Manual save / Save As / Open all reset the dirty state and sync the ref. Errors logged with `[ChoiceForge]` prefix.
+  - **HelpGuide expansion** (`HelpGuide.tsx`, `styles.css`):
+    - Three new tabs: **Patterns** (6 ASCII diagrams: linear chain, branching+merge, conditional fallthrough, subroutine, cross-scene flow, loop with exit), **Cheatsheet** (condensed CS syntax reference grouped by category), **FAQ** (12 entries — opens with "Do I need to use *label nodes?" addressing the user's exact question).
+    - Node Types tab rewritten — each entry now shows command (mono pill), description, "Use when:" guidance, and (for the 5 nodes with common misuse) a "Skip when:" warning. The `label` node entry explicitly enumerates the four cases where it's needed and the case where it isn't.
+    - Project tab gains a "Suggested workflow" section: scene_list → variables → graph → prose → conditions → playtest → export, in order.
+    - Inspector tab fixes the stale "Draft / Review" status names (actual values are Todo / Done).
+    - Import/Export tab updates the Ctrl+S description to mention the new desktop .json autosave behaviour.
+    - Tab order: Canvas, Node Types, Patterns, Cheatsheet, Inspector, Project, Import/Export, Shortcuts, FAQ. FAQ goes last because that's where users land when something feels wrong.
+    - CSS additions: `.hg-node-grid-detailed`, `.hg-node-entry-detailed`, `.hg-node-head/.hg-node-titles/.hg-node-command`, `.hg-node-when/.hg-node-avoid` (with bold "Use when:" / "Skip when:" prefixes), `.hg-code` pre block for ASCII diagrams, `.hg-section ul / p / code`.
+  - **Lint reinforcement** (`choicescript.ts`, `lintMessages.ts`): `unreferenced_label` info-level diagnostic rewritten from "is never referenced by any *goto or *gosub" to "is never referenced — if this is just a flow target you can delete the *label node; flow connections work without an explicit label". PT and ES translated. Pairs with the HelpGuide FAQ entry.
+  - **Tests**: 387 domain + 67 UI = **454 passing**. Build clean.
+  - **Commits**: `d860dca` (desktop autosave + dirty indicator), `83d0f21` (HelpGuide expansion), `bd349bf` (lint hint).
+  - **Worth considering for v0.2.0 cut**: desktop autosave is the most visible behaviour change since v0.1.0; HelpGuide expansion is substantial; lint hint is a polish item. Together they're a strong second release.
+
 ### 2026-05-27 — Claude Code (claude-opus-4-7) — session 197
 - **First public release: README rewrite, desktop release pipeline, Dependabot triage, v0.1.0 tag cut.**
   - **Dependabot triage** (7 open PRs reviewed):
