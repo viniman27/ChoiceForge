@@ -1984,7 +1984,15 @@ export function stripAchieveCommands(text: string): string {
   return text.replace(/^[ \t]*\*achieve(?:[ \t]+\S[^\n]*?)?[ \t]*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-const EXPRESSION_RESERVED = new Set(["and", "or", "not", "true", "false", "modulo", "round", "round_down", "log", "abs", "length", "auto"]);
+const EXPRESSION_RESERVED = new Set([
+  "and", "or", "not", "true", "false", "modulo", "round", "round_down", "log", "abs", "length", "auto",
+  // ChoiceScript runtime / test-harness built-ins. Always available, never user-declared.
+  "choice_randomtest", "choice_quicktest", "choice_purchase_supported", "choice_subscribe_supported",
+  "choice_save_allowed", "choice_registered", "choice_is_advertising_supported", "choice_is_trial",
+  "choice_is_steam", "choice_is_ios_app", "choice_is_android_app", "choice_is_omnibus_app",
+  "choice_release_date", "choice_kindle", "choice_nightmode", "choice_time_stamp",
+  "choice_prerelease", "choice_save_slot",
+]);
 
 function extractExpressionNames(expression: string): string[] {
   return [...stripQuotedStrings(expression).matchAll(/\b[a-zA-Z_][\w]*\b/g)]

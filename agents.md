@@ -343,6 +343,21 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 204
+- **v0.4.3: Desktop export ZIP fix + randomtest UI hang fix + sample restore_checkpoint guard + update re-check on focus.**
+  - **User-reported issues after v0.4.2 install** (3 simultaneous):
+    1. Randomtest crashed in v0.4.2 with `RANDOMTEST FAILED: Error: intro line 55: Randomtest is not allowed to run *restore_checkpoint` — but UI stayed at "Running…" forever.
+    2. Desktop export ZIP button did nothing.
+    3. v0.4.2 update never appeared in their v0.4.1 install.
+  - **Randomtest UI hang** (`ValidationView.tsx`): traced the issue to `randomtest.js` line 904 — on fatal error it sets `processExit = true` and `break`s the iteration loop, which skips the `if (!processExit)` block at line 921 that emits `Time: Xs`. Our completion guard was `/^Time:/` only, so the worker went silent and the panel never resolved. Now also settles on `/^RANDOMTEST FAILED/`. The error message in the log already names the offending file:line, so users get full diagnostics.
+  - **Sample project `*restore_checkpoint` guard** (`sampleProject.ts` line 83): the demo flow had a `*choice` option leading to a `restore_checkpoint` node. Wrapped the option in `cond: { type: "if", expr: "not(choice_randomtest)" }` so randomtest never picks it (quicktest still does, since `choice_quicktest` is true but `choice_randomtest` is false there). Same demo intent preserved — the user still sees the checkpoint flow during manual play.
+  - **CS runtime built-ins recognized as known names** (`choicescript.ts` `EXPRESSION_RESERVED`): added 18 entries — `choice_randomtest`, `choice_quicktest`, `choice_purchase_supported`, `choice_subscribe_supported`, `choice_save_allowed`, `choice_registered`, `choice_is_advertising_supported`, `choice_is_trial`, `choice_is_steam`, `choice_is_ios_app`, `choice_is_android_app`, `choice_is_omnibus_app`, `choice_release_date`, `choice_kindle`, `choice_nightmode`, `choice_time_stamp`, `choice_prerelease`, `choice_save_slot`. These are CS-engine-provided variables that should never trigger `undef_var` warnings.
+  - **Desktop export ZIP** (`fileSystem.ts` `nativeExportZip` + `App.tsx::downloadGeneratedProject`): the export used the browser `<a download="x.zip">` simulated-click pattern, which silently no-ops in the Tauri webview (no native download handler for `blob:` URLs). Added `nativeExportZip(bytes, suggestedName)` which calls Tauri's save dialog + `writeFile` (binary). New `fs:allow-write-file` capability granted in `default.json`. The download function branches on `isTauri()` — web flow unchanged.
+  - **Update re-check on window focus** (`App.tsx`): the update check fired exactly once at `useEffect` mount. If the user opened the app before a new release went live, they'd never see the banner. Added a `focus` listener that re-runs the check (debounced 5 min), so alt-tabbing back from the browser or notifications surfaces the new banner. The `__cfCheckForUpdate()` devtools hook still bypasses the debounce.
+  - **v0.4.3** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 passing. Build clean.
+  - **Next**: commit, tag v0.4.3, push. v0.4.2 users will see the banner automatically (now that v0.4.2 hits GitHub API directly without cache). The randomtest output for the sample should now read `RANDOMTEST PASSED` end-to-end.
+
 ### 2026-05-28 — Claude Code (claude-sonnet-4-6) — session 203
 - **v0.4.2: Randomtest `nav is not defined` fix + diagnostic logging on update check.**
   - **User-reported issues** (both after testing v0.4.1):

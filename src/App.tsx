@@ -20,7 +20,7 @@ import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceSc
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
-import { isTauri, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
 import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type InstallProgress, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
@@ -241,8 +241,12 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    let lastCheck = 0;
+    const MIN_INTERVAL_MS = 5 * 60 * 1000;
     const run = async (force = false) => {
       if (!force && updateOptedOut) return;
+      if (!force && Date.now() - lastCheck < MIN_INTERVAL_MS) return;
+      lastCheck = Date.now();
       const info = await checkForUpdate(__APP_VERSION__);
       if (cancelled) return;
       if (info && (force || !isDismissed(info.version))) {
@@ -251,9 +255,17 @@ export default function App() {
       return info;
     };
     if (!updateOptedOut) void run(false);
+    // Re-check when the window regains focus — covers the case where a user
+    // launched the app before a new release went live and would otherwise
+    // never see the banner until they restart.
+    const onFocus = () => { void run(false); };
+    window.addEventListener("focus", onFocus);
     // Devtools hook so users can manually trigger a check without UI.
     (window as unknown as { __cfCheckForUpdate?: () => Promise<UpdateInfo | null | undefined> }).__cfCheckForUpdate = () => run(true);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+    };
   }, [updateOptedOut]);
 
   const selectedNode = lintedProject.nodes.find((node) => node.id === selectedId) ?? null;
@@ -804,11 +816,19 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
 
 function downloadGeneratedProject(project: ChoiceForgeProject) {
   const zipBytes = createZipArchive(createExportPackage(project).files);
+  const suggestedName = `${project.title}.zip`;
+  if (isTauri()) {
+    void nativeExportZip(zipBytes, suggestedName).catch((err) => {
+      console.error("[ChoiceForge] native export failed", err);
+      window.alert(`Export failed: ${err?.message ?? String(err)}`);
+    });
+    return;
+  }
   const blob = new Blob([toArrayBuffer(zipBytes)], { type: "application/zip" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${project.title}.zip`;
+  anchor.download = suggestedName;
   anchor.click();
   URL.revokeObjectURL(url);
 }

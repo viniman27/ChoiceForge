@@ -80,7 +80,7 @@ const intro: SceneGraph = {
       prompt: "Antes de abrir a porta da sala de maquinas, voce testa o ponto de retorno.",
       options: [
         { text: "Entrar na sala de maquinas.", to: "n6", cond: null },
-        { text: "Restaurar o checkpoint antes de seguir.", to: "n14", cond: null },
+        { text: "Restaurar o checkpoint antes de seguir.", to: "n14", cond: { type: "if", expr: "not(choice_randomtest)" } },
       ],
     },
     { id: "n6", type: "goto_scene", x: 1980, y: 340, w: 260, title: "*goto_scene sala_maquinas", target: "sala_maquinas" },
