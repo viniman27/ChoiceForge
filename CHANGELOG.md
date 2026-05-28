@@ -27,6 +27,17 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-28
+
+### Added
+- **Validate for submission panel** — new `✓ Validate` button in the top bar opens a modal that runs the official Choice of Games **Quicktest** (exhaustive DFS over every path, catches missing labels / undefined variables / runtime errors) and **Randomtest** (N random playthroughs, default 1000, catches errors in rare paths). Pass these before submitting a game to Choice of Games for review. Runs the actual ChoiceScript engine in an isolated iframe with the project's exported `.txt` files loaded in memory — no upload, no temp files. Randomtest spawns the official worker so iteration count is configurable up to 100 000.
+
+### Fixed
+- **Top bar title/author input layout** — inputs no longer get squashed or overlapped at narrow viewport widths. Added `min-width:0` + `overflow:hidden` at the right grid track levels, switched the inputs from `clamp(72px, 9vw, 170px)` fixed widths to `flex:1 1 0` with `min-width:40px` + `max-width:170px`. Focused input expands at the expense of the inactive one. Inputs got `placeholder="title"/"author"` + native `title` attribute so the purpose is obvious even when truncated.
+
+### Changed
+- **Import vs Folder buttons** — kept both but added clear tooltips explaining the difference. `Import` is for individual `.json` / `.zip` / `.txt` files; `Folder` picks a directory and imports all `.txt` scenes inside (shortcut for full ChoiceScript game directories).
+
 ## [0.3.0] — 2026-05-28
 
 ### Added

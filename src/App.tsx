@@ -14,6 +14,7 @@ import { OfficialPlayView } from "./components/OfficialPlayView";
 import { PanelErrorBoundary } from "./components/PanelErrorBoundary";
 import { RightPanel } from "./components/RightPanel";
 import { TopBar } from "./components/TopBar";
+import { ValidationView } from "./components/ValidationView";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
@@ -49,6 +50,7 @@ export default function App() {
   const [generatedDocumentId, setGeneratedDocumentId] = useState<GeneratedDocumentId | null>(null);
   const [generatedDocumentLine, setGeneratedDocumentLine] = useState<number | null>(null);
   const [playOpen, setPlayOpen] = useState(false);
+  const [validateOpen, setValidateOpen] = useState(false);
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
@@ -362,6 +364,14 @@ export default function App() {
         }}
         onPlay={() => {
           setPlayOpen(true);
+          setValidateOpen(false);
+          setGeneratedDocumentId(null);
+          setGeneratedDocumentLine(null);
+          setSelectedId(null);
+        }}
+        onValidate={() => {
+          setValidateOpen(true);
+          setPlayOpen(false);
           setGeneratedDocumentId(null);
           setGeneratedDocumentLine(null);
           setSelectedId(null);
@@ -450,7 +460,9 @@ export default function App() {
         }}
       />
       <PanelErrorBoundary panelName="Canvas / editor">
-      {playOpen ? (
+      {validateOpen ? (
+        <ValidationView project={lintedProject} onClose={() => setValidateOpen(false)} />
+      ) : playOpen ? (
         <OfficialPlayView project={lintedProject} onClose={() => setPlayOpen(false)} />
       ) : generatedDocument ? (
         <Suspense fallback={<section className="generated-doc generated-doc-loading">Loading editor...</section>}>

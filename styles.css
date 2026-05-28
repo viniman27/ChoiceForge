@@ -2463,6 +2463,97 @@ input, select, textarea { font-family: inherit; color: inherit; }
   height: 100%;
   background: #F7F4F1;
 }
+.validation-view {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+.validation-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 12px;
+}
+.validation-tab {
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  color: var(--ink-mute);
+  padding: 4px 12px;
+  border-radius: var(--r-2);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.validation-tab.is-active {
+  background: var(--accent-1);
+  color: var(--paper-1);
+  border-color: var(--accent-1);
+}
+.validation-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--paper-edge);
+  flex-wrap: wrap;
+}
+.validation-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.validation-hint strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.validation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-mute);
+}
+.validation-field input {
+  width: 90px;
+  padding: 4px 8px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--r-1);
+  background: var(--paper-1);
+  color: var(--ink);
+  font-size: 12px;
+}
+.validation-run-btn {
+  font-weight: 600;
+}
+.validation-result-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.validation-result-pill.ok {
+  background: rgba(0, 128, 0, 0.12);
+  color: #060;
+}
+.validation-result-pill.fail {
+  background: rgba(200, 0, 0, 0.12);
+  color: #911;
+}
+.validation-iframe {
+  background: #fff;
+}
+.validation-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-1);
+  color: var(--ink-mute);
+  font-size: 13px;
+}
 
 /* ── HelpGuide ──────────────────────────────────────────────────────────── */
 .hg-backdrop {

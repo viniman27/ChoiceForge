@@ -22,6 +22,7 @@ interface TopBarProps {
   saveStatus: string;
   onTextMode: () => void;
   onPlay: () => void;
+  onValidate: () => void;
   onImport: (files: File[]) => void;
   onExport: () => void;
   onNewProject: () => void;
@@ -33,7 +34,7 @@ interface TopBarProps {
   onNativeSaveAs?: () => void;
 }
 
-export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
+export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onValidate, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -132,6 +133,13 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
           {labels.topImportFolder}
         </button>
         <button className="ghost-btn" onClick={onExport}>{labels.export}</button>
+        <button
+          className="ghost-btn"
+          onClick={onValidate}
+          title="Run Quicktest / Randomtest (Choice of Games submission requirements)"
+        >
+          ✓ Validate
+        </button>
         <button className="play-btn" onClick={onPlay}>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor"><path d="M2 1l8 4.5-8 4.5z" /></svg>
           {labels.play}

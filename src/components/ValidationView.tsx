@@ -1,0 +1,370 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "../domain/choicescript";
+import type { ChoiceForgeProject } from "../domain/types";
+
+type Tab = "quicktest" | "randomtest";
+
+interface Props {
+  project: ChoiceForgeProject;
+  onClose: () => void;
+}
+
+interface SceneContent {
+  [filename: string]: string;
+}
+
+function buildSceneContent(project: ChoiceForgeProject): SceneContent {
+  const map: SceneContent = {};
+  map["startup.txt"] = project.startupSource !== undefined
+    ? generateStartupChoiceScript(project)
+    : generateStartupChoiceScript(project);
+  map["choicescript_stats.txt"] = generateStatsChoiceScript(project);
+  for (const scene of project.scenes) {
+    if (scene.isStart || scene.special) continue;
+    map[`${scene.name}.txt`] = generateSceneChoiceScript(project, scene.name);
+  }
+  return map;
+}
+
+function safeJson(value: unknown): string {
+  return JSON.stringify(value).replace(/<\//g, "<\\/");
+}
+
+function buildQuicktestSrcdoc(sceneContent: SceneContent, startupSceneList: string[]): string {
+  const base = window.location.origin;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Quicktest</title>
+<style>
+  body { font-family: ui-monospace, monospace; padding: 16px; margin: 0; background: #fff; color: #111; font-size: 12px; line-height: 1.5; }
+  #status { padding: 8px 12px; background: #eef; border: 1px solid #99c; border-radius: 4px; margin-bottom: 12px; font-weight: 600; }
+  #status.ok { background: #efe; border-color: #6c6; color: #163; }
+  #status.fail { background: #fee; border-color: #c66; color: #611; }
+  #status.run { background: #ffe; border-color: #cb6; color: #642; }
+  pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+  .line { padding: 2px 0; }
+  .err { color: #c00; font-weight: 600; }
+  .warn { color: #b60; }
+  .info { color: #555; }
+  .ok { color: #060; }
+</style>
+</head>
+<body>
+<div id="status" class="run">Running quicktest…</div>
+<div id="log"></div>
+<script src="${base}/play/util.js"></script>
+<script src="${base}/play/scene.js"></script>
+<script src="${base}/play/navigator.js"></script>
+<script src="${base}/test/embeddable-autotester.js"></script>
+<script>
+(function(){
+  var sceneContent = ${safeJson(sceneContent)};
+  var sceneList = ${safeJson(startupSceneList)};
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var errorCount = 0;
+  var warningCount = 0;
+  var lineCount = 0;
+  var MAX_LINES = 5000;
+
+  function appendLine(msg, cls) {
+    if (lineCount > MAX_LINES) {
+      if (lineCount === MAX_LINES + 1) {
+        var d = document.createElement("div");
+        d.className = "line warn";
+        d.textContent = "(log truncated at " + MAX_LINES + " lines)";
+        logEl.appendChild(d);
+      }
+      lineCount++;
+      return;
+    }
+    var div = document.createElement("div");
+    div.className = "line " + (cls || "");
+    div.textContent = msg;
+    logEl.appendChild(div);
+    lineCount++;
+  }
+
+  // Capture console output from autotester
+  var origLog = console.log;
+  var origErr = console.error;
+  console.log = function() {
+    var msg = Array.prototype.slice.call(arguments).map(String).join(" ");
+    appendLine(msg, /error|fail|cannot|undefined|missing/i.test(msg) ? "err" : "info");
+    origLog.apply(console, arguments);
+  };
+  console.error = function() {
+    errorCount++;
+    var msg = Array.prototype.slice.call(arguments).map(String).join(" ");
+    appendLine(msg, "err");
+    origErr.apply(console, arguments);
+  };
+
+  // Configure Scene class to fetch from in-memory sceneContent
+  Scene.prototype.loadSceneFast = function loadSceneFast(name) {
+    var n = (name || this.name) + ".txt";
+    var text = sceneContent[n];
+    if (text === undefined) {
+      throw new Error("Scene file does not exist: " + n);
+    }
+    this.lines = text.replace(/\\r/g, "").split("\\n");
+    this.parseLabels();
+    this.loaded = true;
+  };
+  Scene.prototype.loadScene = Scene.prototype.loadSceneFast;
+  Scene.prototype.verifySceneFile = function(name) { /* permissive */ };
+  Scene.prototype.verifyImage = function(name) { /* permissive */ };
+
+  window.knownScenes = Object.keys(sceneContent).map(function(n){return n.replace(/\\.txt$/,"");});
+  window.knownImages = {};
+  window.warnings = [];
+
+  try {
+    var nav = new SceneNavigator(sceneList);
+    var startup = new Scene("startup", {}, nav);
+    startup.loadSceneFast("startup");
+    startup.execute();
+
+    var ok = errorCount === 0;
+    statusEl.className = ok ? "ok" : "fail";
+    statusEl.textContent = ok
+      ? "Quicktest passed. No errors found."
+      : "Quicktest failed: " + errorCount + " error(s).";
+
+    parent.postMessage({ type: "quicktest:done", ok: ok, errorCount: errorCount, warningCount: warningCount }, "*");
+  } catch (err) {
+    errorCount++;
+    appendLine("FATAL: " + (err && err.message ? err.message : String(err)), "err");
+    statusEl.className = "fail";
+    statusEl.textContent = "Quicktest crashed: " + (err && err.message ? err.message : err);
+    parent.postMessage({ type: "quicktest:done", ok: false, errorCount: errorCount, warningCount: warningCount, fatal: true }, "*");
+  }
+})();
+</script>
+</body>
+</html>`;
+}
+
+function buildRandomtestSrcdoc(sceneContent: SceneContent, iterations: number, seed: number): string {
+  const base = window.location.origin;
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Randomtest</title>
+<style>
+  body { font-family: ui-monospace, monospace; padding: 16px; margin: 0; background: #fff; color: #111; font-size: 12px; line-height: 1.5; }
+  #status { padding: 8px 12px; background: #eef; border: 1px solid #99c; border-radius: 4px; margin-bottom: 12px; font-weight: 600; }
+  #status.ok { background: #efe; border-color: #6c6; color: #163; }
+  #status.fail { background: #fee; border-color: #c66; color: #611; }
+  #status.run { background: #ffe; border-color: #cb6; color: #642; }
+  pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+  .line { padding: 1px 0; }
+  .err { color: #c00; font-weight: 600; }
+  .ok { color: #060; }
+</style>
+</head>
+<body>
+<div id="status" class="run">Starting randomtest (${iterations} iterations, seed ${seed})…</div>
+<div id="log"></div>
+<script>
+(function(){
+  var sceneContent = ${safeJson(sceneContent)};
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var errorCount = 0;
+  var lineCount = 0;
+  var MAX_LINES = 5000;
+  var doneIterations = 0;
+
+  function appendLine(msg, cls) {
+    if (lineCount > MAX_LINES) {
+      if (lineCount === MAX_LINES + 1) {
+        var d = document.createElement("div");
+        d.className = "line";
+        d.textContent = "(log truncated at " + MAX_LINES + " lines — open browser devtools to see all)";
+        logEl.appendChild(d);
+      }
+      lineCount++;
+      return;
+    }
+    var div = document.createElement("div");
+    div.className = "line " + (cls || "");
+    div.textContent = msg;
+    logEl.appendChild(div);
+    lineCount++;
+  }
+
+  // Spawn the official randomtest worker
+  var worker;
+  fetch("${base}/test/randomtest.js")
+    .then(function(r){ return r.text(); })
+    .then(function(workerSource){
+      return fetch("${base}/test/seedrandom.js").then(function(r){ return r.text(); }).then(function(seedSource){
+        return fetch("${base}/play/scene.js").then(function(r){ return r.text(); }).then(function(sceneSource){
+          return fetch("${base}/play/navigator.js").then(function(r){ return r.text(); }).then(function(navSource){
+            return fetch("${base}/play/util.js").then(function(r){ return r.text(); }).then(function(utilSource){
+              var combined = [utilSource, sceneSource, navSource, seedSource, workerSource].join("\\n;\\n");
+              worker = new Worker(URL.createObjectURL(new Blob([combined], { type: "text/javascript" })));
+              worker.onmessage = function(e) {
+                var msg = e.data && e.data.msg ? e.data.msg : String(e.data);
+                var isErr = /error|fail|cannot|undefined|missing|unable/i.test(msg);
+                if (isErr) errorCount++;
+                appendLine(msg, isErr ? "err" : "");
+                if (/^Tested (\\d+) /.test(msg)) {
+                  var m = msg.match(/^Tested (\\d+) /);
+                  if (m) {
+                    doneIterations = parseInt(m[1], 10);
+                    statusEl.textContent = "Iteration " + doneIterations + " / ${iterations}…";
+                  }
+                }
+                if (msg.indexOf("Total time") === 0 || /Tested ${iterations}/.test(msg)) {
+                  var ok = errorCount === 0;
+                  statusEl.className = ok ? "ok" : "fail";
+                  statusEl.textContent = ok
+                    ? "Randomtest passed (" + ${iterations} + " iterations, no errors)."
+                    : "Randomtest finished with " + errorCount + " error event(s).";
+                  parent.postMessage({ type: "randomtest:done", ok: ok, errorCount: errorCount }, "*");
+                }
+              };
+              worker.onerror = function(err) {
+                errorCount++;
+                appendLine("Worker error: " + (err.message || err), "err");
+                statusEl.className = "fail";
+                statusEl.textContent = "Randomtest worker crashed.";
+                parent.postMessage({ type: "randomtest:done", ok: false, errorCount: errorCount, fatal: true }, "*");
+              };
+              worker.postMessage({
+                iterations: ${iterations},
+                randomSeed: ${seed},
+                showText: false,
+                showCoverage: false,
+                highlightGenderPronouns: false,
+                showChoices: false,
+                avoidUsedOptions: true,
+                recordBalance: false,
+                sceneContent: sceneContent
+              });
+            });
+          });
+        });
+      });
+    })
+    .catch(function(err){
+      appendLine("Failed to load test runner: " + err.message, "err");
+      statusEl.className = "fail";
+      statusEl.textContent = "Setup failed: " + err.message;
+    });
+})();
+</script>
+</body>
+</html>`;
+}
+
+export function ValidationView({ project, onClose }: Props) {
+  const [tab, setTab] = useState<Tab>("quicktest");
+  const [iterations, setIterations] = useState(1000);
+  const [seed, setSeed] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; errorCount: number; warningCount?: number; fatal?: boolean } | null>(null);
+  const [srcdoc, setSrcdoc] = useState<string>("");
+  const [iframeKey, setIframeKey] = useState(0);
+
+  const sceneContent = useMemo(() => buildSceneContent(project), [project]);
+  const startupSceneList = useMemo(() => {
+    const playable = project.scenes.filter((s) => !s.isStart && !s.special).map((s) => s.name);
+    return ["startup", ...playable];
+  }, [project]);
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const data = e.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "quicktest:done" || data.type === "randomtest:done") {
+        setRunning(false);
+        setResult({ ok: !!data.ok, errorCount: data.errorCount | 0, warningCount: data.warningCount, fatal: !!data.fatal });
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const runTest = useCallback(() => {
+    setResult(null);
+    setRunning(true);
+    if (tab === "quicktest") {
+      setSrcdoc(buildQuicktestSrcdoc(sceneContent, startupSceneList));
+    } else {
+      setSrcdoc(buildRandomtestSrcdoc(sceneContent, iterations, seed));
+    }
+    setIframeKey((k) => k + 1);
+  }, [tab, sceneContent, startupSceneList, iterations, seed]);
+
+  const switchTab = (next: Tab) => {
+    setTab(next);
+    setSrcdoc("");
+    setResult(null);
+    setRunning(false);
+  };
+
+  return (
+    <div className="official-play validation-view">
+      <div className="official-play-head">
+        <h1>Validate for submission</h1>
+        <div className="validation-tabs">
+          <button className={`validation-tab ${tab === "quicktest" ? "is-active" : ""}`} onClick={() => switchTab("quicktest")}>Quicktest</button>
+          <button className={`validation-tab ${tab === "randomtest" ? "is-active" : ""}`} onClick={() => switchTab("randomtest")}>Randomtest</button>
+        </div>
+        <div className="official-play-actions">
+          <button className="icon-btn" onClick={onClose} title="Close">✕</button>
+        </div>
+      </div>
+      <div className="validation-controls">
+        {tab === "quicktest" ? (
+          <p className="validation-hint">
+            <strong>Quicktest</strong> walks every possible path through every scene exhaustively. Catches missing labels, undefined variables, runtime errors. Choice of Games requires this to pass with zero errors before submission.
+          </p>
+        ) : (
+          <>
+            <p className="validation-hint">
+              <strong>Randomtest</strong> plays the game N times randomly. Catches errors in rare paths and reports line coverage. Choice of Games typically requires <strong>≥ 10 000 iterations</strong> with zero errors.
+            </p>
+            <label className="validation-field">
+              <span>Iterations</span>
+              <input type="number" min={10} max={100000} step={100} value={iterations} disabled={running} onChange={(e) => setIterations(Math.max(10, Math.min(100000, parseInt(e.target.value, 10) || 1000)))} />
+            </label>
+            <label className="validation-field">
+              <span>Seed</span>
+              <input type="number" value={seed} disabled={running} onChange={(e) => setSeed(parseInt(e.target.value, 10) || 0)} />
+            </label>
+          </>
+        )}
+        <button className="ghost-btn validation-run-btn" onClick={runTest} disabled={running}>
+          {running ? "Running…" : `Run ${tab}`}
+        </button>
+        {result && (
+          <span className={`validation-result-pill ${result.ok ? "ok" : "fail"}`}>
+            {result.ok ? "✓ passed" : `✗ ${result.errorCount} error${result.errorCount !== 1 ? "s" : ""}${result.fatal ? " (fatal)" : ""}`}
+          </span>
+        )}
+      </div>
+      {srcdoc ? (
+        <iframe
+          key={iframeKey}
+          ref={iframeRef}
+          className="official-play-iframe validation-iframe"
+          srcDoc={srcdoc}
+          title={tab === "quicktest" ? "Quicktest results" : "Randomtest results"}
+        />
+      ) : (
+        <div className="validation-empty">
+          <p>Click <strong>Run {tab}</strong> above to start. Results appear here.</p>
+        </div>
+      )}
+    </div>
+  );
+}
