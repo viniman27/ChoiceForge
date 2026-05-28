@@ -59,11 +59,24 @@ jobs:
             - **macOS** — `.dmg` (universal: Intel + Apple Silicon)
             - **Windows** — `.msi` (x64)
 
-            Open the `.dmg` and drag ChoiceForge to Applications, or run the `.msi` on Windows.
-
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what's new.
 
-            > First-launch security prompt: this is an unsigned build. macOS users may need to right-click → Open the first time; Windows SmartScreen may ask you to confirm. Signing certificates are not yet set up.
+            ---
+
+            ### Installing on macOS
+
+            1. Open the `.dmg` and drag **ChoiceForge** to **Applications**.
+            2. First launch is blocked by Gatekeeper because this build isn't code-signed. **Right-click → Open is not enough on macOS 15+.** Use one of:
+               - **System Settings → Privacy & Security → "Open Anyway"** after the block dialog appears, or
+               - Terminal: `xattr -dr com.apple.quarantine /Applications/ChoiceForge.app`
+            3. After the first open, macOS remembers your choice.
+
+            ### Installing on Windows
+
+            1. Run the `.msi`. Windows SmartScreen blocks unsigned installers — click **More info → Run anyway**.
+            2. Subsequent launches work normally.
+
+            > Code-signing certificates aren't set up yet (Apple Developer + Authenticode). The prompts above are part of the install flow until that's funded.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

@@ -134,8 +134,25 @@ Native installers are published on the [**Releases page**](https://github.com/vi
 
 ### Installing
 
-- **macOS**: Open the `.dmg`, drag **ChoiceForge** to **Applications**. First launch: right-click the app → *Open* → confirm (it's not yet code-signed).
-- **Windows**: Run the `.msi`. SmartScreen may ask you to confirm (it's not yet code-signed).
+#### macOS
+
+1. Open the `.dmg` and drag **ChoiceForge** to **Applications**.
+2. The first launch is blocked by Gatekeeper because the build is not yet code-signed. **Right-click → *Open* may not be enough on macOS 15+** — Gatekeeper will say *"Apple could not verify this app is free of malware."* Two options:
+   - **Easy fix (Settings)**: try to open the app → close the Gatekeeper dialog → open **System Settings → Privacy & Security** → scroll to "ChoiceForge was blocked…" → click **Open Anyway** → confirm.
+   - **Terminal fix (one command)**: remove the quarantine flag that Gatekeeper checks:
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/ChoiceForge.app
+     ```
+     Then double-click as normal.
+3. After the first successful open, macOS remembers your choice — subsequent launches work normally.
+
+#### Windows
+
+1. Run the `.msi` (or `.exe` installer). Windows SmartScreen will block it because the build is not yet code-signed (*"Windows protected your PC"*).
+2. Click **More info → Run anyway** to confirm.
+3. Subsequent launches work normally.
+
+> Code-signing certificates for both platforms are on the roadmap. Until then, the prompts above are part of the install flow.
 
 ### What the desktop app adds over the web version
 
