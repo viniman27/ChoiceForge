@@ -83,4 +83,5 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: false
+          updaterJsonKeepUniversal: true
           args: ${{ matrix.args }}
