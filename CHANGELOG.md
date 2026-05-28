@@ -27,6 +27,11 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-05-28
+
+### Added
+- **DevTools enabled in desktop production builds** — added the `devtools` feature to the `tauri` crate so users can press **F12** (or **Ctrl+Shift+I** on Windows / **Cmd+Option+I** on macOS) to open the WebView inspector. Useful for reading the `[ChoiceForge]` update-check logs and any other runtime diagnostics without needing a dev build. ChoiceForge is an open-source local editor that handles no secrets — making the inspector available everywhere is a reasonable tradeoff for debuggability.
+
 ## [0.4.3] — 2026-05-28
 
 ### Fixed

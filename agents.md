@@ -343,6 +343,14 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 205
+- **v0.4.4: Enable DevTools in desktop production builds.**
+  - User asked how to see console logs on Windows. In Tauri 2 production builds, DevTools is OFF by default — F12 does nothing. Added `"devtools"` feature to `tauri = { version = "2", features = [...] }` in `src-tauri/Cargo.toml`. Now F12 / Ctrl+Shift+I (Win) / Cmd+Option+I (mac) opens the WebView inspector with Console + Network + DOM tabs.
+  - Justification: ChoiceForge is an open-source local editor with no secrets to protect; debuggability matters more than locking down the inspector.
+  - **v0.4.4** bumped in package.json, tauri.conf.json, Cargo.toml.
+  - **Tests**: 387 passing.
+  - **Next**: commit, tag v0.4.4, push, publish release. Then user can read `[ChoiceForge] checking for updates …` logs to diagnose the auto-update banner.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 204
 - **v0.4.3: Desktop export ZIP fix + randomtest UI hang fix + sample restore_checkpoint guard + update re-check on focus.**
   - **User-reported issues after v0.4.2 install** (3 simultaneous):
