@@ -4,9 +4,21 @@ const UPDATE_OPTOUT_KEY = "choiceforge.updateCheck.optout";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const RELEASES_LATEST = "https://api.github.com/repos/viniman27/ChoiceForge/releases/latest";
 
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
 export interface UpdateInfo {
   version: string;
   url: string;
+  /** True when running under Tauri and the bundled updater can install in-place. */
+  canAutoInstall: boolean;
+}
+
+export interface InstallProgress {
+  phase: "downloading" | "installing" | "done";
+  downloaded?: number;
+  total?: number | null;
 }
 
 interface CachedCheck {
@@ -50,6 +62,11 @@ export function isDismissed(version: string): boolean {
 
 export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo | null> {
   if (isUpdateCheckOptedOut()) return null;
+  if (isTauri()) {
+    const tauriResult = await checkViaTauriUpdater();
+    if (tauriResult) return tauriResult;
+    // fall through to GitHub Releases poll if the Tauri updater can't reach the endpoint
+  }
   const cached = readCache();
   if (cached && Date.now() - cached.checkedAt < CACHE_TTL_MS) {
     return resolveCached(cached, currentVersion);
@@ -62,16 +79,64 @@ export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo
     const url = typeof data.html_url === "string" ? data.html_url : null;
     writeCache({ checkedAt: Date.now(), latestVersion: tag, url });
     if (!tag || !url) return null;
-    return isNewer(tag, currentVersion) ? { version: tag, url } : null;
+    return isNewer(tag, currentVersion) ? { version: tag, url, canAutoInstall: false } : null;
   } catch {
     return null;
+  }
+}
+
+async function checkViaTauriUpdater(): Promise<UpdateInfo | null> {
+  try {
+    const { check } = await import("@tauri-apps/plugin-updater");
+    const update = await check();
+    if (!update) return null;
+    return {
+      version: update.version,
+      url: `https://github.com/viniman27/ChoiceForge/releases/tag/v${update.version}`,
+      canAutoInstall: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function installUpdate(
+  onProgress?: (progress: InstallProgress) => void,
+): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    const [{ check }, { relaunch }] = await Promise.all([
+      import("@tauri-apps/plugin-updater"),
+      import("@tauri-apps/plugin-process"),
+    ]);
+    const update = await check();
+    if (!update) return false;
+    let downloaded = 0;
+    let totalBytes: number | null = null;
+    await update.downloadAndInstall((event) => {
+      if (event.event === "Started") {
+        totalBytes = event.data.contentLength ?? null;
+        onProgress?.({ phase: "downloading", downloaded: 0, total: totalBytes });
+      } else if (event.event === "Progress") {
+        downloaded += event.data.chunkLength;
+        onProgress?.({ phase: "downloading", downloaded, total: totalBytes });
+      } else if (event.event === "Finished") {
+        onProgress?.({ phase: "installing" });
+      }
+    });
+    onProgress?.({ phase: "done" });
+    await relaunch();
+    return true;
+  } catch (err) {
+    console.error("[ChoiceForge] update install failed", err);
+    return false;
   }
 }
 
 function resolveCached(cached: CachedCheck, currentVersion: string): UpdateInfo | null {
   if (!cached.latestVersion || !cached.url) return null;
   return isNewer(cached.latestVersion, currentVersion)
-    ? { version: cached.latestVersion, url: cached.url }
+    ? { version: cached.latestVersion, url: cached.url, canAutoInstall: false }
     : null;
 }
 

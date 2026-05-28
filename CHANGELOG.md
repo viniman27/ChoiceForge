@@ -27,6 +27,15 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-28
+
+### Added
+- **Real desktop auto-updater** via the official `tauri-plugin-updater`. When a newer release is published, the desktop app's update banner now shows **"Install & restart"** instead of just opening the release page. Clicking it downloads the signed update, applies it in place, and relaunches — no manual install needed. Web users continue to see the "View release" link since there's no in-place install for the web build.
+- **Update package signing** — every desktop release published via the workflow is now signed with a minisign key (private key stored as GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY`; public key embedded in `tauri.conf.json`). The installer + `latest.json` manifest are produced together so the updater plugin can verify before applying.
+
+### Documentation
+- **Clearer macOS Gatekeeper unblock instructions** — README and release notes now make the **Terminal command** (`xattr -dr com.apple.quarantine /Applications/ChoiceForge.app`) the primary recommendation, with the System Settings path spelled out step-by-step including the warning to click **OK** (not "Move to Trash") on the initial dialog. The "Open Anyway" button only appears in **System Settings → Privacy & Security** for ~1 hour after the block dialog.
+
 ## [0.2.0] — 2026-05-28
 
 ### Added

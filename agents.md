@@ -343,6 +343,26 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-05-28 — Claude Code (claude-opus-4-7) — session 200
+- **Real auto-update via tauri-plugin-updater + Gatekeeper doc clarification.**
+  - **Gatekeeper clarification** (`README.md` EN/PT + `desktop-release.yml` template + v0.2.0 release notes via `gh release edit`): user shipped v0.2.0 and reported the macOS 15+ block dialog has ONLY "Move to Trash" / "OK" — no "Open Anyway" anywhere. The Settings path requires (1) clicking OK *not* Trash, (2) opening System Settings → Privacy & Security, (3) scrolling to a "ChoiceForge was blocked" row that only appears for ~1 hour after the block dialog. Rewrote the install instructions to promote the Terminal command (`xattr -dr com.apple.quarantine`) as the primary path since it's foolproof across macOS versions, with the Settings path spelled out as alternative.
+  - **Real desktop auto-updater**: full tauri-plugin-updater integration.
+    - Generated minisign keypair via `npm run tauri -- signer generate -w ~/.tauri/choiceforge.key --password ""`. Public key (`dW50cnVzdGVk...`) committed in `tauri.conf.json` `plugins.updater.pubkey`. Private key set as GH secret `TAURI_SIGNING_PRIVATE_KEY` via `gh secret set`. No password (one less secret to manage; private key already lives in GH secrets which is the trust boundary).
+    - **Cargo deps** (`src-tauri/Cargo.toml`): `tauri-plugin-updater = "2"`, `tauri-plugin-process = "2"` (the latter is needed for `relaunch` after install).
+    - **Plugin registration** (`src-tauri/src/lib.rs`): registered both plugins.
+    - **Capabilities** (`src-tauri/capabilities/default.json`): added `updater:default`, `process:default`, `process:allow-restart`.
+    - **tauri.conf.json**: `bundle.createUpdaterArtifacts = true`, `plugins.updater.endpoints` pointing to `https://github.com/viniman27/ChoiceForge/releases/latest/download/latest.json`, `plugins.updater.windows.installMode = "passive"` (no UI flash during update).
+    - **Workflow** (`desktop-release.yml`): added `TAURI_SIGNING_PRIVATE_KEY` env var to the `tauri-action` step + `includeUpdaterJson: true` + `updaterJsonPreferNsis: false` (use MSI). The action now signs each installer and uploads a `latest.json` manifest containing platform→signature mappings.
+    - **JS deps** (`package.json`): `@tauri-apps/plugin-updater@^2`, `@tauri-apps/plugin-process@^2`.
+    - **`src/platform/updateCheck.ts`**: extended with `canAutoInstall` flag on `UpdateInfo`. `checkForUpdate` now tries the Tauri updater first in Tauri mode (gets the signed manifest, returns `canAutoInstall: true`); falls back to the GitHub Releases API poll on web or if the Tauri endpoint is unreachable. New `installUpdate(onProgress)` function uses the plugin's `downloadAndInstall` with a progress callback (`Started` → `Progress` → `Finished` events) then calls `relaunch`.
+    - **`App.tsx` `UpdateBanner`**: branches on `info.canAutoInstall` — shows "Install & restart" (with download progress %) in Tauri, falls back to "View release" on web. Both modes get Later/Turn off. Download progress shown as a label inline.
+  - **Bumped to v0.3.0**: `package.json`, `tauri.conf.json`, `Cargo.toml`.
+  - **CHANGELOG**: `[0.3.0]` entry with Added (auto-updater, signing) and Documentation (Gatekeeper clarification).
+  - **Tests**: 387 domain + 90 UI = **477 passing** (added 1 UpdateInfo shape test). Build clean.
+  - **Commits**: `796f4c4` (Gatekeeper docs), this commit (auto-updater).
+  - **Next**: tag v0.3.0 — workflow now signs builds and uploads `latest.json`; from v0.3.0 onward, every desktop install can update in-place via the banner.
+  - **Caveat for the first upgrade**: users on v0.2.0 today will see the "View release" banner (since v0.2.0 has no updater plugin embedded). They install v0.3.0 manually. From v0.3.0 onward, "Install & restart" works automatically.
+
 ### 2026-05-28 — Claude Code (claude-opus-4-7) — session 199
 - **v0.2.0 release prep: crash fix, Gatekeeper docs, opt-in update check, version bump.**
   - **Real bug fixed — CodeMirror crash on large imports** (`CodeEditor.tsx` `buildChoiceScriptDecorations`): user reported `ranges must be added sorted by from position to startside` on import of full projects (both web and desktop). Cause: the highlight builder scanned each line for four patterns in sequence; `${var}` matches were added to the RangeSetBuilder before `@{var ...}` matches, so a line containing both with `@{...}` appearing first (e.g. "you @{flag yes|no} and have ${strength} hp") fed the builder out of order. Fix: collect all candidate ranges into an array, sort by `from` then `to`, then add to the builder skipping duplicates and overlaps. Exported the function as `buildChoiceScriptDecorations` for direct testing. 9 new tests including a 1000-line synthetic that previously reproduced the crash.
