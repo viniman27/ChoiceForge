@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NodeIcon, typeColors } from "./NodeCard";
 import type { NodeType } from "../domain/types";
 
-type HelpTab = "canvas" | "nodes" | "inspector" | "project" | "importexport" | "shortcuts";
+type HelpTab = "canvas" | "nodes" | "patterns" | "cheatsheet" | "faq" | "inspector" | "project" | "importexport" | "shortcuts";
 
 interface ShortcutGroup {
   title: string;
@@ -69,40 +69,187 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 
 interface NodeEntry {
   type: NodeType;
+  command: string;
   desc: string;
+  useWhen: string;
+  avoidWhen?: string;
 }
 
 const NODE_ENTRIES: NodeEntry[] = [
-  { type: "passage",            desc: "Narrative text. Supports ${var} interpolation and @{var a b} conditional inline text." },
-  { type: "choice",             desc: "Player choice menu. Each option connects to a child node. Supports reuse and conditions per option." },
-  { type: "fake_choice",        desc: "Cosmetic choice that shows all branches sequentially — no real branching, purely cosmetic." },
-  { type: "if",                 desc: "Conditional branch with *if / *elseif / *else arms. Each arm connects to a child node." },
-  { type: "set",                desc: "Assigns or modifies a variable. Operators: = + - *= / %+ %- (fairmath)." },
-  { type: "temp",               desc: "Declares a temporary variable local to the current scene. Cleared when the scene ends." },
-  { type: "label",              desc: "Named anchor inside a scene. Used as a target for *goto and *gosub jumps." },
-  { type: "goto",               desc: "Unconditional jump to a *label within the current scene." },
-  { type: "goto_scene",         desc: "Jump to another scene (no return). Optionally targets a label inside that scene." },
-  { type: "gosub",              desc: "Calls a subroutine at a *label in the current scene. Resumes after *return." },
-  { type: "gosub_scene",        desc: "Calls a subroutine in another scene. Optionally specifies an entry label. Resumes on *return." },
-  { type: "return",             desc: "Returns from a *gosub or *gosub_scene call back to the original call site." },
-  { type: "finish",             desc: "Ends the current scene and advances to the next scene listed in scene_list." },
-  { type: "ending",             desc: "Ends the game entirely (*ending). Typically the final node in a story path." },
-  { type: "checkpoint",         desc: "Saves the current game state to a named slot (*save_checkpoint)." },
-  { type: "restore_checkpoint", desc: "Restores a previously saved checkpoint (*restore_checkpoint)." },
-  { type: "page_break",         desc: "Inserts a page break with a configurable button label (*page_break)." },
-  { type: "input_text",         desc: "Prompts the player to enter a text string, stored in a variable (*input_text)." },
-  { type: "input_number",       desc: "Prompts the player to enter a number within min/max bounds (*input_number)." },
-  { type: "rand",               desc: "Assigns a random integer within a range to a variable (*rand)." },
-  { type: "image",              desc: "Displays an image file. Supports alignment (none / left / right) and alt text (*image)." },
-  { type: "sound",              desc: "Plays an audio file (*sound)." },
-  { type: "params",             desc: "Declares parameter names for a gosub subroutine (*params). Must appear at the subroutine entry." },
-  { type: "achieve",            desc: "Unlocks a defined achievement by its ID (*achieve)." },
-  { type: "comment",            desc: "Author note. Never exported as ChoiceScript text — for documentation only." },
+  {
+    type: "passage",
+    command: "(prose) + *goto next_node",
+    desc: "Narrative text. Supports ${var} interpolation and @{var a b} conditional inline text.",
+    useWhen: "Most of your story — every block of prose the player reads.",
+  },
+  {
+    type: "choice",
+    command: "*choice",
+    desc: "Player choice menu. Each option connects to a child node.",
+    useWhen: "Real branching where the player picks a path that changes the story.",
+    avoidWhen: "When all options should be shown then merge to the same next node — use *fake_choice instead.",
+  },
+  {
+    type: "fake_choice",
+    command: "*fake_choice",
+    desc: "Player picks an option, each shows brief inline text, then all paths converge.",
+    useWhen: "Adding flavor (what does the character notice? what do they say?) without real branching.",
+    avoidWhen: "When picks should actually change the story — use *choice.",
+  },
+  {
+    type: "if",
+    command: "*if / *elseif / *else",
+    desc: "Conditional branch. Each arm connects to a child node.",
+    useWhen: "Story should branch based on variables (stats, flags, earlier choices).",
+  },
+  {
+    type: "set",
+    command: "*set var op value",
+    desc: "Modifies a variable. Operators: = + - %+ %- (fairmath, clamped 0–100).",
+    useWhen: "Tracking stats, flags, items the player picked up.",
+  },
+  {
+    type: "temp",
+    command: "*temp name initial",
+    desc: "Scene-local variable. Cleared when the scene ends.",
+    useWhen: "Intermediate calculations that don't need to outlive the scene.",
+    avoidWhen: "For values used across scenes — use *create + set instead.",
+  },
+  {
+    type: "label",
+    command: "*label name",
+    desc: "Named anchor inside a scene. Target for *goto and *gosub.",
+    useWhen: "(1) Importing existing ChoiceScript that uses *label; (2) marking subroutine entry points for *gosub; (3) when you want the exported .txt to use a human-readable label instead of the auto-generated cf_n42.",
+    avoidWhen: "For ordinary forward flow — you don't need a *label. Just draw the connection. The exporter wires up jumps via internal labels automatically.",
+  },
+  {
+    type: "goto",
+    command: "*goto label_name",
+    desc: "Unconditional jump to a *label within the current scene.",
+    useWhen: "Loops or pointers back to an earlier label, or routing multiple branches to the same entry point.",
+    avoidWhen: "Linear forward flow — a regular flow connection is cleaner.",
+  },
+  {
+    type: "goto_scene",
+    command: "*goto_scene scene_name [label]",
+    desc: "Jumps to another scene. No return. Optionally targets a label inside that scene.",
+    useWhen: "Moving between chapters or major sections.",
+  },
+  {
+    type: "gosub",
+    command: "*gosub label",
+    desc: "Calls a subroutine at a *label in the current scene. Resumes after *return.",
+    useWhen: "Reusable mini-flows: a stat check, a NPC reaction template, a shop interaction.",
+  },
+  {
+    type: "gosub_scene",
+    command: "*gosub_scene scene_name [label]",
+    desc: "Calls a subroutine in another scene. Returns on *return.",
+    useWhen: "Reusable flows shared across the whole story (e.g. one combat scene called from many places).",
+  },
+  {
+    type: "return",
+    command: "*return",
+    desc: "Returns from a *gosub or *gosub_scene call back to the original call site.",
+    useWhen: "End of every subroutine flow reached via gosub.",
+  },
+  {
+    type: "finish",
+    command: "*finish",
+    desc: "Ends the current scene and advances to the next in *scene_list.",
+    useWhen: "Natural end of a chapter — last node before the next scene.",
+  },
+  {
+    type: "ending",
+    command: "*ending",
+    desc: "Ends the game entirely.",
+    useWhen: "Final node of any story path — bad ending, good ending, secret ending.",
+  },
+  {
+    type: "checkpoint",
+    command: "*save_checkpoint name",
+    desc: "Saves a named restore point at this position.",
+    useWhen: "Before a risky branch or dangerous choice the player might want to retry.",
+  },
+  {
+    type: "restore_checkpoint",
+    command: "*restore_checkpoint name",
+    desc: "Jumps back to a previously saved checkpoint.",
+    useWhen: "Reset gameplay to a known point — bad ending replay buttons, retry choices.",
+  },
+  {
+    type: "page_break",
+    command: "*page_break Continue",
+    desc: "Inserts a page break with a configurable button label.",
+    useWhen: "Splitting long prose sections so the player paces through.",
+  },
+  {
+    type: "input_text",
+    command: "*input_text variable",
+    desc: "Prompts the player to enter a text string.",
+    useWhen: "Player character name, custom note, free-form input.",
+  },
+  {
+    type: "input_number",
+    command: "*input_number var min max",
+    desc: "Prompts the player to enter a number in range.",
+    useWhen: "Player age, dice roll override, custom stat allocation.",
+  },
+  {
+    type: "rand",
+    command: "*rand var min max",
+    desc: "Assigns a random integer in range to a variable.",
+    useWhen: "Combat rolls, random events, procedural variations.",
+  },
+  {
+    type: "image",
+    command: "*image filename alignment [alt]",
+    desc: "Displays an image. Alignment: none / left / right.",
+    useWhen: "Illustrations, character portraits, scene-setting visuals.",
+  },
+  {
+    type: "sound",
+    command: "*sound filename",
+    desc: "Plays an audio file.",
+    useWhen: "Music cues, ambient sounds, dramatic stings.",
+  },
+  {
+    type: "params",
+    command: "*params name1 name2",
+    desc: "Declares parameter names for a gosub subroutine.",
+    useWhen: "Right after a *label that's a subroutine entry — receives values from *gosub call site.",
+  },
+  {
+    type: "achieve",
+    command: "*achieve achievement_id",
+    desc: "Unlocks an achievement by its ID.",
+    useWhen: "When the player crosses a story threshold worth marking.",
+  },
+  {
+    type: "comment",
+    command: "*comment text",
+    desc: "Author note. Never visible to the player.",
+    useWhen: "TODOs, design notes, reminders inside the .txt for yourself or collaborators.",
+  },
 ];
 
 interface HelpGuideProps {
   onClose: () => void;
 }
+
+const TAB_LABELS: Record<HelpTab, string> = {
+  canvas: "Canvas",
+  nodes: "Node Types",
+  patterns: "Patterns",
+  cheatsheet: "Cheatsheet",
+  faq: "FAQ",
+  inspector: "Inspector",
+  project: "Project",
+  importexport: "Import / Export",
+  shortcuts: "Shortcuts",
+};
+
+const TAB_ORDER: HelpTab[] = ["canvas", "nodes", "patterns", "cheatsheet", "inspector", "project", "importexport", "shortcuts", "faq"];
 
 export function HelpGuide({ onClose }: HelpGuideProps) {
   const [tab, setTab] = useState<HelpTab>("canvas");
@@ -123,15 +270,18 @@ export function HelpGuide({ onClose }: HelpGuideProps) {
           <button className="hg-close" onClick={onClose} aria-label="close guide">✕</button>
         </div>
         <div className="hg-tabs">
-          {(["canvas", "nodes", "inspector", "project", "importexport", "shortcuts"] as HelpTab[]).map((t) => (
+          {TAB_ORDER.map((t) => (
             <button key={t} className={`hg-tab ${tab === t ? "is-active" : ""}`} onClick={() => setTab(t)}>
-              {t === "importexport" ? "Import / Export" : t.charAt(0).toUpperCase() + t.slice(1)}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
         <div className="hg-body">
           {tab === "canvas" && <CanvasTab />}
           {tab === "nodes" && <NodesTab />}
+          {tab === "patterns" && <PatternsTab />}
+          {tab === "cheatsheet" && <CheatsheetTab />}
+          {tab === "faq" && <FaqTab />}
           {tab === "inspector" && <InspectorTab />}
           {tab === "project" && <ProjectTab />}
           {tab === "importexport" && <ImportExportTab />}
@@ -158,6 +308,10 @@ function Row({ label, desc }: { label: string; desc: string }) {
       <span className="hg-row-desc">{desc}</span>
     </div>
   );
+}
+
+function CodeBlock({ children }: { children: string }) {
+  return <pre className="hg-code"><code>{children}</code></pre>;
 }
 
 function CanvasTab() {
@@ -206,23 +360,242 @@ function CanvasTab() {
 function NodesTab() {
   return (
     <div className="hg-content">
-      <p className="hg-intro">All 24 node types available in ChoiceForge. Each corresponds to one or more ChoiceScript commands.</p>
-      <div className="hg-node-grid">
-        {NODE_ENTRIES.map(({ type, desc }) => {
+      <p className="hg-intro">All 24 node types and what they generate. Each card shows the ChoiceScript command, a one-line description, and guidance on when to reach for it.</p>
+      <div className="hg-node-grid hg-node-grid-detailed">
+        {NODE_ENTRIES.map(({ type, command, desc, useWhen, avoidWhen }) => {
           const color = typeColors[type];
           return (
-            <div key={type} className="hg-node-entry">
-              <div className="hg-node-icon" style={{ background: color.tint, color: color.dot }}>
-                <NodeIcon type={type} />
+            <div key={type} className="hg-node-entry hg-node-entry-detailed">
+              <div className="hg-node-head">
+                <div className="hg-node-icon" style={{ background: color.tint, color: color.dot }}>
+                  <NodeIcon type={type} />
+                </div>
+                <div className="hg-node-titles">
+                  <span className="hg-node-name" style={{ color: color.dot }}>{color.label}</span>
+                  <code className="hg-node-command">{command}</code>
+                </div>
               </div>
-              <div className="hg-node-info">
-                <span className="hg-node-name" style={{ color: color.dot }}>{color.label}</span>
-                <span className="hg-node-desc">{desc}</span>
-              </div>
+              <p className="hg-node-desc">{desc}</p>
+              <p className="hg-node-when"><strong>Use when:</strong> {useWhen}</p>
+              {avoidWhen && <p className="hg-node-avoid"><strong>Skip when:</strong> {avoidWhen}</p>}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function PatternsTab() {
+  return (
+    <div className="hg-content">
+      <p className="hg-intro">Common story structures and how to build them in ChoiceForge. Copy these mental models — they cover 90% of what you'll write.</p>
+
+      <Section title="1. Linear chain">
+        <p>Just one passage after another. The simplest possible flow.</p>
+        <CodeBlock>{`[passage A] ──flow──▶ [passage B] ──flow──▶ [passage C] ──flow──▶ [finish]`}</CodeBlock>
+        <p>No labels, no conditions. Each node uses its synthetic *label cf_n* under the hood; flow edges become *goto in the .txt.</p>
+      </Section>
+
+      <Section title="2. Branching choice with merge">
+        <p>Player picks an option, each option has a different consequence, then all paths reconverge.</p>
+        <CodeBlock>{`            ┌──▶ [aggressive path] ──▶ [merge point]
+[choice] ──┼──▶ [diplomatic path] ──▶ [merge point]
+            └──▶ [sneaky path]    ──▶ [merge point]`}</CodeBlock>
+        <p>Three options on the choice node, all three branches point to the same continuation. Use a *label on the merge if it's reused from many places, otherwise plain flow connections work.</p>
+      </Section>
+
+      <Section title="3. Conditional with fallthrough">
+        <p>Show a passage only if a condition is met, otherwise continue.</p>
+        <CodeBlock>{`[set strength = 10]
+       │
+       ▼
+[if strength > 50]──▶ [passage: "you push the boulder"] ──▶ [next]
+       │
+       └─else─▶ [passage: "the boulder won't budge"] ──▶ [next]`}</CodeBlock>
+        <p>An *if node with two branches. Both arms eventually meet the same next node — that's a "merge" again.</p>
+      </Section>
+
+      <Section title="4. Subroutine (reusable mini-flow)">
+        <p>A code block called from multiple places, returning to the caller.</p>
+        <CodeBlock>{`[passage] ──▶ [gosub check_stats] ──▶ [continue story]
+                       │
+                       ▼
+              [label check_stats]
+                       │
+                       ▼
+              [passage: "your strength is ..."]
+                       │
+                       ▼
+              [return]`}</CodeBlock>
+        <p>The *label marks the subroutine entry. *gosub jumps there, runs until *return, then comes back. Note: in this case the *label IS necessary — *gosub requires a named target.</p>
+      </Section>
+
+      <Section title="5. Cross-scene flow">
+        <p>End one scene, automatically start the next listed in *scene_list.</p>
+        <CodeBlock>{`Scene "chapter_1":
+  [passage] ──▶ [choice] ──▶ ... ──▶ [finish]
+
+Scene "chapter_2" (next in scene_list):
+  [passage: "you arrive at the cave"] ──▶ ...`}</CodeBlock>
+        <p>*finish closes the current scene and advances. Use *goto_scene scene_name to jump to a specific scene out of order.</p>
+      </Section>
+
+      <Section title="6. Loop with exit condition">
+        <p>Repeat a section until a condition is met.</p>
+        <CodeBlock>{`           ┌──── flow ───────────────────┐
+           ▼                             │
+    [label loop_start]                   │
+           │                             │
+           ▼                             │
+    [if attempts < 3] ─true─▶ [passage] ─┤
+           │
+           └─else─▶ [passage: "out of attempts"] ──▶ [continue]`}</CodeBlock>
+        <p>Use *label loop_start as a target, then *goto loop_start inside the loop body. The *if checks the exit condition.</p>
+      </Section>
+    </div>
+  );
+}
+
+function CheatsheetTab() {
+  return (
+    <div className="hg-content">
+      <p className="hg-intro">A condensed ChoiceScript syntax reference. Useful when editing the Raw tab in the Inspector or writing preserved source.</p>
+
+      <Section title="Top-level scene commands">
+        <Row label="*title" desc="Project title. Goes in startup.txt." />
+        <Row label="*author" desc="Author name. Goes in startup.txt." />
+        <Row label="*scene_list" desc="Ordered list of scene file names. Determines *finish flow." />
+        <Row label="*create var value" desc="Declares a global variable. Goes in startup.txt." />
+        <Row label="*achievement id visible|hidden points Title" desc="Declares an achievement. Followed by 2 indented description lines." />
+      </Section>
+
+      <Section title="Variables & assignment">
+        <Row label="*set var = value" desc="Assign a literal or expression." />
+        <Row label="*set var + 5" desc="Increment by 5." />
+        <Row label="*set var - 3" desc="Decrement by 3." />
+        <Row label="*set var %+ 25" desc="Fairmath increase. Bigger values move slower, capped at 100." />
+        <Row label="*set var %- 25" desc="Fairmath decrease. Bigger losses on high values." />
+        <Row label="*temp var value" desc="Scene-local variable, cleared at scene end." />
+      </Section>
+
+      <Section title="Conditionals">
+        <Row label="*if (expr)" desc="Branch if expr is true. Followed by indented body." />
+        <Row label="*elseif (expr)" desc="Additional branch." />
+        <Row label="*else" desc="Catch-all branch." />
+        <Row label="*selectable_if (expr) #Option" desc="A choice option visible only if expr is true." />
+        <Row label="*hide_reuse #Option" desc="Option text hides once chosen." />
+        <Row label="*disable_reuse #Option" desc="Option text greys out once chosen." />
+        <Row label="*allow_reuse #Option" desc="Default — option can be picked repeatedly." />
+      </Section>
+
+      <Section title="Operators (inside expressions)">
+        <Row label="= < > <= >= !=" desc="Comparison." />
+        <Row label="+ - * / modulo" desc="Arithmetic." />
+        <Row label="& | ^" desc="String concat / OR comparison / XOR (rare)." />
+        <Row label="and or not" desc="Boolean logic." />
+        <Row label="true false" desc="Boolean literals." />
+        <Row label="round(x) round_down(x) abs(x) length(x)" desc="Built-in functions." />
+      </Section>
+
+      <Section title="Choices & flow control">
+        <Row label="*choice" desc="Player picks one option; each #Option below is followed by its branch body." />
+        <Row label="*fake_choice" desc="Like *choice but all paths fall through to the same next node." />
+        <Row label="*goto label" desc="Jump to a label in the same scene." />
+        <Row label="*goto_scene name [label]" desc="Switch to another scene file." />
+        <Row label="*gosub label" desc="Call a subroutine; resumes after *return." />
+        <Row label="*gosub_scene name [label]" desc="Call a subroutine in another scene." />
+        <Row label="*return" desc="End of subroutine — go back to the caller." />
+        <Row label="*finish" desc="End scene, advance to next in *scene_list." />
+        <Row label="*ending" desc="End the game entirely." />
+      </Section>
+
+      <Section title="Inputs">
+        <Row label="*input_text var" desc="Free-text input from the player." />
+        <Row label="*input_number var min max" desc="Number input with bounds." />
+        <Row label="*rand var min max" desc="Random integer in range." />
+      </Section>
+
+      <Section title="Inline text features">
+        <Row label="${var}" desc="Interpolate a variable into prose." />
+        <Row label="@{var a|b|c}" desc="Pick from a list based on a number var (1=a, 2=b, …)." />
+        <Row label="@{var a b}" desc="Pick a if var is true, b if false." />
+        <Row label="*page_break Continue" desc="Insert a page break with a button label." />
+        <Row label="*line_break" desc="Insert a line break inside a passage." />
+      </Section>
+
+      <Section title="Stats & UI">
+        <Row label="*stat_chart" desc="Block in choicescript_stats.txt; lists stats to show on the stats screen." />
+        <Row label="*image file align alt" desc="Show an image. align: none/left/right." />
+        <Row label="*sound file" desc="Play a sound clip." />
+        <Row label="*save_checkpoint name" desc="Save a restore point." />
+        <Row label="*restore_checkpoint name" desc="Jump back to a checkpoint." />
+        <Row label="*achieve id" desc="Unlock an achievement." />
+      </Section>
+    </div>
+  );
+}
+
+function FaqTab() {
+  return (
+    <div className="hg-content">
+      <Section title="Do I need to use *label nodes?">
+        <p>Usually no. ChoiceForge auto-labels every node behind the scenes (<code>*label cf_n42</code>) so flow connections "just work" — the exported .txt has *goto cf_n42 lines that target the right place automatically.</p>
+        <p><strong>Use a *label node when:</strong></p>
+        <ul>
+          <li>You're calling the node from <code>*gosub</code> or <code>*gosub_scene</code> — those require a named entry point.</li>
+          <li>You imported existing ChoiceScript that uses *label and you want to preserve those names.</li>
+          <li>You want the exported .txt to be human-readable at specific anchor points (instead of cf_n42).</li>
+          <li>Multiple branches converge on the same node and you want a meaningful name in the export.</li>
+        </ul>
+        <p><strong>Don't add a *label node when:</strong> you're just connecting two nodes in sequence. A regular flow connection is cleaner and the linter will flag unused *labels.</p>
+      </Section>
+
+      <Section title="Why does the linter say my variable is undeclared?">
+        <p>Every variable referenced in expressions or text needs to be declared via <code>*create</code> (in startup.txt) or <code>*temp</code> (inside a scene) before use. Open the Variables tab in the left panel to add a global variable, or drop a <code>*temp</code> node at the start of the scene for a scene-local one.</p>
+      </Section>
+
+      <Section title="My choice has only one option — is that wrong?">
+        <p>Yes — the ChoiceScript runtime requires at least 2 options per <code>*choice</code>. The linter warns about this. If you only want to show a single piece of inline text after some choice-like UI, use <code>*fake_choice</code> with one option, or just a plain passage.</p>
+      </Section>
+
+      <Section title="What's the difference between *choice and *fake_choice?">
+        <p><code>*choice</code>: the player picks one option, and each option leads to a different next node — real branching that changes the story.</p>
+        <p><code>*fake_choice</code>: the player picks one option, each option shows inline text, then ALL paths fall through to the same next node. Use for flavor (what does the player notice? what do they say?) without real branching.</p>
+      </Section>
+
+      <Section title="Where is my work saved?">
+        <p><strong>Web:</strong> autosaved to browser localStorage on every change. Closing the tab and reopening restores it. Export to .zip for portable backup.</p>
+        <p><strong>Desktop (Tauri):</strong> autosaved both to localStorage (backup) AND to the .json file you opened (every 1.5 s after a change). A "●" appears in the window title while there are unsaved-to-disk changes; it clears once the autosave completes.</p>
+      </Section>
+
+      <Section title="How do I share a project with a co-author?">
+        <p>Use Export (top bar) → ChoiceForge gives you a .zip with one .txt per scene plus a _choiceforge/project.json that preserves graph metadata. Hand the .zip to the co-author and they can import it back losslessly.</p>
+      </Section>
+
+      <Section title="Why doesn't my scene appear in the linter or play test?">
+        <p>Scenes need to be listed in <code>*scene_list</code> in startup.txt — otherwise they're orphaned and never reached at runtime. Add the scene name to the scene list (Left panel → Scenes → drag to reorder, or edit Source tab on startup.txt directly).</p>
+      </Section>
+
+      <Section title="The Play button opens but nothing happens">
+        <p>The embedded ChoiceScript runtime catches errors. Open browser devtools (F12) to see runtime errors. Most common: a *goto pointing at a non-existent label, or an undeclared variable in an expression. Run the linter (bottom panel) first — fix all errors before play-testing.</p>
+      </Section>
+
+      <Section title="Can I edit the raw .txt for a scene?">
+        <p>Yes — click the Text Mode button in the top bar to open the CodeMirror editor for the current scene. Changes save back to the project. When a scene has imported source preserved, the canvas is read-only until you "Convert to visual editing" via the banner.</p>
+      </Section>
+
+      <Section title="My imported ChoiceScript looks weird in the graph">
+        <p>The importer is pragmatic — common patterns (*choice, *if, *goto, *label, *set, etc.) become graph nodes, but unsupported structures (deeply nested inline conditionals, exotic *gosub patterns) are preserved as raw source so nothing is lost. You can keep editing in Text Mode, or rebuild that scene as a graph manually.</p>
+      </Section>
+
+      <Section title="What does '*finish' actually do?">
+        <p>It ends the current scene and tells the runtime "go to the next scene in <code>*scene_list</code>". If there's no next scene, the game ends. Use <code>*ending</code> if you want to explicitly end the game regardless of scene order.</p>
+      </Section>
+
+      <Section title="Why are some of my nodes greyed out in the canvas?">
+        <p>You've applied a tag filter (color-coded buttons under the canvas toolbar). Only nodes matching the active tags are highlighted; the rest dim. Click the active tag again to remove the filter, or use the × button.</p>
+      </Section>
     </div>
   );
 }
@@ -237,9 +610,8 @@ function InspectorTab() {
       </Section>
       <Section title="Node status">
         <Row label="None" desc="Node is valid and has no issues." />
-        <Row label="Draft" desc="Mark a node as a work-in-progress. Shown as a grey badge." />
-        <Row label="Review" desc="Needs review before publishing. Shown as an amber badge." />
-        <Row label="Done" desc="Node is finalized. Shown as a green badge." />
+        <Row label="Todo" desc="Mark a node as still-to-write. Shown as a coloured badge." />
+        <Row label="Done" desc="Node is finalized. Shown as a coloured badge." />
       </Section>
       <Section title="Color tags">
         <Row label="Six colors" desc="Red, orange, yellow, green, blue, purple. Tags a node's left border for visual organization. Filter by tag: on the canvas." />
@@ -256,6 +628,15 @@ function InspectorTab() {
 function ProjectTab() {
   return (
     <div className="hg-content">
+      <Section title="Suggested workflow">
+        <Row label="1. Plan scene_list" desc="Start by listing your chapters/scenes in the Scenes tab. Order matters — *finish advances to the next in line." />
+        <Row label="2. Declare variables" desc="Add the stats, flags, and counters you'll use BEFORE writing nodes that reference them — the linter will flag undeclared use." />
+        <Row label="3. Sketch the graph" desc="Drop passages, choices, and finish nodes to outline each scene. Use color tags to mark unfinished sections." />
+        <Row label="4. Fill in prose" desc="Use the inspector's Content tab. Body text supports ${var} and @{var a b} substitutions." />
+        <Row label="5. Wire conditions & sets" desc="Add *if and *set nodes where the story branches on stats. Keep the linter open to catch typos in variable names." />
+        <Row label="6. Playtest" desc="Click Play to run the actual ChoiceScript runtime on your project — catches issues no static linter can." />
+        <Row label="7. Export" desc="When happy, Export gives you a .zip ready for upload." />
+      </Section>
       <Section title="Scenes">
         <Row label="Scene list" desc="The Scenes tab in the left panel lists all scenes. Click to navigate. Drag to reorder." />
         <Row label="Add scene" desc="Click + in the Scenes panel header to add a new scene. Name must be a valid ChoiceScript identifier." />
@@ -303,7 +684,7 @@ function ImportExportTab() {
       </Section>
       <Section title="Export">
         <Row label="Export button" desc="Downloads a .zip containing all generated ChoiceScript .txt files ready for upload to dashingdon or the Choice of Games compiler." />
-        <Row label="Ctrl+S / Save" desc="Saves the project to browser localStorage. Also triggers an export download." />
+        <Row label="Ctrl+S / Save" desc="Saves the project to browser localStorage (web) or to the open .json file (desktop, debounced 1.5s autosave too)." />
         <Row label="Snapshots" desc="Named project restore points saved to localStorage. Use Snapshots → Save to create one and Restore to revert." />
       </Section>
       <Section title="Linter">
