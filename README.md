@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./src-tauri/icons/128x128.png" alt="ChoiceForge" width="96" height="96" />
+
 # ChoiceForge
 
 **Visual node-based editor for [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/) — build branching stories on a canvas, export `.txt` files that run unmodified on the official Choice of Games runtime.**
@@ -21,6 +23,14 @@ Authoring a ChoiceScript game in plain text means juggling `*goto` labels, `*if`
 It's a sibling to Twine, but it speaks ChoiceScript natively instead of HTML — every node maps to a real CS command, and round-tripping export→import is lossless for everything the visual editor models.
 
 > Think Twine for ChoiceScript: graph editor in, official-compatible `.txt` files out.
+
+<div align="center">
+
+![ChoiceForge editor — graph canvas with the sample project loaded](./docs/screenshot-editor.png)
+
+<sub>The editor with the bundled sample project (PT) — scenes on the left, canvas with passages/choices/jumps in the middle, inspector on the right.</sub>
+
+</div>
 
 ---
 
