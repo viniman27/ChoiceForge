@@ -2977,3 +2977,26 @@ input, select, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-mute);
 }
 .hg-help-btn:hover { color: var(--ink); border-color: var(--ink-mute); }
+
+.dev-badge {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 9999;
+  background: #f4c95d;
+  color: #2b2110;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  user-select: none;
+  pointer-events: auto;
+}
+.dev-badge:hover {
+  background: #ffd97a;
+  color: #2b2110;
+}

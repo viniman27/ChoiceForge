@@ -330,6 +330,7 @@ export default function App() {
 
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
+      <DevBadge />
       {updateInfo && (
         <UpdateBanner
           info={updateInfo}
@@ -1105,4 +1106,27 @@ function nextNodeId(nodes: StoryNode[]): string {
     return match ? Math.max(currentMax, Number(match[1])) : currentMax;
   }, 0);
   return `n${max + 1}`;
+}
+
+function isDevPreviewHost(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isTauri()) return false;
+  const host = window.location.hostname;
+  if (host === "choiceforge.pages.dev") return false;
+  if (host === "localhost" || host === "127.0.0.1") return false;
+  return host.endsWith(".pages.dev");
+}
+
+function DevBadge() {
+  if (!isDevPreviewHost()) return null;
+  return (
+    <a
+      className="dev-badge"
+      href="https://choiceforge.pages.dev"
+      title="You're on the dev preview — click to go to production"
+      rel="noopener"
+    >
+      DEV
+    </a>
+  );
 }
