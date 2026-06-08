@@ -3,6 +3,7 @@ import { unzipSync, zipSync, type ZipOptions } from "fflate";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
+import { TemplatesPalette } from "./components/TemplatesPalette";
 import { HelpGuide } from "./components/HelpGuide";
 import { ManuscriptView } from "./components/ManuscriptView";
 import { NewProjectModal } from "./components/NewProjectModal";
@@ -59,6 +60,7 @@ export default function App() {
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
@@ -194,6 +196,11 @@ export default function App() {
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen((v) => !v);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        setTemplatesOpen((v) => !v);
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z") {
@@ -747,6 +754,24 @@ export default function App() {
             else if (cmd === "redo") { actions.redo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
             else if (cmd === "shortcuts") { setHelpOpen(true); }
           }}
+        />
+      )}
+      {templatesOpen && (
+        <TemplatesPalette
+          lang={lang}
+          labels={i18n[lang]}
+          onPick={(template) => {
+            // Center the template on the rough viewport center in world coords.
+            const cx = Math.round((window.innerWidth / 2 - pan.x) / zoom);
+            const cy = Math.round((window.innerHeight / 2 - pan.y) / zoom);
+            const newIds = actions.pasteNodes(
+              JSON.parse(JSON.stringify(template.nodes)),
+              JSON.parse(JSON.stringify(template.edges)),
+              { x: cx, y: cy },
+            );
+            if (newIds[0]) setSelectedId(newIds[0]);
+          }}
+          onClose={() => setTemplatesOpen(false)}
         />
       )}
     </div>

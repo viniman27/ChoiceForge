@@ -62,6 +62,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Help",
     shortcuts: [
       { keys: ["Ctrl", "K"], label: "Command palette" },
+      { keys: ["Ctrl", "Shift", "T"], label: "Templates palette (paste a starter pattern)" },
       { keys: ["?"], label: "Show this guide" },
     ],
   },
