@@ -1,4 +1,7 @@
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ChoiceForgeProject, Density, EditorView, I18nLabels, Language, Theme } from "../domain/types";
+import { basenameOf, type RecentFile } from "../platform/recentFiles";
+import { COLOR_TAG_VALUES } from "./NodeCard";
 
 interface TopBarProps {
   data: ChoiceForgeProject;
@@ -33,9 +36,12 @@ interface TopBarProps {
   onNativeOpen?: () => void;
   onNativeSave?: () => void;
   onNativeSaveAs?: () => void;
+  recentFiles?: RecentFile[];
+  onOpenRecent?: (path: string) => void;
+  onClearRecent?: () => void;
 }
 
-export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onValidate, onImport, onExport, onExportDot, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
+export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onValidate, onImport, onExport, onExportDot, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs, recentFiles, onOpenRecent, onClearRecent }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -74,7 +80,13 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
           <button className={view === "manuscript" ? "is-active" : ""} onClick={() => onViewChange("manuscript")}>prose</button>
           <button className={view === "dashboard" ? "is-active" : ""} onClick={() => onViewChange("dashboard")}>stats</button>
         </div>
-        <code style={{ marginLeft: 12 }}>{data.sceneTitle}</code>
+        <code style={{ marginLeft: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          {(() => {
+            const s = data.scenes.find((scene) => scene.name === data.sceneTitle || scene.id === data.sceneTitle);
+            return s?.colorTag ? <span className="breadcrumb-scene-dot" style={{ "--ct": COLOR_TAG_VALUES[s.colorTag] } as CSSProperties} /> : null;
+          })()}
+          {data.sceneTitle}
+        </code>
         {selectedNodeTitle && (
           <>
             <span className="dim">/</span>
@@ -102,7 +114,16 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
         <button className="ghost-btn" onClick={onUndo} disabled={!canUndo} title="Ctrl+Z">{labels.topUndo}</button>
         <button className="ghost-btn" onClick={onRedo} disabled={!canRedo} title="Ctrl+Shift+Z">{labels.topRedo}</button>
         {onNativeOpen && (
-          <button className="ghost-btn" onClick={onNativeOpen} title={labels.topOpen}>{labels.topOpen}</button>
+          <RecentFilesButton
+            onOpen={onNativeOpen}
+            recentFiles={recentFiles ?? []}
+            onOpenRecent={onOpenRecent}
+            onClearRecent={onClearRecent}
+            label={labels.topOpen}
+            recentLabel={labels.topOpenRecent}
+            clearLabel={labels.topOpenRecentClear}
+            emptyLabel={labels.topOpenRecentEmpty}
+          />
         )}
         {onNativeSave ? (
           <>
@@ -310,4 +331,90 @@ async function collectDirectoryFiles(directory: DirectoryPickerDirectoryHandle, 
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+function RecentFilesButton({
+  onOpen,
+  recentFiles,
+  onOpenRecent,
+  onClearRecent,
+  label,
+  recentLabel,
+  clearLabel,
+  emptyLabel,
+}: {
+  onOpen: () => void;
+  recentFiles: RecentFile[];
+  onOpenRecent?: (path: string) => void;
+  onClearRecent?: () => void;
+  label: string;
+  recentLabel: string;
+  clearLabel: string;
+  emptyLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onAway = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onAway);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      window.removeEventListener("mousedown", onAway);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  return (
+    <span className="recent-files-wrap" ref={containerRef}>
+      <button className="ghost-btn recent-files-main" onClick={onOpen} title={label}>{label}</button>
+      <button
+        className={`ghost-btn recent-files-chev ${open ? "is-active" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        title={recentLabel}
+        aria-expanded={open}
+        aria-label={recentLabel}
+      >
+        ▾
+      </button>
+      {open && (
+        <div className="recent-files-menu" role="menu">
+          <div className="recent-files-header">{recentLabel}</div>
+          {recentFiles.length === 0 ? (
+            <div className="recent-files-empty">{emptyLabel}</div>
+          ) : (
+            <>
+              {recentFiles.map((entry) => (
+                <button
+                  key={entry.path}
+                  className="recent-files-item"
+                  onClick={() => { setOpen(false); onOpenRecent?.(entry.path); }}
+                  title={entry.path}
+                  role="menuitem"
+                >
+                  <span className="recent-files-name">{basenameOf(entry.path)}</span>
+                  <span className="recent-files-path">{entry.path}</span>
+                </button>
+              ))}
+              {onClearRecent && (
+                <button
+                  className="recent-files-clear"
+                  onClick={() => { setOpen(false); onClearRecent(); }}
+                  role="menuitem"
+                >
+                  {clearLabel}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </span>
+  );
 }

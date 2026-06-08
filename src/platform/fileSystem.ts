@@ -15,6 +15,15 @@ export async function nativeOpenProject(): Promise<{ path: string; content: stri
   return { path: selected, content };
 }
 
+/** Read a specific .json project from disk (no dialog). Returns null if the file no longer exists. */
+export async function nativeOpenProjectAt(path: string): Promise<{ path: string; content: string } | null> {
+  if (!isTauri()) return null;
+  const { readTextFile, exists } = await import("@tauri-apps/plugin-fs");
+  if (!(await exists(path))) return null;
+  const content = await readTextFile(path);
+  return { path, content };
+}
+
 export async function nativeSaveProject(content: string, currentPath?: string): Promise<string | null> {
   if (!isTauri()) return null;
   const { save } = await import("@tauri-apps/plugin-dialog");

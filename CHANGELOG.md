@@ -27,6 +27,17 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-06-08
+
+### Added
+- **Recent files menu** (desktop) — the **Open** button on the TopBar is now a split button. The main side opens the standard file dialog; the new chevron `▾` opens a popover listing up to 8 recently opened/saved projects with their filename and full path. Clicking a row opens it directly (no dialog). Entries that point to files which no longer exist auto-prune themselves on click. Persists across launches via `localStorage`. PT / EN / ES labels included.
+- **Scene color tags** — new `SceneSummary.colorTag` field (reuses the existing 6-colour `NodeColorTag` palette). A small dot button appears next to every non-special scene in the LeftPanel: click cycles forward through `none → red → orange → yellow → green → blue → purple → none`, shift-click cycles back. The current scene's colour also shows as a dot in the breadcrumb in the TopBar, so the tag is visible wherever you look. Persists in `project.json`. Useful for organising large projects (chapter A blue, chapter B green, …).
+
+### Internal
+- Test count holds at **399 domain + 99 UI = 498 passing**.
+- `nativeOpenProjectAt(path)` helper in `platform/fileSystem.ts` for opening a known path without showing the dialog.
+- `src/platform/recentFiles.ts` exposes a small localStorage-backed `RecentFile` store (`loadRecentFiles`, `addRecentFile`, `removeRecentFile`, `clearRecentFiles`, `basenameOf`).
+
 ## [0.6.0] — 2026-06-08
 
 ### Added

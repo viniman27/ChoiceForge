@@ -41,6 +41,8 @@ export interface SceneSummary {
   special?: boolean;
   notes?: string;
   wordGoal?: number;
+  /** Optional colour tag for the whole scene — reuses the 6 NodeColorTag palette. */
+  colorTag?: NodeColorTag;
 }
 
 export interface VariableSummary {
@@ -342,6 +344,9 @@ export interface I18nLabels {
   topRedo: string;
   topNew: string;
   topOpen: string;
+  topOpenRecent: string;
+  topOpenRecentClear: string;
+  topOpenRecentEmpty: string;
   topSave: string;
   topSaveAs: string;
   topImport: string;
