@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { generateNodeChoiceScript } from "../domain/choicescript";
 import type { ChoiceForgeProject, ChoiceCondition, ChoiceOption, ConditionalBranch, FakeChoiceOption, I18nLabels, NodeColorTag, NodeStatus, NodeType, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
@@ -156,6 +156,11 @@ function ContentTab({
 }) {
   const variableNames = project.variables.map((v) => v.name);
   const achievementIds = project.achievements.map((a) => a.id);
+  const variableInitials = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const v of project.variables) out[v.name] = v.initial;
+    return out;
+  }, [project.variables]);
   const [dragOptIdx, setDragOptIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [writingFocus, setWritingFocus] = useState(false);
@@ -215,7 +220,7 @@ function ContentTab({
             <span className="ip-word-count">{wc} {wc === 1 ? "word" : "words"}</span>
             <button className="wf-expand-btn" onClick={() => setWritingFocus(true)} title="Focus writing mode">⛶</button>
           </div>
-          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} achievements={achievementIds} />
+          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} variableInitials={variableInitials} achievements={achievementIds} />
           <AchievementInsert node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />
           <SetsList node={node} project={project} labels={labels} onUpdateNode={onUpdateNode} />
         </div>
@@ -224,7 +229,7 @@ function ContentTab({
             title={node.title}
             body={node.body ?? ""}
             wordCount={wc}
-            variables={variableNames}
+            variables={variableNames} variableInitials={variableInitials}
             achievements={achievementIds}
             onChange={(text) => onUpdateNode(node.id, { body: text })}
             onClose={() => setWritingFocus(false)}
@@ -256,7 +261,7 @@ function ContentTab({
           {promptWc > 0 && <span className="ip-word-count">{promptWc} {promptWc === 1 ? "word" : "words"}</span>}
         </div>
         <div className="ip-prompt-editor">
-          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
+          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} variableInitials={variableInitials} achievements={achievementIds} />
         </div>
         <label className="ip-label">{labels.ipOptionsLabel}</label>
         <ul className="ip-opts">
@@ -282,7 +287,7 @@ function ContentTab({
               </div>
               {option.cond && <ChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateOptionReuse(node, index, reuse, onUpdateNode)} />
-              <div className="ip-opt-body-editor"><NodeBodyEditor key={`opt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
+              <div className="ip-opt-body-editor"><NodeBodyEditor key={`opt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} variableInitials={variableInitials} achievements={achievementIds} /></div>
               <OptionSets node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -301,7 +306,7 @@ function ContentTab({
           {fakePromptWc > 0 && <span className="ip-word-count">{fakePromptWc} {fakePromptWc === 1 ? "word" : "words"}</span>}
         </div>
         <div className="ip-prompt-editor">
-          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} achievements={achievementIds} />
+          <NodeBodyEditor key={`prompt-${node.id}`} value={node.prompt ?? ""} onChange={(text) => onUpdateNode(node.id, { prompt: text })} variables={variableNames} variableInitials={variableInitials} achievements={achievementIds} />
         </div>
         <label className="ip-label">{labels.ipOptionsLabel}</label>
         <ul className="ip-opts">
@@ -323,7 +328,7 @@ function ContentTab({
               </div>
               {option.cond && <FakeChoiceConditionBuilder node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />}
               <ChoiceReuseSelect value={choiceReuseValue(option)} onChange={(reuse) => updateFakeOptionReuse(node, index, reuse, onUpdateNode)} />
-              <div className="ip-opt-body-editor"><NodeBodyEditor key={`fopt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateFakeOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} achievements={achievementIds} /></div>
+              <div className="ip-opt-body-editor"><NodeBodyEditor key={`fopt-body-${node.id}-${index}`} value={option.body ?? ""} onChange={(text) => updateFakeOption(node, index, { body: text || undefined }, onUpdateNode)} variables={variableNames} variableInitials={variableInitials} achievements={achievementIds} /></div>
               <FakeOptionSets node={node} option={option} optionIndex={index} project={project} labels={labels} onUpdateNode={onUpdateNode} />
             </li>
           ))}
@@ -337,7 +342,7 @@ function ContentTab({
     return (
       <div className="ip-content">
         <label className="ip-label">{labels.ipComment}</label>
-        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} />
+        <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={variableNames} variableInitials={variableInitials} />
       </div>
     );
   }
@@ -728,7 +733,7 @@ function InputNodeFields({
       {node.type !== "rand" && (
         <>
           <label className="ip-label">{labels.ipPromptText}</label>
-          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={project.variables.map((v) => v.name)} />
+          <NodeBodyEditor key={node.id} value={node.body ?? ""} onChange={(text) => onUpdateNode(node.id, { body: text })} variables={project.variables.map((v) => v.name)} variableInitials={Object.fromEntries(project.variables.map((v) => [v.name, v.initial]))} />
         </>
       )}
       <label className="ip-label">{labels.ipTargetVariable}</label>
@@ -1318,6 +1323,7 @@ function WritingFocusOverlay({
   wordCount,
   variables,
   achievements,
+  variableInitials,
   onChange,
   onClose,
 }: {
@@ -1326,6 +1332,7 @@ function WritingFocusOverlay({
   wordCount: number;
   variables: string[];
   achievements: string[];
+  variableInitials?: Record<string, string>;
   onChange: (text: string) => void;
   onClose: () => void;
 }) {
@@ -1344,7 +1351,7 @@ function WritingFocusOverlay({
           <button className="wf-close" onClick={onClose}>✕ done</button>
         </div>
         <div className="wf-body">
-          <NodeBodyEditor value={body} onChange={onChange} variables={variables} achievements={achievements} />
+          <NodeBodyEditor value={body} onChange={onChange} variables={variables} achievements={achievements} variableInitials={variableInitials} />
         </div>
       </div>
     </div>
