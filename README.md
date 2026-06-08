@@ -50,7 +50,9 @@ It's a sibling to Twine, but it speaks ChoiceScript natively instead of HTML —
 - **Round-trip safe exports**: every generated `.txt` runs on the official ChoiceScript runner with zero hand-fixing.
 - **Pragmatic importer**: drop in an existing `.txt`, `.json`, or whole `.zip` — common patterns reconstruct as a visual graph, unsupported structures are preserved verbatim as editable source so nothing is ever lost.
 - **Trilingual UI**: Portuguese, English, Spanish (~165 localised strings).
-- **Real-time linter**: 140+ keyed diagnostics across project metadata, achievements, scenes, variables, choices, conditions, jumps, assets, and preserved source.
+- **Real-time linter**: 140+ keyed diagnostics across project metadata, achievements, scenes, variables, choices, conditions, jumps, assets, and preserved source — including variable casing consistency (so `coragem` vs `Coragem` doesn't quietly slip past code review).
+- **Submission validators built in**: official Choice of Games Quicktest + Randomtest run inside the editor, plus a `Ready?` checklist (lint clean, word count, achievements, `*stat_chart`, quicktest pass, randomtest 10k pass).
+- **Graphviz `.dot` export**: emit the whole project graph as a `.dot` file (cluster per scene, colours by node type, cross-scene edges) for sharing structure outside the editor.
 - **Embedded official ChoiceScript runtime**: the *Play* button runs the actual Choice of Games engine in an iframe — not a custom interpreter.
 - **CodeMirror source editor**: drop into any scene as raw ChoiceScript, then convert back to the visual graph.
 - **Cross-cutting tools**: global search (`Ctrl+Shift+F`), command palette (`Ctrl+K`), find & replace, copy/paste nodes between scenes, drag-to-reorder choice options, inline title edit, per-node author notes, todo/done status, manuscript / prose reading view, dashboard with stats and word-count goals.
@@ -453,3 +455,8 @@ The current state of "done vs. not yet implemented" lives at the top of [`agents
 - **ChoiceScript** is a trademark of Choice of Games LLC. ChoiceForge is an independent, fan-made editor and is **not affiliated with or endorsed by Choice of Games**.
 - **Project author**: Vinicius de Araujo ([@viniman27](https://github.com/viniman27)).
 - **Built with assistance from Claude Code** — see the session log inside [`agents.md`](./agents.md) for the audit trail of AI-assisted changes.
+
+### Acknowledgements
+
+- **[BenSeawalker / Chronicler](https://forum.choiceofgames.com/t/chronicler-visual-choicescript-editor/4081)** — the first visual ChoiceScript editor, which proved years ago that authors wanted a graph-based tool. ChoiceForge is a different stack (browser + cross-platform desktop, official runtime embedded) but the *idea* — "treat the story as a graph, generate clean `.txt` on the other end" — comes straight from that lineage.
+- **[M3ales / choicescript-tree](https://github.com/M3ales/choicescript-tree)** — a static analyser for ChoiceScript with a proper compiler pipeline. ChoiceForge's variable casing lint and Graphviz `.dot` export are inspired by `analysis/variable-casing/` and `renderer/graph/` in that project (both MIT). Specific algorithms credited inline in the relevant source files.

@@ -18,9 +18,10 @@ import { ValidationView } from "./components/ValidationView";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
+import { exportProjectAsDot } from "./domain/graphvizExport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
-import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveBytes, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
 import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type InstallProgress, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
@@ -330,6 +331,7 @@ export default function App() {
 
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
+      <DevBadge />
       {updateInfo && (
         <UpdateBanner
           info={updateInfo}
@@ -403,6 +405,7 @@ export default function App() {
           if (!confirmExportWithLintErrors(lintedProject, lang)) return;
           downloadGeneratedProject(lintedProject);
         }}
+        onExportDot={() => downloadGraphvizDot(lintedProject)}
         onSnapshots={() => setSnapshotsOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onHelp={() => setHelpOpen(true)}
@@ -833,6 +836,26 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
   URL.revokeObjectURL(url);
 }
 
+function downloadGraphvizDot(project: ChoiceForgeProject) {
+  const dot = exportProjectAsDot(project);
+  const bytes = new TextEncoder().encode(dot);
+  const suggestedName = `${(project.title || "choiceforge-project").replace(/[^a-zA-Z0-9._-]/g, "_")}.dot`;
+  if (isTauri()) {
+    void nativeSaveBytes(bytes, suggestedName, "Graphviz DOT", ["dot"]).catch((err) => {
+      console.error("[ChoiceForge] .dot export failed", err);
+      window.alert(`Export failed: ${err?.message ?? String(err)}`);
+    });
+    return;
+  }
+  const blob = new Blob([bytes], { type: "text/vnd.graphviz" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = suggestedName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function confirmReplaceProject(project: ChoiceForgeProject, lang: Language): boolean {
   if (project.nodes.length <= 1 && !project.variables.length && !project.achievements.length) return true;
   return window.confirm(
@@ -1105,4 +1128,27 @@ function nextNodeId(nodes: StoryNode[]): string {
     return match ? Math.max(currentMax, Number(match[1])) : currentMax;
   }, 0);
   return `n${max + 1}`;
+}
+
+function isDevPreviewHost(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isTauri()) return false;
+  const host = window.location.hostname;
+  if (host === "choiceforge.pages.dev") return false;
+  if (host === "localhost" || host === "127.0.0.1") return false;
+  return host.endsWith(".pages.dev");
+}
+
+function DevBadge() {
+  if (!isDevPreviewHost()) return null;
+  return (
+    <a
+      className="dev-badge"
+      href="https://choiceforge.pages.dev"
+      title="You're on the dev preview — click to go to production"
+      rel="noopener"
+    >
+      DEV
+    </a>
+  );
 }

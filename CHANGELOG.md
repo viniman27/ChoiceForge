@@ -27,6 +27,17 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-08
+
+### Added
+- **Variable casing lint** (`name_casing_inconsistent`, warning level) — surfaces references that match a declared variable case-insensitively but use a different casing (`coragem` declared, `${Coragem}` used). The ChoiceScript engine normalises casing internally so it isn't a bug for the runtime, but it is a silent readability bug for anyone reading the code months later. Scans passage bodies, prompts, `*if`/`*elseif`/`*selectable_if`/`*set` expressions, `*input_*`/`*rand` targets, option text/body/conditions/sets, branch expressions, and preserved scene/startup/stats sources. 6 new tests. Inspired by `analysis/variable-casing/` in [M3ales/choicescript-tree](https://github.com/M3ales/choicescript-tree) — M3ales confirmed in conversation that even though CS doesn't care, many cogdemos games have inconsistent casing in practice.
+- **Graphviz `.dot` export** — new "**.dot graph**" button in the TopBar, next to **Export**. Emits a `digraph` with one cluster per non-special scene, nodes coloured by type (sRGB hex approximating the editor's OKLCH palette), edges styled by kind (`flow`/`choice`/`if`/`elseif`/`else` solid, `goto` dashed), and cross-scene edges for `*goto_scene`/`*gosub_scene` pointed at the target cluster's first node. Useful for sharing the project structure outside ChoiceForge (`dot -Tsvg project.dot > project.svg`). On desktop opens the native save dialog; on web triggers a browser download. Inspired by `renderer/graph/` in [M3ales/choicescript-tree](https://github.com/M3ales/choicescript-tree). 6 new tests.
+
+### Internal
+- Test count: 387 → **399 domain tests** + 99 UI = **498 passing**.
+- Two-branch development workflow (`main` for production, `dev` for preview at `dev.choiceforge.pages.dev`) — documented in `docs/dev-workflow.md`.
+- Small `DEV` badge appears in the bottom-right corner of preview deploys so it's instantly clear when you're not on production.
+
 ## [0.5.1] — 2026-05-28
 
 ### Fixed

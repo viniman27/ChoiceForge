@@ -267,6 +267,10 @@ export const lintMessages: LintTranslations = {
     pt: "nome \"{name}\" conflita com palavra reservada do ChoiceScript",
     es: "nombre \"{name}\" conflicta con palabra reservada de ChoiceScript",
   },
+  name_casing_inconsistent: {
+    pt: "variavel \"{name}\" usada com capitalizacao diferente da declarada \"{canonical}\" (o engine normaliza, mas leitores nao vao perceber)",
+    es: "variable \"{name}\" usada con capitalizacion diferente de la declarada \"{canonical}\" (el motor normaliza, pero los lectores no se daran cuenta)",
+  },
   params_no_names: {
     pt: "*params nao tem nomes de parametros",
     es: "*params no tiene nombres de parametros",

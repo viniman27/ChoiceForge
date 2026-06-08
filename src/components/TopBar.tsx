@@ -25,6 +25,7 @@ interface TopBarProps {
   onValidate: () => void;
   onImport: (files: File[]) => void;
   onExport: () => void;
+  onExportDot: () => void;
   onNewProject: () => void;
   onSnapshots: () => void;
   onHelp: () => void;
@@ -34,7 +35,7 @@ interface TopBarProps {
   onNativeSaveAs?: () => void;
 }
 
-export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onValidate, onImport, onExport, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
+export function TopBar({ data, lang, labels, theme, density, view, selectedNodeTitle, onLangChange, onThemeChange, onDensityChange, onViewChange, onMetadataChange, canUndo, canRedo, textModeActive, onUndo, onRedo, onSave, saveStatus, onTextMode, onPlay, onValidate, onImport, onExport, onExportDot, onNewProject, onSnapshots, onHelp, currentFilePath, onNativeOpen, onNativeSave, onNativeSaveAs }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="brand">
@@ -133,6 +134,13 @@ export function TopBar({ data, lang, labels, theme, density, view, selectedNodeT
           {labels.topImportFolder}
         </button>
         <button className="ghost-btn" onClick={onExport}>{labels.export}</button>
+        <button
+          className="ghost-btn"
+          onClick={onExportDot}
+          title="Export the project graph as a Graphviz .dot file (renderable as SVG/PNG)"
+        >
+          {labels.exportDot}
+        </button>
         <button
           className="ghost-btn"
           onClick={onValidate}

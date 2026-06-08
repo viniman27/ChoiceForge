@@ -304,6 +304,7 @@ export function lintProject(project: ChoiceForgeProject): LintIssue[] {
 
   lintSceneReachability(project, sceneNames, issues);
   lintUnusedVariables(project, issues);
+  lintVariableCasing(project, issues);
   lintCheckpoints(project, sceneNames, issues);
 
   issues.push({ level: "info", msg: "indent configured: 2 spaces; encoding UTF-8", scene: null });
@@ -374,6 +375,123 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
       issues.push({ level: "warning", msg: `variable "${variable.name}" is declared but never read`, key: "unused_var", params: { name: variable.name }, scene: null });
     }
   }
+}
+
+// Variable casing pass inspired by analysis/variable-casing/ in
+// M3ales/choicescript-tree (MIT). The CS engine normalises identifier
+// casing internally so this is a readability lint, not a correctness one.
+// https://github.com/M3ales/choicescript-tree
+function lintVariableCasing(project: ChoiceForgeProject, issues: LintIssue[]) {
+  if (!project.variables.length) return;
+
+  // Case-insensitive identifier shape — the strict isValidChoiceScriptIdentifier
+  // rejects anything with an uppercase letter, which is exactly what we need
+  // to detect here.
+  const looksLikeIdentifier = (s: string) => /^[a-z_][a-z0-9_]*$/i.test(s);
+
+  // Canonical name per lowercase key. First declaration wins.
+  const canonicalByLower = new Map<string, string>();
+  for (const v of project.variables) {
+    const lower = v.name.toLowerCase();
+    if (!canonicalByLower.has(lower)) canonicalByLower.set(lower, v.name);
+  }
+
+  // ChoiceScript normalises casing internally — engine doesn't care. But
+  // humans reading the code do. Surface the mismatch as a readability
+  // warning, not a correctness error.
+  const reported = new Set<string>(); // dedupe by canonical + variant + scene + node
+  const flag = (name: string, scene: string | null, node: string | undefined, line: number | undefined) => {
+    const canonical = canonicalByLower.get(name.toLowerCase());
+    if (!canonical || name === canonical) return;
+    const key = `${canonical}::${name}::${scene ?? ""}::${node ?? ""}::${line ?? ""}`;
+    if (reported.has(key)) return;
+    reported.add(key);
+    issues.push({
+      level: "warning",
+      msg: `variable "${name}" used with non-canonical casing; declared as "${canonical}" (the engine normalises but readers won't)`,
+      key: "name_casing_inconsistent",
+      params: { name, canonical },
+      scene,
+      node,
+      line,
+    });
+  };
+
+  const scanExpr = (expr: string, scene: string | null, node?: string, line?: number) => {
+    extractExpressionNames(expr).forEach((n) => flag(n, scene, node, line));
+  };
+  const scanText = (text: string, scene: string | null, node?: string, line?: number) => {
+    extractVariableReferences(text).forEach((n) => flag(n, scene, node, line));
+  };
+
+  const scanNode = (node: StoryNode, sceneName: string) => {
+    scanText(node.body ?? "", sceneName, node.id);
+    scanText(node.prompt ?? "", sceneName, node.id);
+    node.sets?.forEach((s) => {
+      flag(s.var, sceneName, node.id, undefined);
+      scanExpr(s.val, sceneName, node.id);
+    });
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMin && looksLikeIdentifier(node.inputMin)) flag(node.inputMin, sceneName, node.id, undefined);
+    if ((node.type === "rand" || node.type === "input_number") && node.inputMax && looksLikeIdentifier(node.inputMax)) flag(node.inputMax, sceneName, node.id, undefined);
+    if ((node.type === "input_text" || node.type === "input_number" || node.type === "rand") && node.inputVar && looksLikeIdentifier(node.inputVar)) flag(node.inputVar, sceneName, node.id, undefined);
+    node.options?.forEach((opt) => {
+      scanText(opt.text, sceneName, node.id);
+      scanText(opt.body ?? "", sceneName, node.id);
+      if (opt.cond?.expr) scanExpr(opt.cond.expr, sceneName, node.id);
+      opt.sets?.forEach((s) => {
+        flag(s.var, sceneName, node.id, undefined);
+        scanExpr(s.val, sceneName, node.id);
+      });
+    });
+    node.fakeOptions?.forEach((opt) => {
+      scanText(opt.text, sceneName, node.id);
+      scanText(opt.body ?? "", sceneName, node.id);
+      if (opt.cond?.expr) scanExpr(opt.cond.expr, sceneName, node.id);
+      opt.sets?.forEach((s) => {
+        flag(s.var, sceneName, node.id, undefined);
+        scanExpr(s.val, sceneName, node.id);
+      });
+    });
+    node.branches?.forEach((branch) => {
+      if (branch.expr) scanExpr(branch.expr, sceneName, node.id);
+      branch.sets?.forEach((s) => {
+        flag(s.var, sceneName, node.id, undefined);
+        scanExpr(s.val, sceneName, node.id);
+      });
+    });
+  };
+
+  const scanSource = (text: string, sceneName: string | null) => {
+    text.split(/\r?\n/).forEach((line, idx) => {
+      const trimmed = line.trim();
+      scanText(trimmed, sceneName, undefined, idx + 1);
+      const command = sourceCommand(trimmed);
+      if (command === "if" || command === "elseif" || command === "selectable_if") {
+        scanExpr(normalizeSourceExpressionIdentifiers(sourceConditionExpression(trimmed, command)), sceneName, undefined, idx + 1);
+      }
+      if (command === "set") {
+        const parts = sourceCommandValue(trimmed, "*set").split(/\s+/);
+        const target = parts[0];
+        if (target && looksLikeIdentifier(target)) flag(target, sceneName, undefined, idx + 1);
+        const [, maybeOp = "", ...rest] = parts;
+        const isExplicit = ["=", "+", "-", "%+", "%-"].includes(maybeOp);
+        const valueExpr = isExplicit ? rest.join(" ") : [maybeOp, ...rest].join(" ");
+        if (valueExpr.trim()) scanExpr(normalizeSourceExpressionIdentifiers(valueExpr), sceneName, undefined, idx + 1);
+      }
+    });
+  };
+
+  if (project.sceneData) {
+    for (const [sceneName, graph] of Object.entries(project.sceneData)) {
+      graph.nodes.forEach((node) => scanNode(node, sceneName));
+      if (graph.sourceText && graph.sourceText.length <= LARGE_SOURCE_LINT_LIMIT) scanSource(graph.sourceText, sceneName);
+    }
+  } else {
+    // Fallback when sceneData isn't set — current scene only.
+    project.nodes.forEach((node) => scanNode(node, project.sceneTitle));
+  }
+  if (project.startupSource) scanSource(project.startupSource, "startup");
+  if (project.statsSource) scanSource(project.statsSource, "choicescript_stats");
 }
 
 function lintCheckpoints(project: ChoiceForgeProject, sceneNames: string[], issues: LintIssue[]) {
