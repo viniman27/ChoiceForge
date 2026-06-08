@@ -191,6 +191,7 @@ export interface I18nLabels {
   inspector: string;
   play: string;
   export: string;
+  exportDot: string;
   autosave: string;
   addScene: string;
   addVar: string;

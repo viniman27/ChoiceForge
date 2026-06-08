@@ -18,9 +18,10 @@ import { ValidationView } from "./components/ValidationView";
 import { i18n } from "./data/sampleProject";
 import { createExportPackage, generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript } from "./domain/choicescript";
 import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain/choicescriptImport";
+import { exportProjectAsDot } from "./domain/graphvizExport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
-import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveBytes, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
 import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type InstallProgress, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
@@ -404,6 +405,7 @@ export default function App() {
           if (!confirmExportWithLintErrors(lintedProject, lang)) return;
           downloadGeneratedProject(lintedProject);
         }}
+        onExportDot={() => downloadGraphvizDot(lintedProject)}
         onSnapshots={() => setSnapshotsOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onHelp={() => setHelpOpen(true)}
@@ -826,6 +828,26 @@ function downloadGeneratedProject(project: ChoiceForgeProject) {
     return;
   }
   const blob = new Blob([toArrayBuffer(zipBytes)], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = suggestedName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadGraphvizDot(project: ChoiceForgeProject) {
+  const dot = exportProjectAsDot(project);
+  const bytes = new TextEncoder().encode(dot);
+  const suggestedName = `${(project.title || "choiceforge-project").replace(/[^a-zA-Z0-9._-]/g, "_")}.dot`;
+  if (isTauri()) {
+    void nativeSaveBytes(bytes, suggestedName, "Graphviz DOT", ["dot"]).catch((err) => {
+      console.error("[ChoiceForge] .dot export failed", err);
+      window.alert(`Export failed: ${err?.message ?? String(err)}`);
+    });
+    return;
+  }
+  const blob = new Blob([bytes], { type: "text/vnd.graphviz" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
