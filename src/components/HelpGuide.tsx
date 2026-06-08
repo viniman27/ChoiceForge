@@ -684,12 +684,14 @@ function ImportExportTab() {
       </Section>
       <Section title="Export">
         <Row label="Export button" desc="Downloads a .zip containing all generated ChoiceScript .txt files ready for upload to dashingdon or the Choice of Games compiler." />
+        <Row label=".dot graph" desc="Exports the whole project as a Graphviz .dot file — one cluster per scene, coloured by node type, with cross-scene edges. Render with `dot -Tsvg project.dot > project.svg` to share structure outside the editor." />
         <Row label="Ctrl+S / Save" desc="Saves the project to browser localStorage (web) or to the open .json file (desktop, debounced 1.5s autosave too)." />
         <Row label="Snapshots" desc="Named project restore points saved to localStorage. Use Snapshots → Save to create one and Restore to revert." />
       </Section>
       <Section title="Linter">
         <Row label="Lint console" desc="The bottom bar shows all lint errors and warnings. Click any issue to navigate to the offending node." />
         <Row label="Error types" desc="Missing *goto targets, undefined variables, duplicate labels, unreachable nodes, invalid *achieve IDs, and more." />
+        <Row label="Variable casing" desc="Warning fires when a reference matches a declared variable case-insensitively but uses a different casing (`coragem` declared, `${Coragem}` used). CS normalises internally but humans reading the code don't — this is a readability check." />
         <Row label="Export with errors" desc="You can still export with lint errors — a confirmation dialog warns you first." />
       </Section>
     </div>

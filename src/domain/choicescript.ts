@@ -377,6 +377,10 @@ function lintUnusedVariables(project: ChoiceForgeProject, issues: LintIssue[]) {
   }
 }
 
+// Variable casing pass inspired by analysis/variable-casing/ in
+// M3ales/choicescript-tree (MIT). The CS engine normalises identifier
+// casing internally so this is a readability lint, not a correctness one.
+// https://github.com/M3ales/choicescript-tree
 function lintVariableCasing(project: ChoiceForgeProject, issues: LintIssue[]) {
   if (!project.variables.length) return;
 

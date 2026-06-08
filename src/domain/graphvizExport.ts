@@ -1,3 +1,9 @@
+// Inspired by the renderer/graph stage in M3ales/choicescript-tree (MIT)
+// https://github.com/M3ales/choicescript-tree
+// ChoiceForge's version is simpler: it emits the visible scene graph 1:1,
+// without CFG inlining, gosub flattening, or SCC. For full static analysis,
+// see choicescript-tree's pipeline.
+
 import type { ChoiceForgeProject, SceneGraph, StoryEdge, StoryNode } from "./types";
 
 // Approximated hex palette matching the editor's OKLCH tokens. Graphviz
