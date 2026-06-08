@@ -6653,6 +6653,114 @@ test("label node colliding with generated label emits label_collision key", () =
   assert.equal(issue!.params?.name, "cf_n2");
 });
 
+test("variable referenced with different casing in passage body emits name_casing_inconsistent key", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "You have ${Coragem} bravery left." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "50", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "name_casing_inconsistent");
+  assert.ok(issue, "expected name_casing_inconsistent on variant 'Coragem' vs declared 'coragem'");
+  assert.equal(issue!.params?.name, "Coragem");
+  assert.equal(issue!.params?.canonical, "coragem");
+  assert.equal(issue!.level, "warning");
+});
+
+test("variable referenced with exact canonical casing emits no name_casing_inconsistent", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "You have ${coragem} bravery." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "50", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const found = lintProject(project).find((i) => i.key === "name_casing_inconsistent");
+  assert.equal(found, undefined, "no casing warning when reference matches declaration");
+});
+
+test("variable referenced with wrong casing inside *if expression emits name_casing_inconsistent", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1", type: "if", x: 0, y: 0, w: 300, title: "*if Coragem > 30",
+        branches: [{ kind: "if", expr: "Coragem > 30", body: "" }, { kind: "else", body: "" }],
+      },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "0", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "name_casing_inconsistent" && i.params?.name === "Coragem");
+  assert.ok(issue, "expected name_casing_inconsistent inside *if expression");
+});
+
+test("*set with wrong casing on target variable emits name_casing_inconsistent", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      {
+        id: "n1", type: "set", x: 0, y: 0, w: 300, title: "*set Coragem 10",
+        sets: [{ var: "Coragem", op: "=", val: "10" }],
+      },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "0", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issue = lintProject(project).find((i) => i.key === "name_casing_inconsistent" && i.params?.name === "Coragem");
+  assert.ok(issue, "expected name_casing_inconsistent on *set target");
+});
+
+test("variable referenced with wrong casing in preserved source emits name_casing_inconsistent with line", () => {
+  const sourceText = "*set Coragem +5\nYou have ${Coragem} left.\n*finish";
+  const graph: SceneGraph = { nodes: [], edges: [], sourceText };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "0", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const issues = lintProject(project).filter((i) => i.key === "name_casing_inconsistent" && i.params?.name === "Coragem");
+  assert.ok(issues.length >= 1, "expected at least one casing warning on preserved source");
+  assert.ok(issues.some((i) => i.line === 1), "expected line 1 (*set Coragem)");
+  assert.ok(issues.some((i) => i.line === 2), "expected line 2 (${Coragem})");
+});
+
+test("variable name unrelated to any declared variable does not emit name_casing_inconsistent", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: "start", body: "Random text with ${unknown_var}." },
+      { id: "n2", type: "finish", x: 0, y: 160, w: 240, title: "*finish" },
+    ],
+    edges: [{ from: "n1", to: "n2", kind: "flow" }],
+  };
+  const project = {
+    ...minimalProject(),
+    variables: [{ name: "coragem", type: "number" as const, initial: "0", desc: "" }],
+    sceneData: { intro: graph },
+  };
+  const found = lintProject(project).find((i) => i.key === "name_casing_inconsistent");
+  assert.equal(found, undefined, "no casing warning for variable name not matching any declaration case-insensitively");
+});
+
 test("project variable with reserved name emits name_reserved key", () => {
   const project = {
     ...minimalProject(),
@@ -6954,6 +7062,73 @@ test("*rand with no max bound in source text emits input_empty_max key", () => {
   const project = { ...minimalProject(), sceneData: { intro: graph } };
   const issue = lintProject(project).find((i) => i.key === "input_empty_max");
   assert.ok(issue, "expected input_empty_max");
+});
+
+import { exportProjectAsDot } from "../src/domain/graphvizExport.ts";
+
+test("graphviz export starts with digraph header and uses the project title", () => {
+  const dot = exportProjectAsDot(minimalProject());
+  assert.ok(dot.startsWith("digraph \"Test\" {\n"), "expected digraph header with title");
+  assert.ok(dot.trim().endsWith("}"), "expected closing brace");
+});
+
+test("graphviz export emits a cluster per non-special scene", () => {
+  const project = minimalProject();
+  const dot = exportProjectAsDot(project);
+  assert.ok(dot.includes('subgraph "cluster_intro"'), "expected cluster_intro");
+  assert.ok(!dot.includes('cluster_startup'), "should not emit special startup as cluster");
+  assert.ok(!dot.includes('cluster_choicescript_stats'), "should not emit special stats as cluster");
+});
+
+test("graphviz export contains every node and edge of the input scene graph", () => {
+  const project = minimalProject();
+  const dot = exportProjectAsDot(project);
+  assert.ok(dot.includes('"intro__n1"'), "expected node n1 keyed by scene");
+  assert.ok(dot.includes('"intro__n2"'), "expected node n2 keyed by scene");
+  assert.ok(dot.includes('"intro__n1" -> "intro__n2"'), "expected the flow edge between n1 and n2");
+});
+
+test("graphviz export with sceneName option emits without cluster wrapper", () => {
+  const dot = exportProjectAsDot(minimalProject(), { sceneName: "intro" });
+  assert.ok(!dot.includes('subgraph "cluster_intro"'), "single-scene export should not wrap in cluster");
+  assert.ok(dot.includes('"intro__n1"'), "still emits the nodes");
+});
+
+test("graphviz export escapes double quotes inside titles and bodies", () => {
+  const graph: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "passage", x: 0, y: 0, w: 300, title: 'has "quotes" in it', body: 'and "more" here' },
+    ],
+    edges: [],
+  };
+  const project = { ...minimalProject(), sceneData: { intro: graph } };
+  const dot = exportProjectAsDot(project);
+  assert.ok(dot.includes('\\"quotes\\"'), "expected quotes in title to be escaped");
+  assert.ok(dot.includes('\\"more\\"'), "expected quotes in body to be escaped");
+});
+
+test("graphviz export emits *goto_scene as cross-cluster edge", () => {
+  const intro: SceneGraph = {
+    nodes: [
+      { id: "n1", type: "goto_scene", x: 0, y: 0, w: 300, title: "*goto_scene final", target: "final" },
+    ],
+    edges: [],
+  };
+  const final: SceneGraph = {
+    nodes: [{ id: "f1", type: "finish", x: 0, y: 0, w: 200, title: "*finish" }],
+    edges: [],
+  };
+  const base = minimalProject();
+  const project: ChoiceForgeProject = {
+    ...base,
+    scenes: [
+      ...base.scenes,
+      { id: "final", name: "final", words: 0, nodes: 1 },
+    ],
+    sceneData: { intro, final },
+  };
+  const dot = exportProjectAsDot(project);
+  assert.ok(dot.includes('"intro__n1" -> "final__f1"'), "expected cross-scene edge from goto_scene to final's first node");
 });
 
 function minimalProject(): ChoiceForgeProject {
