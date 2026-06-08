@@ -1,16 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { computeVariableUses, computeAchievementUses, computeVariableLocations, computeAchievementLocations } from "../domain/choicescript";
 import type { VarLocation, AchievementLocation } from "../domain/choicescript";
-import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, NodeColorTag, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
-import { COLOR_TAG_VALUES } from "./NodeCard";
-
-const SCENE_COLOR_CYCLE: (NodeColorTag | undefined)[] = [undefined, "red", "orange", "yellow", "green", "blue", "purple"];
-
-function nextSceneColor(current: NodeColorTag | undefined, direction: 1 | -1): NodeColorTag | undefined {
-  const idx = SCENE_COLOR_CYCLE.indexOf(current ?? undefined);
-  const next = (idx + direction + SCENE_COLOR_CYCLE.length) % SCENE_COLOR_CYCLE.length;
-  return SCENE_COLOR_CYCLE[next];
-}
+import type { AchievementSummary, AssetSummary, ChoiceForgeProject, I18nLabels, SceneSummary, StoryNode, VariableSummary } from "../domain/types";
 
 interface LeftPanelProps {
   data: ChoiceForgeProject;
@@ -478,20 +469,6 @@ function ScenesList({
             }}
           >
             <span className="scene-handle">{movable ? "::" : "--"}</span>
-            {!scene.special && (
-              <button
-                className="scene-color-dot"
-                style={scene.colorTag ? { "--ct": COLOR_TAG_VALUES[scene.colorTag] } as React.CSSProperties : undefined}
-                data-state={scene.colorTag ?? "none"}
-                title={scene.colorTag ? `Color: ${scene.colorTag} — click to cycle, shift-click to go back` : "Set scene color tag (click to cycle)"}
-                aria-label="Scene color tag"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  const next = nextSceneColor(scene.colorTag, event.shiftKey ? -1 : 1);
-                  onUpdateScene(scene.id, { colorTag: next });
-                }}
-              />
-            )}
             <div className="scene-meta">
               <div className="scene-name">
                 {scene.isStart || scene.special ? (

@@ -27,6 +27,11 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-06-08
+
+### Fixed
+- **CRITICAL: scene names disappeared from the left panel in v0.7.0.** The Scene color tags feature inserted a new `<button>` child between `.scene-handle` and `.scene-meta`, but `.scene-item` is a 2-column CSS grid (`grid-template-columns: 16px 1fr`). The extra child broke the layout and the scene name got pushed out of view. Also the small unlabeled colour dot read as a confusing "toggle" without context. Removed the colour-dot UI entirely; the `colorTag` field stays in `SceneSummary` (existing projects still load), but no UI sets it for now. A re-designed scene-tag picker will come in a later minor.
+
 ## [0.7.0] — 2026-06-08
 
 ### Added
