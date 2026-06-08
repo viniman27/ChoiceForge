@@ -27,6 +27,15 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-06-08
+
+### Added
+- **Inline initial-value chips on `${var}` references** in every passage body, prompt, choice-option body, and writing-focus modal. Each time the text contains `${coragem}` or `@{coragem ...}` and `coragem` is a declared project variable, a small subtle chip rendering `:45` (the variable's initial value) is inserted right after the closing brace by a CodeMirror StateField + WidgetType decoration. Read-only, doesn't modify the document or interfere with cursor / selection / autocomplete. Updates live whenever the variable's initial changes in the Variables panel. Helps when proofreading — you immediately see "the player will read `you have 45 bravery left`" instead of having to translate `${coragem}` in your head.
+
+### Internal
+- New CodeMirror state field + `StateEffect.define<Map<string, string>>` to push refreshed initials into the editor without remount.
+- `NodeBodyEditor` gains an optional `variableInitials?: Record<string, string>` prop; wired through all 8 call sites in `RightPanel`.
+
 ## [0.9.0] — 2026-06-08
 
 ### Added
