@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
-import { sampleProjects } from "../../src/data/sampleProject.ts";
+import { availableSamples, sampleProjects } from "../../src/data/sampleProject.ts";
 import { generateSceneChoiceScript, generateStartupChoiceScript, generateStatsChoiceScript, lintProject } from "../../src/domain/choicescript.ts";
 import type { ChoiceForgeProject } from "../../src/domain/types.ts";
 
@@ -157,5 +157,28 @@ describe("sample project passes quicktest", () => {
       }
       expect(result.errors).toEqual([]);
     });
+  }
+});
+
+describe("every registered sample passes lint+quicktest in every language", () => {
+  for (const sample of availableSamples) {
+    for (const lang of ["pt", "en", "es"] as const) {
+      test(`${sample.id} [${lang}]: lintProject returns 0 errors`, () => {
+        const issues = lintProject(sample.projects[lang]);
+        const errs = issues.filter((i) => i.level === "error");
+        if (errs.length) {
+          console.error(`Lint errors in ${sample.id} [${lang}]:`, errs.map((e) => `[${e.scene ?? "?"}] ${e.key}: ${e.msg}`));
+        }
+        expect(errs).toEqual([]);
+      });
+
+      test(`${sample.id} [${lang}]: quicktest passes with no errors`, () => {
+        const result = runQuicktest(sample.projects[lang]);
+        if (result.errors.length) {
+          console.error(`Quicktest errors in ${sample.id} [${lang}]:`, result.errors);
+        }
+        expect(result.errors).toEqual([]);
+      });
+    }
   }
 });

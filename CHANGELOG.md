@@ -27,6 +27,25 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-06-08
+
+### Added
+- **Second sample project: "A Caverna do Dragão" / "Dragon's Cave" / "La Cueva del Dragón"** — a short RPG-style sample showcasing mechanics the lighthouse sample doesn't:
+  - **Class selection** (warrior / rogue / mage) at intro, gating subsequent `*if` branches by stat
+  - **`*rand`** for combat hit-rolls and luck checks
+  - Six stats (`forca`, `agilidade`, `magia`, `vida`, `ouro`, `classe`) with a richer auto-generated `*stat_chart`
+  - **Two distinct ending paths** with achievement unlocks: `mata_dragao` (combat victory) or `pacifista` (diplomatic resolution)
+  - 4 scenes (`intro` / `caverna` / `chefe` / `fim`), ~34 nodes total — comparable to the lighthouse sample
+  - PT-canonical, EN / ES titles override per the existing pattern
+- **Grid picker on "New project" modal** — replaces the old single "Load example" button with a 3-card grid: Blank (dashed outline) · Mist Lighthouse · Dragon's Cave. Each card has an icon, title, 1-line description in the active language, and a `N scenes · N words` tag computed live from the sample data. Clicking a card immediately loads that project. Adding more samples in the future is just appending to the registry.
+- **`availableSamples` registry** in `src/data/sampleProject.ts` — each entry is `{ id, icon, label, description, projects }` with all three language variants. `getSampleById(id)` helper for lookups; `projectStore.resetProject` now takes an optional `sampleId` parameter (defaults to lighthouse for backwards compatibility with existing tests).
+
+### Internal
+- Test count: 403 domain + 111 UI = **514 passing**. The new `sampleProjectValidation` loop iterates every registered sample across PT/EN/ES through lint + the official Quicktest autotester — any future sample addition gets this coverage for free.
+- Two RPG-specific gotchas worth keeping in mind for future samples:
+  - `*rand` variables must be declared as project variables (the generator can't infer them) — added `sorte` and `acerto` with `showInStats: false`.
+  - Boolean expressions with multiple operands need explicit parentheses (e.g. `(forca > 50) or (magia > 50)`) — CS's parser doesn't permit chained naked comparisons.
+
 ## [0.8.0] — 2026-06-08
 
 ### Added

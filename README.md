@@ -56,6 +56,7 @@ It's a sibling to Twine, but it speaks ChoiceScript natively instead of HTML —
 - **Embedded official ChoiceScript runtime**: the *Play* button runs the actual Choice of Games engine in an iframe — not a custom interpreter.
 - **CodeMirror source editor**: drop into any scene as raw ChoiceScript, then convert back to the visual graph.
 - **Cross-cutting tools**: global search (`Ctrl+Shift+F`), command palette (`Ctrl+K`), templates palette with 6 starter patterns (`Ctrl+Shift+T`), find & replace, copy/paste nodes between scenes, drag-to-reorder choice options, inline title edit, per-node author notes, todo/done status, manuscript / prose reading view, dashboard with stats and word-count goals.
+- **Two starter samples** to pick from in the New project picker: an atmospheric mystery (Mist Lighthouse) showing `*gosub` / `*checkpoint` / `*image` / chained `*if`, and a short RPG (Dragon's Cave) showing class selection, `*rand` combat rolls and a full `*stat_chart`.
 - **Custom canvas**: pan, zoom, fit-view, minimap, resizable nodes, auto-layout (hierarchical by topological depth), edge-drop quick node creation.
 - **Local-first persistence**: autosave to `localStorage` with pagehide flush; the portable artifact stays the `.zip` export.
 - **Native desktop**: Tauri v2 wrapper with native open/save dialogs and a Recent files menu.

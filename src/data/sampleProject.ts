@@ -262,6 +262,158 @@ function graphWords(graph: SceneGraph): number {
     .length;
 }
 
+// ─── RPG sample: "A Caverna do Dragao" ─────────────────────────────────────
+// Showcases mechanics the lighthouse sample doesn't: class selection,
+// *rand combat rolls, three-way achievement paths, and a richer *stat_chart.
+
+const rpgIntro: SceneGraph = {
+  nodes: [
+    { id: "n1", type: "passage", x: 70, y: 70, w: 320, title: "abertura", body: "Voce parou diante da boca escura da caverna. Aldeoes contam que um dragao guarda um tesouro aqui dentro." },
+    { id: "n2", type: "choice", x: 70, y: 230, w: 360, title: "escolher_classe", prompt: "Como voce se apresenta antes de entrar?",
+      options: [
+        { text: "Sou um guerreiro — confio na minha espada.", to: "n3", sets: [{ var: "classe", op: "=", val: "\"guerreiro\"" }, { var: "forca", op: "=", val: "70" }, { var: "agilidade", op: "=", val: "40" }, { var: "magia", op: "=", val: "30" }] },
+        { text: "Sou um ladino — me movo sem ser vista.",       to: "n4", sets: [{ var: "classe", op: "=", val: "\"ladino\"" },     { var: "forca", op: "=", val: "40" }, { var: "agilidade", op: "=", val: "70" }, { var: "magia", op: "=", val: "30" }] },
+        { text: "Sou uma maga — domino fogo e ilusao.",          to: "n5", sets: [{ var: "classe", op: "=", val: "\"mago\"" },       { var: "forca", op: "=", val: "30" }, { var: "agilidade", op: "=", val: "40" }, { var: "magia", op: "=", val: "70" }] },
+      ] },
+    { id: "n3", type: "passage", x: -150, y: 460, w: 280, title: "set_guerreiro", body: "Voce afivela a armadura e empunha a espada. A caverna te aguarda." },
+    { id: "n4", type: "passage", x: 70,   y: 460, w: 280, title: "set_ladino",    body: "Voce ajusta a capa e checa as adagas escondidas. Silencioso." },
+    { id: "n5", type: "passage", x: 290,  y: 460, w: 280, title: "set_mago",      body: "Voce sente a magia formigando nos dedos. Vai com cautela." },
+    { id: "n6", type: "goto_scene", x: 70, y: 620, w: 260, title: "*goto_scene caverna", target: "caverna" },
+  ],
+  edges: [
+    { from: "n1", to: "n2", kind: "flow" },
+    { from: "n2", to: "n3", kind: "choice" },
+    { from: "n2", to: "n4", kind: "choice" },
+    { from: "n2", to: "n5", kind: "choice" },
+    { from: "n3", to: "n6", kind: "flow" },
+    { from: "n4", to: "n6", kind: "flow" },
+    { from: "n5", to: "n6", kind: "flow" },
+  ],
+};
+
+const rpgCaverna: SceneGraph = {
+  nodes: [
+    { id: "n1", type: "passage", x: 70, y: 70, w: 320, title: "boca_da_caverna", body: "Um corredor estreito. Estalactites pingam agua fria. Algo se mexe a frente." },
+    { id: "n2", type: "choice", x: 70, y: 230, w: 360, title: "como_avancar", prompt: "Como voce avanca?",
+      options: [
+        { text: "Avancar com forca, sem disfarce.",       to: "n3", cond: { type: "if", expr: "forca > 50" } },
+        { text: "Esgueirar pelas sombras.",                to: "n4", cond: { type: "if", expr: "agilidade > 50" } },
+        { text: "Lancar uma luz magica para ver o caminho.", to: "n5", cond: { type: "if", expr: "magia > 50" } },
+        { text: "Tentar a sorte — andar normal.",          to: "n6" },
+      ] },
+    { id: "n3", type: "passage", x: -180, y: 460, w: 260, title: "abriu_caminho",
+      body: "Voce empurra entulho do corredor com forca bruta. Acha uma bolsa esquecida.",
+      sets: [{ var: "ouro", op: "+", val: "20" }] },
+    { id: "n4", type: "passage", x: 70, y: 460, w: 260, title: "passou_furtivo",
+      body: "Voce se esgueira sem ser percebida. Encontra um cofre pequeno.",
+      sets: [{ var: "ouro", op: "+", val: "30" }] },
+    { id: "n5", type: "passage", x: 320, y: 460, w: 260, title: "luz_magica",
+      body: "A luz revela runas no chao. Voce decifra uma — o caminho ate o dragao fica mais claro.",
+      sets: [{ var: "magia", op: "%+", val: "10" }] },
+    { id: "n6", type: "rand", x: 570, y: 460, w: 240, title: "*rand sorte 1 100", inputVar: "sorte", inputMin: "1", inputMax: "100" },
+    { id: "n7", type: "if", x: 570, y: 620, w: 280, title: "*if (sorte > 50)",
+      branches: [
+        { kind: "if",   expr: "sorte > 50", to: "n4" },
+        { kind: "else", to: "n8" },
+      ] },
+    { id: "n8", type: "passage", x: 570, y: 780, w: 260, title: "tropeco",
+      body: "Voce tropeca num arame e cai. Perde um pouco de vida.",
+      sets: [{ var: "vida", op: "%-", val: "15" }] },
+    { id: "n9", type: "goto_scene", x: 70, y: 940, w: 260, title: "*goto_scene chefe", target: "chefe" },
+  ],
+  edges: [
+    { from: "n1", to: "n2", kind: "flow" },
+    { from: "n2", to: "n3", kind: "choice" },
+    { from: "n2", to: "n4", kind: "choice" },
+    { from: "n2", to: "n5", kind: "choice" },
+    { from: "n2", to: "n6", kind: "choice" },
+    { from: "n3", to: "n9", kind: "flow" },
+    { from: "n4", to: "n9", kind: "flow" },
+    { from: "n5", to: "n9", kind: "flow" },
+    { from: "n6", to: "n7", kind: "flow" },
+    { from: "n7", to: "n4", kind: "if" },
+    { from: "n7", to: "n8", kind: "else" },
+    { from: "n8", to: "n9", kind: "flow" },
+  ],
+};
+
+const rpgChefe: SceneGraph = {
+  nodes: [
+    { id: "n1", type: "passage", x: 70, y: 70, w: 320, title: "salao_do_dragao",
+      body: "Um salao imenso. O dragao desperta — fumaca sai das narinas." },
+    { id: "n2", type: "choice", x: 70, y: 230, w: 360, title: "acao_de_combate", prompt: "O dragao avanca. O que voce faz?",
+      options: [
+        { text: "Atacar de frente!",         to: "n3", cond: { type: "if", expr: "(forca > 50) or (magia > 50)" } },
+        { text: "Defender e estudar o padrao.", to: "n7" },
+        { text: "Negociar com palavras.",    to: "n10" },
+      ] },
+    { id: "n3", type: "rand", x: -120, y: 460, w: 240, title: "*rand acerto 1 100", inputVar: "acerto", inputMin: "1", inputMax: "100" },
+    { id: "n4", type: "if",   x: -120, y: 620, w: 280, title: "*if (acerto > 40)",
+      branches: [
+        { kind: "if",   expr: "acerto > 40", to: "n5" },
+        { kind: "else", to: "n6" },
+      ] },
+    { id: "n5", type: "passage", x: -260, y: 780, w: 240, title: "acertou", body: "Seu golpe acerta uma parte fraca. O dragao recua, ferido.",
+      sets: [{ var: "vida", op: "%-", val: "10" }] },
+    { id: "n6", type: "passage", x: 30, y: 780, w: 240, title: "errou", body: "Voce nao consegue passar pelas escamas. O dragao revida.",
+      sets: [{ var: "vida", op: "%-", val: "30" }] },
+    { id: "n7", type: "passage", x: 250, y: 460, w: 260, title: "defendeu", body: "Voce aguenta a primeira lufada. Descobre que a asa esquerda esta machucada." },
+    { id: "n8", type: "passage", x: 250, y: 620, w: 260, title: "explorou_fraqueza", body: "Mirando a asa, sua proxima acao vai longe.",
+      sets: [{ var: "vida", op: "%-", val: "5" }] },
+    { id: "n9", type: "achieve", x: 250, y: 780, w: 260, title: "*achieve mata_dragao", target: "mata_dragao" },
+    { id: "n10", type: "passage", x: 560, y: 460, w: 280, title: "tentou_negociar",
+      body: "Voce fala devagar. O dragao para — magia rara, palavras mais raras." },
+    { id: "n11", type: "if", x: 560, y: 620, w: 300, title: "*if (magia > 60)",
+      branches: [
+        { kind: "if",   expr: "magia > 60", to: "n12" },
+        { kind: "else", to: "n13" },
+      ] },
+    { id: "n12", type: "achieve", x: 460, y: 780, w: 260, title: "*achieve pacifista", target: "pacifista" },
+    { id: "n13", type: "passage", x: 720, y: 780, w: 260, title: "negociacao_falha", body: "O dragao nao cre — bota fogo. Voce se queima.",
+      sets: [{ var: "vida", op: "%-", val: "25" }] },
+    { id: "n14", type: "goto_scene", x: 250, y: 940, w: 260, title: "*goto_scene fim", target: "fim" },
+  ],
+  edges: [
+    { from: "n1", to: "n2", kind: "flow" },
+    { from: "n2", to: "n3", kind: "choice" },
+    { from: "n2", to: "n7", kind: "choice" },
+    { from: "n2", to: "n10", kind: "choice" },
+    { from: "n3", to: "n4", kind: "flow" },
+    { from: "n4", to: "n5", kind: "if" },
+    { from: "n4", to: "n6", kind: "else" },
+    { from: "n5", to: "n14", kind: "flow" },
+    { from: "n6", to: "n14", kind: "flow" },
+    { from: "n7", to: "n8", kind: "flow" },
+    { from: "n8", to: "n9", kind: "flow" },
+    { from: "n9", to: "n14", kind: "flow" },
+    { from: "n10", to: "n11", kind: "flow" },
+    { from: "n11", to: "n12", kind: "if" },
+    { from: "n11", to: "n13", kind: "else" },
+    { from: "n12", to: "n14", kind: "flow" },
+    { from: "n13", to: "n14", kind: "flow" },
+  ],
+};
+
+const rpgFim: SceneGraph = {
+  nodes: [
+    { id: "n1", type: "if", x: 70, y: 70, w: 320, title: "*if (vida > 0)",
+      branches: [
+        { kind: "if",   expr: "vida > 0", to: "n2" },
+        { kind: "else", to: "n4" },
+      ] },
+    { id: "n2", type: "passage", x: 70, y: 230, w: 320, title: "sobrevivi", body: "Voce sai da caverna. O ar puro nunca foi tao bom. As historias da aldeia vao mudar por sua causa." },
+    { id: "n3", type: "ending", x: 70, y: 390, w: 260, title: "*ending" },
+    { id: "n4", type: "passage", x: 460, y: 230, w: 320, title: "morri", body: "A caverna fica em silencio. Voce nao volta. O tesouro continua intocado." },
+    { id: "n5", type: "ending", x: 460, y: 390, w: 260, title: "*ending" },
+  ],
+  edges: [
+    { from: "n1", to: "n2", kind: "if" },
+    { from: "n1", to: "n4", kind: "else" },
+    { from: "n2", to: "n3", kind: "flow" },
+    { from: "n4", to: "n5", kind: "flow" },
+  ],
+};
+
 const pt: ChoiceForgeProject = {
   title: "Farol_de_Bruma",
   author: "ChoiceForge",
@@ -337,6 +489,86 @@ const es: ChoiceForgeProject = {
 };
 
 export const sampleProjects: Record<Language, ChoiceForgeProject> = { pt, en, es };
+
+// ─── RPG sample project definition ─────────────────────────────────────────
+const rpgPt: ChoiceForgeProject = {
+  title: "A_Caverna_do_Dragao",
+  author: "ChoiceForge",
+  sceneTitle: "intro",
+  sceneSubtitle: `intro.txt - ${graphWords(rpgIntro)} palavras`,
+  scenes: [
+    { id: "startup", name: "startup", words: 30, nodes: 4, isStart: true },
+    { id: "intro",   name: "intro",   words: graphWords(rpgIntro),   nodes: rpgIntro.nodes.length, current: true },
+    { id: "caverna", name: "caverna", words: graphWords(rpgCaverna), nodes: rpgCaverna.nodes.length },
+    { id: "chefe",   name: "chefe",   words: graphWords(rpgChefe),   nodes: rpgChefe.nodes.length },
+    { id: "fim",     name: "fim",     words: graphWords(rpgFim),     nodes: rpgFim.nodes.length },
+    { id: "stats",   name: "choicescript_stats", words: 24, nodes: 1, special: true },
+  ],
+  variables: [
+    { name: "classe",    type: "string",  initial: "\"guerreiro\"", desc: "Classe escolhida no inicio da aventura", uses: 1 },
+    { name: "forca",     type: "number",  initial: "50", desc: "Forca fisica para combate corpo a corpo", uses: 4, fairmath: true },
+    { name: "agilidade", type: "number",  initial: "50", desc: "Agilidade para furtividade e esquiva",   uses: 3, fairmath: true },
+    { name: "magia",     type: "number",  initial: "50", desc: "Poder magico para feitiços e negociacao", uses: 4, fairmath: true },
+    { name: "vida",      type: "number",  initial: "100", desc: "Pontos de vida — chega a zero, voce morre", uses: 5, fairmath: true },
+    { name: "ouro",      type: "number",  initial: "0",  desc: "Ouro coletado ao longo da aventura", uses: 2 },
+    { name: "sorte",     type: "number",  initial: "0",  desc: "Resultado da ultima rolagem de sorte (1-100)", uses: 2, showInStats: false },
+    { name: "acerto",    type: "number",  initial: "0",  desc: "Resultado da ultima rolagem de ataque (1-100)", uses: 2, showInStats: false },
+  ],
+  achievements: [
+    { id: "mata_dragao", title: "Caçadora de Dragoes", points: 25, desc: "Derrotou o dragao em combate.", preDesc: "Vença o dragao em combate direto.", postDesc: "Voce venceu o dragao em combate direto." },
+    { id: "pacifista",   title: "Diplomata",           points: 25, desc: "Convenceu o dragao a poupa-la com palavras.", preDesc: "Vença o dragao sem violencia.", postDesc: "Voce convenceu o dragao a poupa-la com palavras." },
+  ],
+  assets: [],
+  nodes: rpgIntro.nodes,
+  edges: rpgIntro.edges,
+  sceneData: {
+    intro:   rpgIntro,
+    caverna: rpgCaverna,
+    chefe:   rpgChefe,
+    fim:     rpgFim,
+  },
+  lints: [],
+};
+const rpgEn: ChoiceForgeProject = { ...rpgPt, title: "Dragons_Cave",     sceneSubtitle: `intro.txt - ${graphWords(rpgIntro)} words` };
+const rpgEs: ChoiceForgeProject = { ...rpgPt, title: "La_Cueva_del_Dragon", sceneSubtitle: `intro.txt - ${graphWords(rpgIntro)} palabras` };
+
+// ─── Sample registry — drives the NewProjectModal picker ──────────────────
+export interface SampleEntry {
+  id: string;
+  icon: string;
+  label: Record<Language, string>;
+  description: Record<Language, string>;
+  projects: Record<Language, ChoiceForgeProject>;
+}
+
+export const availableSamples: SampleEntry[] = [
+  {
+    id: "lighthouse",
+    icon: "🌫️",
+    label: { pt: "Farol de Bruma", en: "Mist Lighthouse", es: "Faro de Bruma" },
+    description: {
+      pt: "Misterio atmosferico. Mostra *gosub, *checkpoint, *image, *if encadeado e prosa narrativa.",
+      en: "Atmospheric mystery. Showcases *gosub, *checkpoint, *image, chained *if and narrative prose.",
+      es: "Misterio atmosferico. Muestra *gosub, *checkpoint, *image, *if encadenado y prosa narrativa.",
+    },
+    projects: { pt, en, es },
+  },
+  {
+    id: "rpg",
+    icon: "⚔️",
+    label: { pt: "A Caverna do Dragao", en: "Dragon's Cave", es: "La Cueva del Dragon" },
+    description: {
+      pt: "RPG curto. Mostra escolha de classe, *rand para rolagens de combate, fairmath em stats e *stat_chart completo.",
+      en: "Short RPG. Showcases class selection, *rand for combat rolls, fairmath stats and a full *stat_chart.",
+      es: "RPG corto. Muestra eleccion de clase, *rand para tiradas de combate, fairmath en stats y *stat_chart completo.",
+    },
+    projects: { pt: rpgPt, en: rpgEn, es: rpgEs },
+  },
+];
+
+export function getSampleById(id: string): SampleEntry | undefined {
+  return availableSamples.find((s) => s.id === id);
+}
 
 export const i18n: Record<Language, I18nLabels> = {
   pt: {
@@ -469,6 +701,10 @@ export const i18n: Record<Language, I18nLabels> = {
     templatesPaletteEmpty: "Nenhum template encontrado",
     templatesPaletteNodes: "nos",
     templatesPaletteFooter: "Os nos sao colados no centro do canvas. Renomeie titulos e variaveis depois.",
+    newProjectStartFrom: "Comecar a partir de:",
+    newProjectScenesShort: "cenas",
+    newProjectWordsShort: "palavras",
+    startBlankDesc: "Projeto vazio. Voce monta tudo do zero.",
     selectedCount: "selecionado(s)",
     alignLeftTitle: "Alinhar bordas esquerdas",
     alignCenterHTitle: "Alinhar centros horizontais",
@@ -681,6 +917,10 @@ export const i18n: Record<Language, I18nLabels> = {
     templatesPaletteEmpty: "No templates match",
     templatesPaletteNodes: "nodes",
     templatesPaletteFooter: "Templates paste at canvas center. Rename titles and variables after.",
+    newProjectStartFrom: "Start from:",
+    newProjectScenesShort: "scenes",
+    newProjectWordsShort: "words",
+    startBlankDesc: "Empty project. You build everything from scratch.",
     selectedCount: "selected",
     alignLeftTitle: "Align left edges",
     alignCenterHTitle: "Align horizontal centers",
@@ -893,6 +1133,10 @@ export const i18n: Record<Language, I18nLabels> = {
     templatesPaletteEmpty: "No se encontraron plantillas",
     templatesPaletteNodes: "nodos",
     templatesPaletteFooter: "Las plantillas se pegan en el centro del canvas. Renombra titulos y variables despues.",
+    newProjectStartFrom: "Empezar desde:",
+    newProjectScenesShort: "escenas",
+    newProjectWordsShort: "palabras",
+    startBlankDesc: "Proyecto vacio. Construyes todo desde cero.",
     selectedCount: "seleccionado(s)",
     alignLeftTitle: "Alinear bordes izquierdos",
     alignCenterHTitle: "Alinear centros horizontales",
