@@ -21,7 +21,8 @@ import { importChoiceScriptArchive, importChoiceScriptSceneText } from "./domain
 import { exportProjectAsDot } from "./domain/graphvizExport";
 import type { ChoiceForgeProject, Density, EditorView, Language, StoryNode, Theme } from "./domain/types";
 import { useProjectStore } from "./state/projectStore";
-import { isTauri, nativeExportZip, nativeOpenProject, nativeSaveBytes, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { isTauri, nativeExportZip, nativeOpenProject, nativeOpenProjectAt, nativeSaveBytes, nativeSaveProject, nativeSaveProjectAs, nativeWriteProject, setWindowTitle } from "./platform/fileSystem";
+import { addRecentFile, basenameOf, loadRecentFiles, removeRecentFile, type RecentFile } from "./platform/recentFiles";
 import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, isUpdateCheckOptedOut, setUpdateCheckOptOut, type InstallProgress, type UpdateInfo } from "./platform/updateCheck";
 
 const GeneratedDocumentView = lazy(() => import("./components/GeneratedDocumentView").then((module) => ({ default: module.GeneratedDocumentView })));
@@ -69,27 +70,51 @@ export default function App() {
   const [updateOptedOut, setUpdateOptedOut] = useState(() => isUpdateCheckOptedOut());
   const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
 
-  const handleNativeOpen = useCallback(async () => {
-    const result = await nativeOpenProject();
-    if (!result) return;
+  const [recentFiles, setRecentFiles] = useState<RecentFile[]>(() => isTauri() ? loadRecentFiles() : []);
+
+  const applyOpenedProject = useCallback((path: string, content: string) => {
     try {
-      const project = JSON.parse(result.content) as ChoiceForgeProject;
+      const project = JSON.parse(content) as ChoiceForgeProject;
       actions.setProject(project);
-      setCurrentFilePath(result.path);
-      lastWrittenSerialisedRef.current = result.content;
+      setCurrentFilePath(path);
+      lastWrittenSerialisedRef.current = content;
       setDirtyOnDisk(false);
       setSelectedId("n1");
       setGeneratedDocumentId(null);
       setGeneratedDocumentLine(null);
       setPlayOpen(false);
       resetViewport(setPan, setZoom);
-      const name = result.path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+      const name = basenameOf(path);
       void setWindowTitle(`ChoiceForge — ${name}`);
       setSaveStatus(`Opened ${name}`);
+      setRecentFiles(addRecentFile(path));
+      return true;
     } catch {
       window.alert("Failed to parse project file. Make sure it is a valid ChoiceForge .json export.");
+      return false;
     }
   }, [actions]);
+
+  const handleNativeOpen = useCallback(async () => {
+    const result = await nativeOpenProject();
+    if (!result) return;
+    applyOpenedProject(result.path, result.content);
+  }, [applyOpenedProject]);
+
+  const handleOpenRecent = useCallback(async (path: string) => {
+    const result = await nativeOpenProjectAt(path);
+    if (!result) {
+      setRecentFiles(removeRecentFile(path));
+      window.alert(`The file no longer exists at:\n${path}\n\nIt has been removed from Recent.`);
+      return;
+    }
+    applyOpenedProject(result.path, result.content);
+  }, [applyOpenedProject]);
+
+  const handleClearRecent = useCallback(() => {
+    setRecentFiles([]);
+    try { window.localStorage.removeItem("choiceforge.recentFiles.v1"); } catch { /* ignore */ }
+  }, []);
 
   const handleNativeSave = useCallback(async () => {
     const content = serializeProjectForDisk(lintedProject);
@@ -98,9 +123,10 @@ export default function App() {
     setCurrentFilePath(path);
     lastWrittenSerialisedRef.current = content;
     setDirtyOnDisk(false);
-    const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+    const name = basenameOf(path);
     void setWindowTitle(`ChoiceForge — ${name}`);
     setSaveStatus(`Saved to ${name}`);
+    setRecentFiles(addRecentFile(path));
   }, [lintedProject]);
 
   const handleNativeSaveAs = useCallback(async () => {
@@ -110,9 +136,10 @@ export default function App() {
     setCurrentFilePath(path);
     lastWrittenSerialisedRef.current = content;
     setDirtyOnDisk(false);
-    const name = path.replace(/\\/g, "/").split("/").pop() ?? "project.json";
+    const name = basenameOf(path);
     void setWindowTitle(`ChoiceForge — ${name}`);
     setSaveStatus(`Saved as ${name}`);
+    setRecentFiles(addRecentFile(path));
   }, [lintedProject]);
 
   useEffect(() => {
@@ -413,6 +440,9 @@ export default function App() {
         onNativeOpen={isTauri() ? handleNativeOpen : undefined}
         onNativeSave={isTauri() ? handleNativeSave : undefined}
         onNativeSaveAs={isTauri() ? handleNativeSaveAs : undefined}
+        recentFiles={isTauri() ? recentFiles : undefined}
+        onOpenRecent={isTauri() ? handleOpenRecent : undefined}
+        onClearRecent={isTauri() ? handleClearRecent : undefined}
       />
       <PanelErrorBoundary panelName="Left panel">
       <LeftPanel
