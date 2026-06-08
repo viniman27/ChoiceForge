@@ -27,6 +27,24 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-06-08
+
+### Added
+- **Templates palette** (`Ctrl+Shift+T`) — opens a searchable palette of starter mini-graphs that paste onto the canvas at viewport center. Six categories shipped:
+  - **Skill check** (logic): `*if vs threshold` with success/fail branches that converge
+  - **Achievement unlock** (achievement): `*achieve` + a passage celebrating the unlock
+  - **Dialog with consequence** (choice): `*choice` with three options, each shifting a different stat
+  - **Combat round** (stat): enemy passage + `*choice` attack/defend/flee + `*rand` for the hit roll + `*if` for hit/miss
+  - **Romance beat** (stat): `*choice` with three options using fairmath (`%+`/`%-`) on a romance percentage
+  - **Yes/no fork** (flow): binary choice that does NOT converge — two distinct long paths forward
+  
+  Each template has a coloured category pill, PT/EN/ES label and description, and a node count. Fuzzy search across label, tags, category, and description. After paste the first new node is selected so you know where it landed. ID re-mapping is handled by the existing `actions.pasteNodes`, so collisions with current node IDs are impossible.
+
+### Internal
+- Test count: 399 + 4 new template-validation tests = **403 domain tests**, plus 99 UI = **502 passing**.
+- New `src/data/templates.ts` (template definitions + `findTemplate` helper) and `src/components/TemplatesPalette.tsx` (fuzzy palette modal, extends the `.cp-*` base used by the Command Palette).
+- HelpGuide shortcuts list now mentions `Ctrl+Shift+T`.
+
 ## [0.7.1] — 2026-06-08
 
 ### Fixed

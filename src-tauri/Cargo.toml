@@ -1,6 +1,6 @@
 [package]
 name = "choiceforge"
-version = "0.7.1"
+version = "0.8.0"
 description = "ChoiceForge — Visual ChoiceScript Editor"
 authors = []
 edition = "2021"

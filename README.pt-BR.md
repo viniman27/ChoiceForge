@@ -55,7 +55,7 @@ Escrever um jogo em ChoiceScript em texto puro significa juntar manualmente labe
 - **Exportação Graphviz `.dot`**: gera o grafo inteiro do projeto como arquivo `.dot` (cluster por cena, cores por tipo de nó, edges entre cenas) pra compartilhar a estrutura fora do editor.
 - **Runtime ChoiceScript oficial embutido**: o botão *Jogar* roda o engine real da Choice of Games num iframe — não um interpretador caseiro.
 - **Editor CodeMirror de código-fonte**: entre em qualquer cena como ChoiceScript bruto, depois converta de volta pro grafo visual.
-- **Ferramentas transversais**: busca global (`Ctrl+Shift+F`), paleta de comandos (`Ctrl+K`), find & replace, copiar/colar nós entre cenas, drag-to-reorder de opções de escolha, edição de título inline, notas privadas por nó, status todo/feito, cores por cena, modo manuscrito/prosa, dashboard com estatísticas e metas de palavras.
+- **Ferramentas transversais**: busca global (`Ctrl+Shift+F`), paleta de comandos (`Ctrl+K`), paleta de templates com 6 padrões prontos (`Ctrl+Shift+T`), find & replace, copiar/colar nós entre cenas, drag-to-reorder de opções de escolha, edição de título inline, notas privadas por nó, status todo/feito, modo manuscrito/prosa, dashboard com estatísticas e metas de palavras.
 - **Canvas customizado**: pan, zoom, fit-view, minimapa, nós redimensionáveis, auto-layout (hierárquico por profundidade topológica), criação rápida de nó ao soltar uma conexão.
 - **Persistência local-first**: autosave em `localStorage` com flush em `pagehide`; o artefato portátil continua sendo o `.zip` exportado.
 - **Desktop nativo**: wrapper Tauri v2 com diálogos nativos de abrir/salvar e menu de arquivos recentes.
