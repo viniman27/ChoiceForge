@@ -343,6 +343,24 @@ When you see something in the spec that sounds implemented but isn't in the code
 
 ## Session Log
 
+### 2026-06-08 — Claude Code (claude-opus-4-7) — session 209
+- **v0.7.0: Recent files menu (desktop) + Scene color tags.**
+- **Context**: editor-only polish picked from `ChoiceForge-future-increments.md` Top 3 (#1 + #2). #3 word-count heatmap was prototyped on a third commit but the user found it confusing on the dev preview — dropped via `git reset --hard HEAD~1 && force-push`. Documented for the increments file: heatmap visualisation needs a different framing (perhaps "biggest passages" highlight instead) before retrying.
+- **Recent files menu** (`src/platform/recentFiles.ts`, new):
+  - `loadRecentFiles` / `addRecentFile` / `removeRecentFile` / `clearRecentFiles` / `basenameOf` helpers. Storage key `choiceforge.recentFiles.v1`. Max 8 entries.
+  - `nativeOpenProjectAt(path)` added to `platform/fileSystem.ts` for opening a known path without showing a dialog (uses Tauri's `exists` to auto-prune stale entries).
+  - App.tsx tracks `recentFiles` state, updates on `handleNativeOpen` / `handleNativeSave` / `handleNativeSaveAs`.
+  - TopBar's Open button became a `<RecentFilesButton>` split-button: main side opens dialog, chevron `▾` opens a popover with the recents. Outside-click + Esc to close. Three new i18n keys: `topOpenRecent` / `topOpenRecentClear` / `topOpenRecentEmpty`.
+- **Scene color tags**:
+  - `SceneSummary.colorTag?: NodeColorTag` added (reuses the existing 6-color palette).
+  - Small dot button in LeftPanel scene card: click cycles forward through `none → red → … → purple → none`, shift-click cycles back. Skipped on `scene.special`.
+  - Breadcrumb in TopBar shows a small colour dot next to the current scene name when a tag is set. So the colour is visible whether you're looking at the panel or the editor chrome.
+- **Heatmap (dropped)**: prototyped a `🔥` toggle in canvas zoom-controls + `nodeWordCount` helper + CSS pseudo-element overlay with `opacity: calc(var(--heat) * 0.42)`. Worked technically but user said "não entendi nao, prefiro sem". Removed cleanly from dev history. **Lesson**: visualisations need to be obvious-on-first-glance for a tool with many users — if it needs an explanation, it's wrong. Note added to future-increments file.
+- **v0.7.0** bumped in package.json, tauri.conf.json, Cargo.toml.
+- **Tests**: 399 domain + 99 UI = **498 passing** (unchanged from v0.6.0 — new features are UI plumbing without algorithmic surface, covered by existing smoke tests).
+- **README** highlights mention scene color tags + Recent files menu (EN + PT-BR).
+- **Next**: merge dev → main, tag v0.7.0, ship release.
+
 ### 2026-06-08 — Claude Code (claude-opus-4-7) — session 208
 - **Dev branch work: variable casing lint + Graphviz `.dot` export.**
 - **Context**: dev branch infrastructure set up in session 207. M3ales (`choicescript-tree`) didn't reply yet to follow-up question about walkthrough subsets, so picked the two items from the future-increments notes that don't depend on his work: variable casing check (#1, confirmed by M3ales as readability bug) and `.dot` export (#3, completely orthogonal).
