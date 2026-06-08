@@ -7166,3 +7166,47 @@ function textEntry(name: string, content: string) {
 function pickPosition(node: { x: number; y: number } | undefined) {
   return node ? { x: node.x, y: node.y } : undefined;
 }
+
+import { NODE_TEMPLATES, findTemplate } from "../src/data/templates.ts";
+
+test("every node template has unique id, label/description in PT/EN/ES, and at least one node", () => {
+  const seen = new Set<string>();
+  for (const t of NODE_TEMPLATES) {
+    assert.ok(!seen.has(t.id), `duplicate template id: ${t.id}`);
+    seen.add(t.id);
+    assert.ok(t.label.pt && t.label.en && t.label.es, `template ${t.id} missing label translation`);
+    assert.ok(t.description.pt && t.description.en && t.description.es, `template ${t.id} missing description translation`);
+    assert.ok(t.nodes.length >= 1, `template ${t.id} has no nodes`);
+    assert.ok(t.searchTags.length > 0, `template ${t.id} has no searchTags`);
+  }
+});
+
+test("every template edge references node ids that exist within the template", () => {
+  for (const t of NODE_TEMPLATES) {
+    const nodeIds = new Set(t.nodes.map((n) => n.id));
+    for (const e of t.edges) {
+      assert.ok(nodeIds.has(e.from), `template ${t.id}: edge.from "${e.from}" not in nodes`);
+      assert.ok(nodeIds.has(e.to), `template ${t.id}: edge.to "${e.to}" not in nodes`);
+    }
+  }
+});
+
+test("choice options inside templates only reference template-internal node ids", () => {
+  for (const t of NODE_TEMPLATES) {
+    const nodeIds = new Set(t.nodes.map((n) => n.id));
+    for (const node of t.nodes) {
+      for (const opt of node.options ?? []) {
+        if (opt.to) assert.ok(nodeIds.has(opt.to), `template ${t.id}: choice option.to "${opt.to}" not in nodes`);
+      }
+      for (const branch of node.branches ?? []) {
+        if (branch.to) assert.ok(nodeIds.has(branch.to), `template ${t.id}: branch.to "${branch.to}" not in nodes`);
+      }
+    }
+  }
+});
+
+test("findTemplate returns the template for known ids and undefined for unknown", () => {
+  const first = NODE_TEMPLATES[0];
+  assert.equal(findTemplate(first.id)?.id, first.id);
+  assert.equal(findTemplate("definitely_not_a_real_template_xyz"), undefined);
+});
