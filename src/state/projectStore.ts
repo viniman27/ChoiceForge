@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { sampleProjects } from "../data/sampleProject";
+import { getSampleById, sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import { layoutProjectGraphs, layoutSceneGraph } from "../domain/graphLayout";
 import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
@@ -88,7 +88,7 @@ export interface ProjectActions {
   convertCurrentSceneToVisual: () => void;
   replaceStartupText: (content: string) => void;
   replaceStatsText: (content: string) => void;
-  resetProject: (language: Language) => ChoiceForgeProject;
+  resetProject: (language: Language, sampleId?: string) => ChoiceForgeProject;
   newBlankProject: (title: string, author: string) => ChoiceForgeProject;
   selectScene: (id: string) => void;
   updateNode: (id: string, patch: Partial<StoryNode>) => void;
@@ -290,8 +290,11 @@ export function useProjectStore() {
     replaceStatsText: (content) => {
       setTrackedProjectState((current) => commitProject({ ...applyStatsText(current, content), statsSource: content }));
     },
-    resetProject: (language) => {
-      const fresh = commitProject(layoutProjectGraphs(hydrateProject(cloneProject(sampleProjects[language]))));
+    resetProject: (language, sampleId) => {
+      const source = sampleId
+        ? (getSampleById(sampleId)?.projects[language] ?? sampleProjects[language])
+        : sampleProjects[language];
+      const fresh = commitProject(layoutProjectGraphs(hydrateProject(cloneProject(source))));
       setTrackedProjectState(fresh);
       saveProjectSnapshot(fresh);
       return fresh;

@@ -698,6 +698,7 @@ export default function App() {
       {helpOpen && <HelpGuide onClose={() => setHelpOpen(false)} />}
       {newProjectOpen && (
         <NewProjectModal
+          lang={lang}
           labels={i18n[lang]}
           onBlank={(title, author) => {
             actions.newBlankProject(title, author);
@@ -709,8 +710,8 @@ export default function App() {
             resetViewport(setPan, setZoom);
             setNewProjectOpen(false);
           }}
-          onExample={() => {
-            actions.resetProject(lang);
+          onSample={(sampleId) => {
+            actions.resetProject(lang, sampleId);
             setSaveStatus(formatSaveStatus(lang));
             setGeneratedDocumentId(null);
             setGeneratedDocumentLine(null);

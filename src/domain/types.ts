@@ -287,6 +287,10 @@ export interface I18nLabels {
   templatesPaletteEmpty: string;
   templatesPaletteNodes: string;
   templatesPaletteFooter: string;
+  newProjectStartFrom: string;
+  newProjectScenesShort: string;
+  newProjectWordsShort: string;
+  startBlankDesc: string;
   selectedCount: string;
   alignLeftTitle: string;
   alignCenterHTitle: string;
