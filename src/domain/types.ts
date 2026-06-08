@@ -283,6 +283,10 @@ export interface I18nLabels {
   canvasTagLabel: string;
   canvasClearTagFilter: string;
   canvasSnap: string;
+  templatesPalettePlaceholder: string;
+  templatesPaletteEmpty: string;
+  templatesPaletteNodes: string;
+  templatesPaletteFooter: string;
   selectedCount: string;
   alignLeftTitle: string;
   alignCenterHTitle: string;
