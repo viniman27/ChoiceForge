@@ -3,6 +3,7 @@ import { getSampleById, sampleProjects } from "../data/sampleProject";
 import { lintProject } from "../domain/choicescript";
 import { layoutProjectGraphs, layoutSceneGraph } from "../domain/graphLayout";
 import { importChoiceScriptSceneText } from "../domain/choicescriptImport";
+import { parseSceneSourcePreview } from "../domain/sceneSourcePreview";
 import { commandName as parseCommandName, commandValue as parseCommandValue, stripCommandPrefix } from "../domain/parsing";
 import type { AchievementSummary, AssetSummary, ChoiceForgeProject, Language, NodeType, SceneGraph, SceneSummary, StoryEdge, StoryNode, VariableSet, VariableSummary } from "../domain/types";
 
@@ -85,7 +86,8 @@ export interface ProjectActions {
   setProject: (project: ChoiceForgeProject) => void;
   updateMetadata: (patch: Partial<Pick<ChoiceForgeProject, "title" | "author" | "wordGoal">>) => void;
   replaceCurrentSceneText: (content: string) => void;
-  convertCurrentSceneToVisual: () => void;
+  previewCurrentScene: () => Promise<void>;
+  convertCurrentSceneToVisual: () => Promise<void>;
   replaceStartupText: (content: string) => void;
   replaceStatsText: (content: string) => void;
   resetProject: (language: Language, sampleId?: string) => ChoiceForgeProject;
@@ -128,7 +130,30 @@ export interface ProjectActions {
   deleteSnapshot: (id: string) => void;
 }
 
-export function useProjectStore() {
+type SceneSourceParser = (sceneName: string, sourceText: string, currentGraph?: SceneGraph) => Promise<SceneGraph>;
+
+interface UseProjectStoreOptions {
+  parseSceneSource?: SceneSourceParser;
+}
+
+function parseSceneSourceWithWorker(sceneName: string, sourceText: string, currentGraph?: SceneGraph): Promise<SceneGraph> {
+  if (typeof Worker === "undefined") return Promise.resolve(parseSceneSourcePreview(sceneName, sourceText, currentGraph));
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("../workers/sceneParser.ts", import.meta.url), { type: "module" });
+    worker.onmessage = (event: MessageEvent<{ ok: boolean; graph?: SceneGraph; error?: string }>) => {
+      worker.terminate();
+      if (event.data.ok && event.data.graph) resolve(event.data.graph);
+      else reject(new Error(event.data.error || "Could not parse scene source."));
+    };
+    worker.onerror = () => {
+      worker.terminate();
+      reject(new Error("Could not parse scene source."));
+    };
+    worker.postMessage({ sceneName, sourceText, currentGraph });
+  });
+}
+
+export function useProjectStore(options: UseProjectStoreOptions = {}) {
   const [project, setProjectState] = useState(loadInitialProject);
   const [historyLength, setHistoryLength] = useState(0);
   const [futureLength, setFutureLength] = useState(0);
@@ -136,7 +161,11 @@ export function useProjectStore() {
   const futureRef = useRef<ChoiceForgeProject[]>([]);
   const [snapshotIndex, setSnapshotIndex] = useState<SnapshotMeta[]>(loadSnapshotIndex);
   const [isConvertingScene, setIsConvertingScene] = useState(false);
+  const [sceneConversionError, setSceneConversionError] = useState<string | null>(null);
   const projectRef = useRef(project);
+  const parseSceneSourceRef = useRef<SceneSourceParser>(options.parseSceneSource ?? parseSceneSourceWithWorker);
+  parseSceneSourceRef.current = options.parseSceneSource ?? parseSceneSourceWithWorker;
+  const parseRequestRef = useRef(0);
   projectRef.current = project;
 
   const pushHistory = useCallback((snapshot: ChoiceForgeProject) => {
@@ -177,36 +206,43 @@ export function useProjectStore() {
     };
   }, [project]);
 
-  useEffect(() => {
-    if (!isConvertingScene) return;
+  const applyParsedSourceGraph = useCallback(async (mode: "preview" | "convert") => {
     const current = projectRef.current;
-    const dispatchedScene = current.sceneTitle;
-    const sourceText = current.sceneData?.[dispatchedScene]?.sourceText ?? current.startupSource;
-    if (!sourceText) { setIsConvertingScene(false); return; }
-    const worker = new Worker(new URL("../workers/sceneParser.ts", import.meta.url), { type: "module" });
-    worker.onmessage = (event: MessageEvent<{ ok: boolean; graph?: import("../domain/types").SceneGraph; error?: string }>) => {
-      worker.terminate();
-      if (!event.data.ok || !event.data.graph) { setIsConvertingScene(false); return; }
-      const parsed = event.data.graph;
-      setProjectState((cur) => {
-        const targetGraph = cur.sceneData?.[dispatchedScene];
-        if (!targetGraph?.sourceText) return cur;
-        const next = {
-          ...cur,
-          sceneData: { ...(cur.sceneData ?? {}), [dispatchedScene]: { nodes: parsed.nodes, edges: parsed.edges } },
+    const sceneName = current.sceneTitle;
+    const currentGraph = current.sceneData?.[sceneName];
+    const sourceText = currentGraph?.sourceText;
+    if (!sourceText) return;
+    const requestId = ++parseRequestRef.current;
+    setIsConvertingScene(true);
+    setSceneConversionError(null);
+    try {
+      const parsed = await parseSceneSourceRef.current(sceneName, sourceText, currentGraph);
+      if (parseRequestRef.current !== requestId) return;
+      setTrackedProjectState((latest) => {
+        const latestGraph = latest.sceneData?.[sceneName];
+        if (latestGraph?.sourceText !== sourceText) return latest;
+        const nextGraph = mode === "preview"
+          ? { nodes: parsed.nodes, edges: parsed.edges, sourceText }
+          : { nodes: parsed.nodes, edges: parsed.edges };
+        const next: ChoiceForgeProject = {
+          ...latest,
+          sceneData: { ...(latest.sceneData ?? {}), [sceneName]: nextGraph },
         };
-        if (cur.sceneTitle === dispatchedScene) {
+        if (latest.sceneTitle === sceneName) {
           next.nodes = parsed.nodes;
           next.edges = parsed.edges;
         }
         return commitProject(next);
       });
-      setIsConvertingScene(false);
-    };
-    worker.onerror = () => { worker.terminate(); setIsConvertingScene(false); };
-    worker.postMessage({ sceneName: dispatchedScene, sourceText });
-    return () => worker.terminate();
-  }, [isConvertingScene]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not parse scene source.";
+      if (parseRequestRef.current === requestId) {
+        setSceneConversionError(message);
+      }
+    } finally {
+      if (parseRequestRef.current === requestId) setIsConvertingScene(false);
+    }
+  }, [setTrackedProjectState]);
 
   const lintedProject = useMemo(() => ({ ...project, lints: lintProject(project) }), [project]);
 
@@ -276,13 +312,11 @@ export function useProjectStore() {
         });
       });
     },
+    previewCurrentScene: () => applyParsedSourceGraph("preview"),
     convertCurrentSceneToVisual: () => {
       const graph = projectRef.current.sceneData?.[projectRef.current.sceneTitle];
-      if (graph?.sourceText && graph.nodes.length === 0) {
-        setIsConvertingScene(true);
-      } else {
-        setTrackedProjectState((current) => commitProject(clearActiveSceneSource(current)));
-      }
+      if (graph?.sourceText) return applyParsedSourceGraph("convert");
+      return Promise.resolve();
     },
     replaceStartupText: (content) => {
       setTrackedProjectState((current) => commitProject({ ...applyStartupText(current, content), startupSource: content }));
@@ -890,9 +924,9 @@ export function useProjectStore() {
         return next;
       });
     },
-  }), [historyLength, setTrackedProjectState]);
+  }), [historyLength, setTrackedProjectState, applyParsedSourceGraph]);
 
-  return { project, lintedProject, actions, snapshotIndex, isConvertingScene };
+  return { project, lintedProject, actions, snapshotIndex, isConvertingScene, sceneConversionError };
 }
 
 function renameVariableReferences(text: string, from: string, to: string): string {

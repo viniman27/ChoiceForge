@@ -206,6 +206,11 @@ export function GraphCanvas({
         fitNodesToViewport(nodesToFit, density, viewport, setZoom, onPan);
         return;
       }
+      if ((event.key === "r" || event.key === "R") && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        focusReadableNode(data.nodes, selectedId, viewport, setZoom, onPan, setSelectedId);
+        return;
+      }
       if (event.key === "g" || event.key === "G") {
         event.preventDefault();
         setSnap((s) => !s);
@@ -268,7 +273,7 @@ export function GraphCanvas({
     if (!toolbarResize) return;
     const move = (event: PointerEvent) => {
       const maxWidth = Math.max(TOOLBAR_MIN_WIDTH, viewport.width - 64);
-      setToolbarWidth(clamp(toolbarResize.startWidth + event.clientX - toolbarResize.startX, TOOLBAR_MIN_WIDTH, maxWidth));
+      setToolbarWidth(clamp(toolbarResize.startWidth + clientDelta(event.clientX - toolbarResize.startX), TOOLBAR_MIN_WIDTH, maxWidth));
     };
     const up = () => setToolbarResize(null);
     document.body.style.cursor = "col-resize";
@@ -296,17 +301,17 @@ export function GraphCanvas({
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (drag) {
-        const dx = (event.clientX - drag.startX) / zoom;
-        const dy = (event.clientY - drag.startY) / zoom;
+        const dx = clientDelta(event.clientX - drag.startX) / zoom;
+        const dy = clientDelta(event.clientY - drag.startY) / zoom;
         onMoveNodes(drag.origPositions.map(({ id, x, y }) => ({ id, x: x + dx, y: y + dy })));
       }
       if (resize) {
-        const dx = (event.clientX - resize.startX) / zoom;
+        const dx = clientDelta(event.clientX - resize.startX) / zoom;
         const newW = Math.max(200, Math.round(resize.startW + dx));
         setResize((r) => r ? { ...r, currentW: newW } : null);
       }
       if (panning) {
-        onPan({ x: panning.origX + event.clientX - panning.startX, y: panning.origY + event.clientY - panning.startY });
+        onPan({ x: panning.origX + clientDelta(event.clientX - panning.startX), y: panning.origY + clientDelta(event.clientY - panning.startY) });
       }
       if (connecting) {
         setConnecting((current) => current ? { ...current, ...clientToWorld(event.clientX, event.clientY, canvasRef.current, pan, zoom) } : current);
@@ -351,8 +356,8 @@ export function GraphCanvas({
         clearSelection();
       }
       if (drag && snapRef.current) {
-        const dx = (event.clientX - drag.startX) / zoom;
-        const dy = (event.clientY - drag.startY) / zoom;
+        const dx = clientDelta(event.clientX - drag.startX) / zoom;
+        const dy = clientDelta(event.clientY - drag.startY) / zoom;
         onMoveNodes(drag.origPositions.map(({ id, x, y }) => ({
           id,
           x: Math.round((x + dx) / GRID_SIZE) * GRID_SIZE,
@@ -404,7 +409,7 @@ export function GraphCanvas({
         event.preventDefault();
         if (event.ctrlKey || event.metaKey) {
           const rect = event.currentTarget.getBoundingClientRect();
-          const pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+          const pointer = { x: clientDelta(event.clientX - rect.left), y: clientDelta(event.clientY - rect.top) };
           setZoom((current) => {
             const next = Math.max(0.25, Math.min(2.5, current - event.deltaY * 0.0015));
             const worldX = (pointer.x - pan.x) / current;
@@ -414,7 +419,7 @@ export function GraphCanvas({
           });
           return;
         }
-        onPan({ x: pan.x - event.deltaX, y: pan.y - event.deltaY });
+        onPan({ x: pan.x - clientDelta(event.deltaX), y: pan.y - clientDelta(event.deltaY) });
       }}
       onPointerDown={(event) => {
         if (!isCanvasPanTarget(event.target)) return;
@@ -640,7 +645,9 @@ export function GraphCanvas({
         <button onClick={() => setZoom((current) => Math.max(0.25, current - 0.1))}>-</button>
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((current) => Math.min(2.5, current + 0.1))}>+</button>
-        <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset">{labels.fitView}</button>
+        <button onClick={() => fitGraphToViewport(data, density, viewport, setZoom, onPan)} className="zoom-reset" title="Fit the complete graph in view">{labels.fitView}</button>
+        <button onClick={() => focusReadableNode(data.nodes, selectedId, viewport, setZoom, onPan, setSelectedId)} className="zoom-reset" title="Readable start/focus view">Readable</button>
+        <button onClick={() => focusReadableNode(data.nodes, null, viewport, setZoom, onPan, setSelectedId)} className="zoom-reset" title="Jump to the first decision/start node">Start</button>
         <button
           className={`zoom-snap${snap ? " is-active" : ""}`}
           onClick={() => setSnap((s) => !s)}
@@ -944,17 +951,23 @@ function isCanvasPanTarget(target: EventTarget | null): boolean {
 
 function clientToWorld(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
   const rect = canvas?.getBoundingClientRect();
-  const canvasX = clientX - (rect?.left ?? 0);
-  const canvasY = clientY - (rect?.top ?? 0);
+  const canvasX = clientDelta(clientX - (rect?.left ?? 0));
+  const canvasY = clientDelta(clientY - (rect?.top ?? 0));
   return { x2: (canvasX - pan.x) / zoom, y2: (canvasY - pan.y) / zoom };
 }
 
 function clientToWorldXY(clientX: number, clientY: number, canvas: HTMLDivElement | null, pan: { x: number; y: number }, zoom: number) {
   const rect = canvas?.getBoundingClientRect();
   return {
-    x: (clientX - (rect?.left ?? 0) - pan.x) / zoom,
-    y: (clientY - (rect?.top ?? 0) - pan.y) / zoom,
+    x: (clientDelta(clientX - (rect?.left ?? 0)) - pan.x) / zoom,
+    y: (clientDelta(clientY - (rect?.top ?? 0)) - pan.y) / zoom,
   };
+}
+
+function clientDelta(value: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--cf-ui-zoom");
+  const uiZoom = Number.parseFloat(raw);
+  return value / (Number.isFinite(uiZoom) && uiZoom > 0 ? uiZoom : 1);
 }
 
 function fitGraphToViewport(
@@ -986,11 +999,40 @@ function fitNodesToViewport(
   }
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
-  const nextZoom = Math.max(0.25, Math.min(2.5, Math.min((viewport.width - padding * 2) / width, (viewport.height - padding * 2) / height)));
+  const usableWidth = Math.max(120, viewport.width - padding * 2);
+  const usableHeight = Math.max(120, viewport.height - padding * 2);
+  const fitZoom = Math.min(usableWidth / width, usableHeight / height);
+  const nextZoom = clamp(fitZoom, 0.05, 2.5);
   setZoom(nextZoom);
   onPan({
     x: (viewport.width - width * nextZoom) / 2 - minX * nextZoom,
     y: (viewport.height - height * nextZoom) / 2 - minY * nextZoom,
+  });
+}
+
+function focusReadableNode(
+  nodes: StoryNode[],
+  selectedId: string | null,
+  viewport: { width: number; height: number },
+  setZoom: React.Dispatch<React.SetStateAction<number>>,
+  onPan: (pan: { x: number; y: number }) => void,
+  setSelectedId: (id: string | null) => void,
+) {
+  if (!nodes.length) return;
+  const node = (selectedId ? nodes.find((candidate) => candidate.id === selectedId) : null)
+    ?? nodes.find((candidate) => candidate.type === "choice" || candidate.type === "fake_choice")
+    ?? nodes.find((candidate) => candidate.type === "passage")
+    ?? nodes[0];
+  const horizontalPadding = 32;
+  const usableWidth = Math.max(120, viewport.width - horizontalPadding * 2);
+  const nextZoom = clamp(Math.min(1, usableWidth / Math.max(1, node.w)), 0.25, 1);
+  const visibleNodeWidth = node.w * nextZoom;
+  const targetX = Math.max(16, Math.round((viewport.width - visibleNodeWidth) / 2));
+  setSelectedId(node.id);
+  setZoom(nextZoom);
+  onPan({
+    x: Math.round(targetX - node.x * nextZoom),
+    y: Math.round(Math.max(180, Math.min(viewport.height * 0.32, 240)) - node.y * nextZoom),
   });
 }
 
@@ -1083,6 +1125,10 @@ function Minimap({
   viewport: { width: number; height: number };
   onPan: (pan: { x: number; y: number }) => void;
 }) {
+  const narrowCanvas = viewport.width < 620;
+  const [expandedOnNarrow, setExpandedOnNarrow] = useState(false);
+  const [collapsedOnWide, setCollapsedOnWide] = useState(false);
+  const collapsed = narrowCanvas ? !expandedOnNarrow : collapsedOnWide;
   const visibleRect = {
     x: -pan.x / zoom,
     y: -pan.y / zoom,
@@ -1109,36 +1155,52 @@ function Minimap({
   };
 
   return (
-    <div className="minimap">
-      <div className="minimap-label">{labels.minimap}</div>
-      <svg
-        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        width="180"
-        height="120"
-        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); panToPointer(e); }}
-        onPointerMove={(e) => { if (e.buttons > 0) panToPointer(e); }}
+    <div className={`minimap${collapsed ? " is-collapsed" : ""}`}>
+      <button
+        className="minimap-toggle"
+        type="button"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? `Show ${labels.minimap}` : `Hide ${labels.minimap}`}
+        onClick={() => {
+          if (narrowCanvas) setExpandedOnNarrow((current) => !current);
+          else setCollapsedOnWide((current) => !current);
+        }}
       >
-        {data.edges.map((edge, index) => {
-          const from = data.nodes.find((node) => node.id === edge.from);
-          const to = data.nodes.find((node) => node.id === edge.to);
-          if (!from || !to) return null;
-          return <line key={index} x1={from.x + from.w / 2} y1={from.y + 30} x2={to.x + to.w / 2} y2={to.y + 30} stroke="var(--ink-mute)" strokeWidth="2" opacity="0.4" />;
-        })}
-        {data.nodes.map((node) => {
-          const color = typeColors[node.type];
-          const nh = nodeHeightEstimate(node, density);
-          return <rect key={node.id} x={node.x} y={node.y} width={node.w} height={nh} rx="8" fill={color.tint} stroke={color.dot} strokeWidth="2" />;
-        })}
-        <rect
-          className="minimap-viewport"
-          x={visibleRect.x}
-          y={visibleRect.y}
-          width={visibleRect.width}
-          height={visibleRect.height}
-          rx="10"
-        />
-      </svg>
+        {collapsed ? labels.minimap : "×"}
+      </button>
+      {!collapsed && (
+        <>
+          <div className="minimap-label">{labels.minimap}</div>
+          <svg
+            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+            preserveAspectRatio="xMidYMid meet"
+            width="180"
+            height="120"
+            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); panToPointer(e); }}
+            onPointerMove={(e) => { if (e.buttons > 0) panToPointer(e); }}
+          >
+            {data.edges.map((edge, index) => {
+              const from = data.nodes.find((node) => node.id === edge.from);
+              const to = data.nodes.find((node) => node.id === edge.to);
+              if (!from || !to) return null;
+              return <line key={index} x1={from.x + from.w / 2} y1={from.y + 30} x2={to.x + to.w / 2} y2={to.y + 30} stroke="var(--ink-mute)" strokeWidth="2" opacity="0.4" />;
+            })}
+            {data.nodes.map((node) => {
+              const color = typeColors[node.type];
+              const nh = nodeHeightEstimate(node, density);
+              return <rect key={node.id} x={node.x} y={node.y} width={node.w} height={nh} rx="8" fill={color.tint} stroke={color.dot} strokeWidth="2" />;
+            })}
+            <rect
+              className="minimap-viewport"
+              x={visibleRect.x}
+              y={visibleRect.y}
+              width={visibleRect.width}
+              height={visibleRect.height}
+              rx="10"
+            />
+          </svg>
+        </>
+      )}
     </div>
   );
 }

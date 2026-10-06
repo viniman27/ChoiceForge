@@ -101,7 +101,7 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
   useEffect(() => {
     if (!panning) return;
     const move = (event: PointerEvent) => {
-      setPan({ x: panning.origX + event.clientX - panning.startX, y: panning.origY + event.clientY - panning.startY });
+      setPan({ x: panning.origX + clientDelta(event.clientX - panning.startX), y: panning.origY + clientDelta(event.clientY - panning.startY) });
     };
     const up = () => setPanning(null);
     window.addEventListener("pointermove", move);
@@ -120,8 +120,8 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
         event.preventDefault();
         if (event.ctrlKey || event.metaKey) {
           const rect = event.currentTarget.getBoundingClientRect();
-          const px = event.clientX - rect.left;
-          const py = event.clientY - rect.top;
+          const px = clientDelta(event.clientX - rect.left);
+          const py = clientDelta(event.clientY - rect.top);
           setZoom((current) => {
             const next = Math.max(0.25, Math.min(2, current - event.deltaY * 0.001));
             const wx = (px - pan.x) / current;
@@ -130,7 +130,7 @@ export function SceneMapView({ data, labels, activeSceneId, onSelectScene }: Sce
             return next;
           });
         } else {
-          setPan((p) => ({ x: p.x - event.deltaX, y: p.y - event.deltaY }));
+          setPan((p) => ({ x: p.x - clientDelta(event.deltaX), y: p.y - clientDelta(event.deltaY) }));
         }
       }}
       onPointerDown={(event) => {
@@ -256,4 +256,10 @@ function sceneSourceStatus(data: ChoiceForgeProject, scene: SceneSummary): "sour
   if (scene.isStart) return data.startupSource !== undefined ? "source" : "generated";
   if (scene.special) return data.statsSource !== undefined ? "source" : "generated";
   return data.sceneData?.[scene.name]?.sourceText !== undefined ? "source" : "graph";
+}
+
+function clientDelta(value: number): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--cf-ui-zoom");
+  const uiZoom = Number.parseFloat(raw);
+  return value / (Number.isFinite(uiZoom) && uiZoom > 0 ? uiZoom : 1);
 }

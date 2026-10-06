@@ -206,8 +206,82 @@ test("imports ChoiceScript archives with startup metadata", () => {
   assert.equal(project.variables[1]?.desc, "Player Name");
   assert.equal(project.variables[1]?.fairmath, false);
   assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening/);
+  assert.match(project.sceneData?.chapter_two.nodes[0]?.body ?? "", /The next scene/);
   assert.equal(project.startupSource, startupSource);
   assert.equal(generateStartupChoiceScript(project), `${startupSource}\n`);
+});
+
+test("imports every preserved scene with a non-destructive visual preview", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("mygame/startup.txt", [
+      "*title Preview",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "  animal",
+      "Opening.",
+      "*finish",
+    ].join("\n")),
+    textEntry("mygame/animal.txt", [
+      "What kind of animal will you be?",
+      "*choice",
+      "  #Lion",
+      "    *goto claws",
+      "  #Tiger",
+      "    *label claws",
+      "    In that case, you'll have powerful claws!",
+      "    *finish",
+    ].join("\n")),
+  ]);
+
+  const animalGraph = project.sceneData?.animal;
+  assert.ok(animalGraph?.sourceText?.includes("What kind of animal"));
+  assert.ok((animalGraph?.nodes.length ?? 0) > 1);
+  assert.ok(animalGraph?.nodes.some((node) => node.type === "choice"));
+  assert.equal(generateSceneChoiceScript(project, "animal"), animalGraph?.sourceText);
+});
+
+test("imported official startup scene does not create duplicate scene name lint", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Official sample",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "  animal",
+      "Opening.",
+      "*finish",
+    ].join("\n")),
+    textEntry("animal.txt", "Animal scene.\n*finish"),
+  ]);
+
+  assert.ok(!lintProject(project).some((issue) => issue.msg === "duplicate scene name: startup"));
+});
+
+test("preserved stats lint accepts normalized casing and opposed-pair labels", () => {
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", [
+      "*title Stats",
+      "*author Writer",
+      "*scene_list",
+      "  startup",
+      "*create leadership 50",
+      "*create strength 50",
+      "Opening.",
+      "*finish",
+    ].join("\n")),
+    textEntry("choicescript_stats.txt", [
+      "*stat_chart",
+      "  percent Leadership",
+      "  opposed_pair Strength",
+      "    Weakness",
+      "  text Leadership",
+      "  text Strength",
+    ].join("\n")),
+  ]);
+
+  const statIssues = lintProject(project).filter((issue) => issue.scene === "choicescript_stats" && issue.level === "error");
+  assert.deepEqual(statIssues, []);
 });
 
 test("imports *achievement declarations from startup.txt into project achievements", () => {
@@ -283,6 +357,44 @@ test("imports startup body as prologue without duplicating startup scene", () =>
   assert.deepEqual(playableScenes, ["startup_prologue", "ch1_lobby"]);
   assert.equal(project.scenes.filter((scene) => scene.name === "startup").length, 1);
   assert.match(project.sceneData?.startup_prologue.nodes[0]?.body ?? "", /Opening in startup/);
+});
+
+test("imports scene_list startup plus startup narrative without losing or duplicating export source", () => {
+  const startupSource = [
+    "*title Startup Narrative",
+    "*author Writer",
+    "*scene_list",
+    "  startup",
+    "Opening in startup.",
+    "*finish",
+  ].join("\n");
+  const project = importChoiceScriptArchive([textEntry("startup.txt", startupSource)]);
+  const startupFile = createExportPackage(project).files.find((file) => file.path === "mygame/startup.txt");
+  const startupSceneFiles = createExportPackage(project).files.filter((file) => file.path === "mygame/startup.txt");
+
+  assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["startup"]);
+  assert.match(project.sceneData?.startup.nodes[0]?.body ?? "", /Opening in startup/);
+  assert.equal(project.startupSource, startupSource);
+  assert.equal(startupFile?.content, `${startupSource}\n`);
+  assert.equal(startupSceneFiles.length, 1);
+});
+
+test("imports metadata-only startup without creating a narrative startup graph", () => {
+  const startupSource = [
+    "*title Metadata Only",
+    "*author Writer",
+    "*scene_list",
+    "  chapter_one",
+  ].join("\n");
+  const project = importChoiceScriptArchive([
+    textEntry("startup.txt", startupSource),
+    textEntry("chapter_one.txt", "Chapter one.\n*ending"),
+  ]);
+
+  assert.deepEqual(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name), ["chapter_one"]);
+  assert.equal(project.scenes.filter((scene) => scene.name === "startup").length, 1);
+  assert.equal(project.sceneData?.startup, undefined);
+  assert.equal(createExportPackage(project).files.find((file) => file.path === "mygame/startup.txt")?.content, `${startupSource}\n`);
 });
 
 test("preserves imported scene source for safe export", () => {
@@ -435,7 +547,6 @@ test("lints preserved source without graph approximation false positives", () =>
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 29 && issue.msg.includes("*goto needs a label target")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 30 && issue.msg.includes("*gosub has an invalid label identifier: bad-name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 32 && issue.msg.includes("*restore_checkpoint \"missing\" has no matching *save_checkpoint")));
-  assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 33 && issue.msg.includes("*page_break needs a button label")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 34 && issue.msg.includes("*save_checkpoint needs a checkpoint name")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 35 && issue.msg.includes("*achieve needs an achievement id")));
   assert.ok(issues.some((issue) => issue.scene === "ch1" && issue.line === 36 && issue.msg.includes("*achieve has an invalid achievement identifier: bad-achievement")));

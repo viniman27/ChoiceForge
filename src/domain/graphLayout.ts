@@ -30,49 +30,49 @@ export function layoutProjectGraphs(project: ChoiceForgeProject): ChoiceForgePro
 }
 
 function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHeights?: Record<string, number>): StoryNode[] {
-  const horizontalGap = 150;
-  const verticalGap = 100;
+  const horizontalGap = 130;
+  const verticalGap = 90;
   const startX = 70;
   const startY = 70;
   const heightOf = (node: StoryNode) => nodeHeights?.[node.id] ?? estimateLayoutNodeHeight(node);
   const nodeIds = new Set(nodes.map((node) => node.id));
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const order = new Map(nodes.map((node, index) => [node.id, index]));
+  const allEdges = layoutEdges(nodes, edges)
+    .filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to));
+
+  const primaryEdges = allEdges.filter((edge) => {
+    if (edge.kind !== "goto") return true;
+    // Forward goto/gosub edges help place imported jumps near their target.
+    // Backward jumps are loop edges; ranking them creates unbounded depth.
+    return (order.get(edge.to) ?? 0) > (order.get(edge.from) ?? 0);
+  });
+
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]));
   const predecessors = new Map(nodes.map((node) => [node.id, [] as string[]]));
+  const branchOrder = new Map<string, number>();
 
-  layoutEdges(nodes, edges).forEach((edge) => {
-    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) return;
+  primaryEdges.forEach((edge) => {
     outgoing.get(edge.from)?.push(edge.to);
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
     predecessors.get(edge.to)?.push(edge.from);
+    if (["choice", "if", "elseif", "else"].includes(edge.kind)) {
+      const index = outgoing.get(edge.from)!.filter((target) => {
+        const e = primaryEdges.find((candidate) => candidate.from === edge.from && candidate.to === target);
+        return e && ["choice", "if", "elseif", "else"].includes(e.kind);
+      }).length - 1;
+      branchOrder.set(edge.to, index);
+    }
   });
 
   const rootId = nodes[0]?.id ?? "";
   const roots = nodes.filter((node) => node.id === rootId || (incoming.get(node.id) ?? 0) === 0);
-  const queue = roots.length ? roots.map((node) => node.id) : nodes.slice(0, 1).map((node) => node.id);
-  const depth = new Map<string, number>(queue.map((id) => [id, 0]));
-
-  for (let index = 0; index < queue.length; index += 1) {
-    const id = queue[index];
-    const currentDepth = depth.get(id) ?? 0;
-    outgoing.get(id)?.forEach((target) => {
-      const nextDepth = currentDepth + 1;
-      if (!depth.has(target) || nextDepth > (depth.get(target) ?? 0)) {
-        depth.set(target, nextDepth);
-        queue.push(target);
-      }
-    });
-  }
-
-  let maxDepth = 0;
-  depth.forEach((v) => { if (v > maxDepth) maxDepth = v; });
-  nodes.forEach((node) => {
-    if (!depth.has(node.id)) depth.set(node.id, maxDepth + 1);
-  });
+  const rank = rankNodes(nodes, outgoing, roots.length ? roots.map((node) => node.id) : nodes.slice(0, 1).map((node) => node.id));
 
   const columns = new Map<number, StoryNode[]>();
   nodes.forEach((node) => {
-    const column = depth.get(node.id) ?? 0;
+    const column = rank.get(node.id) ?? 0;
     columns.set(column, [...(columns.get(column) ?? []), node]);
   });
 
@@ -81,26 +81,23 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
 
   let columnX = startX;
   orderedColumns.forEach(([, columnNodes]) => {
-    // Barycenter sort: order nodes by mean vertical centre of already-placed predecessors.
     const withBc = columnNodes.map((node) => {
-      if (node.id === rootId) return { node, bc: startY };
+      if (node.id === rootId) return { node, bc: startY, tie: -1 };
       const predCentres = (predecessors.get(node.id) ?? [])
         .map((p) => {
           const pos = positions.get(p);
-          const predNode = nodes.find((n) => n.id === p);
+          const predNode = nodeById.get(p);
           if (!pos || !predNode) return undefined;
           return pos.y + heightOf(predNode) / 2;
         })
         .filter((y): y is number => y !== undefined);
       const bc = predCentres.length === 0
-        ? startY
+        ? startY + (order.get(node.id) ?? 0) * 4
         : predCentres.reduce((a, b) => a + b, 0) / predCentres.length;
-      return { node, bc };
+      return { node, bc, tie: branchOrder.get(node.id) ?? (order.get(node.id) ?? 0) };
     });
-    withBc.sort((a, b) => a.bc - b.bc);
+    withBc.sort((a, b) => a.bc - b.bc || a.tie - b.tie || (order.get(a.node.id) ?? 0) - (order.get(b.node.id) ?? 0));
 
-    // Vertically centre the column around the mean predecessor centre so that
-    // edges flow roughly horizontally instead of sharply up/down.
     const totalColHeight = withBc.reduce(
       (sum, { node }) => sum + heightOf(node) + verticalGap, 0,
     ) - verticalGap;
@@ -115,14 +112,11 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
     columnX += maxWidth + horizontalGap;
   });
 
-  // Post-placement collision resolution: if heightOf underestimates the real
-  // rendered height, nodes in the same column can visually overlap. Walk each
-  // column in Y order and push any node that would overlap the previous one.
   orderedColumns.forEach(([, columnNodes]) => {
     const sorted = columnNodes
       .map((node) => ({ node, pos: positions.get(node.id)! }))
       .filter((entry) => entry.pos !== undefined)
-      .sort((a, b) => a.pos.y - b.pos.y);
+      .sort((a, b) => a.pos.y - b.pos.y || (order.get(a.node.id) ?? 0) - (order.get(b.node.id) ?? 0));
 
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1]!;
@@ -142,6 +136,47 @@ function layoutStoryNodes(nodes: StoryNode[], edges: SceneGraph["edges"], nodeHe
   });
 
   return nodes.map((node) => ({ ...node, ...(positions.get(node.id) ?? {}) }));
+}
+
+function rankNodes(nodes: StoryNode[], outgoing: Map<string, string[]>, roots: string[]): Map<string, number> {
+  const indexById = new Map(nodes.map((node, index) => [node.id, index]));
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const rankedEdges: Array<[string, string]> = [];
+
+  const visit = (id: string) => {
+    if (visiting.has(id) || visited.has(id)) return;
+    visiting.add(id);
+    for (const target of outgoing.get(id) ?? []) {
+      if (visiting.has(target)) continue;
+      rankedEdges.push([id, target]);
+      visit(target);
+    }
+    visiting.delete(id);
+    visited.add(id);
+  };
+
+  [...roots, ...nodes.map((node) => node.id)].forEach(visit);
+
+  const rank = new Map(nodes.map((node) => [node.id, 0]));
+  for (let pass = 0; pass < nodes.length; pass += 1) {
+    let changed = false;
+    for (const [from, to] of rankedEdges) {
+      const next = (rank.get(from) ?? 0) + 1;
+      if (next > (rank.get(to) ?? 0)) {
+        rank.set(to, next);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+
+  // Keep disconnected components deterministic and compact instead of pushing
+  // every orphan far to the right of the main imported scene.
+  nodes.forEach((node) => {
+    if (!Number.isFinite(rank.get(node.id))) rank.set(node.id, indexById.get(node.id) ?? 0);
+  });
+  return rank;
 }
 
 function layoutEdges(nodes: StoryNode[], edges: StoryEdge[]): StoryEdge[] {
