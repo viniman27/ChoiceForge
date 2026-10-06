@@ -393,21 +393,28 @@ function ScenesList({
 }) {
   const [draggedSceneId, setDraggedSceneId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const movableScenes = data.scenes.filter((scene) => !scene.isStart && !scene.special);
-  const preservedScenes = data.scenes.filter((scene) => sceneHasPreservedSource(data, scene)).length;
+  const startupSourceScene = data.scenes.find((scene) => scene.isStart && scene.name === "startup");
+  const startupNarrativeScene = data.startupSource !== undefined
+    ? data.scenes.find((scene) => !scene.isStart && !scene.special && scene.name === "startup")
+    : undefined;
+  const visibleScenes = startupSourceScene && startupNarrativeScene
+    ? data.scenes.filter((scene) => scene.id !== startupSourceScene.id)
+    : data.scenes;
+  const movableScenes = visibleScenes.filter((scene) => !scene.isStart && !scene.special);
+  const preservedScenes = visibleScenes.filter((scene) => sceneHasPreservedSource(data, scene)).length;
   const sceneDoneCounts = useMemo(() => {
     const map = new Map<string, { done: number; total: number }>();
     const getNodes = (scene: (typeof data.scenes)[0]) => {
       if (scene.name === data.sceneTitle) return data.nodes;
       return data.sceneData?.[scene.name]?.nodes ?? [];
     };
-    for (const scene of data.scenes) {
+    for (const scene of visibleScenes) {
       const nodes = getNodes(scene);
       if (!nodes.length) continue;
       map.set(scene.name, { done: nodes.filter((n) => n.status === "done").length, total: nodes.length });
     }
     return map;
-  }, [data.nodes, data.sceneData, data.sceneTitle, data.scenes]);
+  }, [data.nodes, data.sceneData, data.sceneTitle, visibleScenes]);
   const sceneErrors = useMemo(() => {
     const counts = new Map<string, { errors: number; warnings: number }>();
     data.lints.forEach((issue) => {
@@ -418,7 +425,7 @@ function ScenesList({
     });
     return counts;
   }, [data.lints]);
-  const generatedScenes = data.scenes.length - preservedScenes;
+  const generatedScenes = visibleScenes.length - preservedScenes;
   return (
     <div className="scene-list">
       <div className="source-summary">
@@ -433,14 +440,15 @@ function ScenesList({
       </div>
       <div className="section-title"><span>scene_list</span><button className="ghost-btn" onClick={onAddScene}>+ {labels.addScene}</button></div>
       <ul>
-        {data.scenes.map((scene) => {
+        {visibleScenes.map((scene) => {
+          const mergesStartupSource = startupSourceScene && startupNarrativeScene?.id === scene.id;
           const movable = !scene.isStart && !scene.special;
           const sourceStatus = sceneSourceStatus(data, scene);
           const counts = sceneErrors.get(scene.name);
           return (
           <li
             key={scene.id}
-            className={`scene-item ${activeSceneId === scene.id ? "is-current" : ""} ${scene.special ? "is-special" : ""} ${dropTargetId === scene.id ? "is-drop-target" : ""} ${draggedSceneId === scene.id ? "is-dragging" : ""}`}
+            className={`scene-item ${activeSceneId === scene.id || (mergesStartupSource && activeSceneId === startupSourceScene.id) ? "is-current" : ""} ${scene.special ? "is-special" : ""} ${dropTargetId === scene.id ? "is-drop-target" : ""} ${draggedSceneId === scene.id ? "is-dragging" : ""}`}
             draggable={movable}
             onClick={() => onSelectScene(scene.id)}
             onDragStart={(event) => {
@@ -471,14 +479,23 @@ function ScenesList({
             <span className="scene-handle">{movable ? "::" : "--"}</span>
             <div className="scene-meta">
               <div className="scene-name">
-                {scene.isStart || scene.special ? (
+                {scene.isStart || scene.special || mergesStartupSource ? (
                   <code>{scene.name}.txt</code>
                 ) : (
-                  <input className="scene-edit" value={scene.name} onClick={(event) => event.stopPropagation()} onChange={(event) => onUpdateScene(scene.id, { name: normalizeIdentifier(event.target.value) })} />
+                  <input
+                    className="scene-edit"
+                    value={scene.name}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectScene(scene.id);
+                    }}
+                    onChange={(event) => onUpdateScene(scene.id, { name: normalizeIdentifier(event.target.value) })}
+                  />
                 )}
-                {scene.isStart && <span className="scene-tag">start</span>}
+                {(scene.isStart || mergesStartupSource) && <span className="scene-tag">start</span>}
                 {scene.special && <span className="scene-tag">stats</span>}
                 <span className={`scene-tag source-${sourceStatus}`}>{sourceStatus}</span>
+                {mergesStartupSource && <span className="scene-tag">graph</span>}
                 {scene.warning && <span className="scene-tag warn">!</span>}
                 {counts?.errors ? <span className="scene-tag scene-err">{counts.errors}e</span> : null}
                 {counts?.warnings ? <span className="scene-tag scene-warn">{counts.warnings}w</span> : null}
@@ -521,6 +538,8 @@ function ScenesList({
               <div className="scene-stats">
                 {scene.words.toLocaleString()} {labels.words} - {scene.nodes} {labels.nodes}
                 <span className="scene-actions">
+                  {mergesStartupSource && <button className="mini-action" aria-label="open startup.txt source" onClick={(event) => { event.stopPropagation(); onSelectScene(startupSourceScene.id); }}>source</button>}
+                  {mergesStartupSource && <button className="mini-action" aria-label="open startup.txt graph" onClick={(event) => { event.stopPropagation(); onSelectScene(scene.id); }}>graph</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes[0]?.id === scene.id} aria-label={`${labels.miniUp} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "up"); }}>{labels.miniUp}</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action" disabled={movableScenes.at(-1)?.id === scene.id} aria-label={`${labels.miniDown} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onMoveScene(scene.id, "down"); }}>{labels.miniDown}</button>}
                   {!scene.isStart && !scene.special && <button className="mini-action" aria-label={`${labels.miniDup} ${scene.name}`} onClick={(event) => { event.stopPropagation(); onDuplicateScene(scene.id); }}>{labels.miniDup}</button>}

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { unzipSync, zipSync, type ZipOptions } from "fflate";
+import { createPlayableExportZipFromPublicRuntime } from "./platform/playableExport";
 import { BottomBar } from "./components/BottomBar";
 import { Dashboard } from "./components/Dashboard";
 import { CommandPalette } from "./components/CommandPalette";
@@ -52,8 +53,10 @@ export default function App() {
   const [view, setView] = useState<EditorView>("editor");
   const [generatedDocumentId, setGeneratedDocumentId] = useState<GeneratedDocumentId | null>(null);
   const [generatedDocumentLine, setGeneratedDocumentLine] = useState<number | null>(null);
+  const [previewScene, setPreviewScene] = useState<string | null>(null);
   const [playOpen, setPlayOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
+  const [returnView, setReturnView] = useState<EditorView>("editor");
   const [layout, setLayout] = useState(loadLayout);
   const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
@@ -70,7 +73,7 @@ export default function App() {
   const lastWrittenSerialisedRef = useRef<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateOptedOut, setUpdateOptedOut] = useState(() => isUpdateCheckOptedOut());
-  const { lintedProject, actions, snapshotIndex, isConvertingScene } = useProjectStore();
+  const { lintedProject, actions, snapshotIndex, isConvertingScene, sceneConversionError } = useProjectStore();
 
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>(() => isTauri() ? loadRecentFiles() : []);
 
@@ -158,13 +161,15 @@ export default function App() {
     if (!resizeTarget) return;
 
     const move = (event: PointerEvent) => {
+      const uiZoom = getEffectiveUiZoom();
+      const pointerX = event.clientX / uiZoom;
       setLayout((current) => {
         const maxLeft = Math.min(LEFT_PANEL_MAX, window.innerWidth - current.right - BOARD_MIN - RESIZE_GUTTERS);
         const maxRight = Math.min(RIGHT_PANEL_MAX, window.innerWidth - current.left - BOARD_MIN - RESIZE_GUTTERS);
         if (resizeTarget === "left") {
-          return { ...current, left: clamp(event.clientX, LEFT_PANEL_MIN, maxLeft) };
+          return { ...current, left: clamp(pointerX, LEFT_PANEL_MIN, maxLeft) };
         }
-        return { ...current, right: clamp(window.innerWidth - event.clientX, RIGHT_PANEL_MIN, maxRight) };
+        return { ...current, right: clamp(window.innerWidth / uiZoom - pointerX, RIGHT_PANEL_MIN, maxRight) };
       });
     };
     const up = () => setResizeTarget(null);
@@ -312,6 +317,47 @@ export default function App() {
     "--left-panel-width": `${layout.left}px`,
     "--right-panel-width": `${layout.right}px`,
   } as CSSProperties;
+  const showSecondaryView = !validateOpen && !playOpen && !generatedDocument;
+  const changeView = (nextView: EditorView) => {
+    setView(nextView);
+    setValidateOpen(false);
+    setPlayOpen(false);
+  };
+  const focusSceneStart = (nodes: StoryNode[]) => {
+    const node = firstReadableNode(nodes);
+    if (!node) {
+      setSelectedId(null);
+      resetViewport(setPan, setZoom);
+      return;
+    }
+    setSelectedId(node.id);
+    setZoom(1);
+    setPan(readablePanForNode(node));
+  };
+  const openPlayView = () => {
+    setReturnView(view);
+    setPlayOpen(true);
+    setValidateOpen(false);
+    setGeneratedDocumentId(null);
+    setGeneratedDocumentLine(null);
+    setSelectedId(null);
+  };
+  const openValidationView = () => {
+    setReturnView(view);
+    setValidateOpen(true);
+    setPlayOpen(false);
+    setGeneratedDocumentId(null);
+    setGeneratedDocumentLine(null);
+    setSelectedId(null);
+  };
+  const closePlayView = () => {
+    setPlayOpen(false);
+    setView(returnView);
+  };
+  const closeValidationView = () => {
+    setValidateOpen(false);
+    setView(returnView);
+  };
   const focusNode = (id: string) => {
       const node = lintedProject.nodes.find((candidate) => candidate.id === id);
       setSelectedId(id);
@@ -334,11 +380,13 @@ export default function App() {
       setGeneratedDocumentLine(null);
       setSelectedId(null);
     } else {
-      const hasPreserved = Boolean(lintedProject.sceneData?.[scene.name]?.sourceText);
-      setGeneratedDocumentId(hasPreserved ? "scene" : null);
+      const graph = scene.name === lintedProject.sceneTitle
+        ? { nodes: lintedProject.nodes }
+        : lintedProject.sceneData?.[scene.name];
+      setGeneratedDocumentId(null);
       setGeneratedDocumentLine(null);
       actions.selectScene(id);
-      setSelectedId(hasPreserved ? null : "n1");
+      focusSceneStart(graph?.nodes ?? []);
     }
     setView("editor");
   }, [lintedProject, actions]);
@@ -348,7 +396,7 @@ export default function App() {
       "Convert this imported scene to visual editing?\n\nExport will stop using the preserved .txt source and will use the current visual graph instead. The preserved source remains in undo history, but this conversion can lose ChoiceScript constructs the visual importer does not fully model.",
     );
     if (!confirmed) return;
-    actions.convertCurrentSceneToVisual();
+    void actions.convertCurrentSceneToVisual();
     setPlayOpen(false);
     setSelectedId("n1");
   };
@@ -363,6 +411,21 @@ export default function App() {
     }
   }, [isConvertingScene]);
 
+  useEffect(() => {
+    if (!previewScene || isConvertingScene) return;
+    if (sceneConversionError || lintedProject.sceneTitle !== previewScene) {
+      setPreviewScene(null);
+      return;
+    }
+    const previewGraph = lintedProject.sceneData?.[previewScene];
+    if (previewGraph?.nodes.length) {
+      setGeneratedDocumentId(null);
+      setGeneratedDocumentLine(null);
+      focusSceneStart(previewGraph.nodes);
+      setPreviewScene(null);
+    }
+  }, [previewScene, isConvertingScene, sceneConversionError, lintedProject]);
+
   return (
     <div className={`app ${resizeTarget ? "is-resizing" : ""}`} data-bot-open={consoleOpen ? "true" : "false"} style={appStyle}>
       <DevBadge />
@@ -373,6 +436,7 @@ export default function App() {
           onTurnOff={() => { setUpdateCheckOptOut(true); setUpdateOptedOut(true); setUpdateInfo(null); }}
         />
       )}
+      <div style={{ gridArea: "top", position: "relative", zIndex: 1000 }}>
       <TopBar
         data={lintedProject}
         lang={lang}
@@ -384,7 +448,7 @@ export default function App() {
         onLangChange={setLang}
         onThemeChange={setTheme}
         onDensityChange={setDensity}
-        onViewChange={setView}
+        onViewChange={changeView}
         onMetadataChange={actions.updateMetadata}
         canUndo={actions.canUndo}
         canRedo={actions.canRedo}
@@ -414,20 +478,8 @@ export default function App() {
           setGeneratedDocumentLine(null);
           setSelectedId(null);
         }}
-        onPlay={() => {
-          setPlayOpen(true);
-          setValidateOpen(false);
-          setGeneratedDocumentId(null);
-          setGeneratedDocumentLine(null);
-          setSelectedId(null);
-        }}
-        onValidate={() => {
-          setValidateOpen(true);
-          setPlayOpen(false);
-          setGeneratedDocumentId(null);
-          setGeneratedDocumentLine(null);
-          setSelectedId(null);
-        }}
+        onPlay={openPlayView}
+        onValidate={openValidationView}
         onImport={(files) => importChoiceForgeProject(files, lintedProject, actions.setProject, () => {
           setPlayOpen(false);
           setGeneratedDocumentId(null);
@@ -440,6 +492,15 @@ export default function App() {
           downloadGeneratedProject(lintedProject);
         }}
         onExportDot={() => downloadGraphvizDot(lintedProject)}
+        onSaveProjectFile={isTauri() ? handleNativeSave : () => {
+          void saveDownload(new TextEncoder().encode(JSON.stringify(lintedProject, null, 2)), "project.json", "application/json", "ChoiceForge Project", ["json"]);
+        }}
+        onExportGame={() => {
+          if (!confirmExportWithLintErrors(lintedProject, lang)) return;
+          void createPlayableExportZipFromPublicRuntime(lintedProject, "./play")
+            .then((bytes) => saveDownload(bytes, "choiceforge-game.zip", "application/zip", "Playable game", ["zip"]))
+            .catch((error) => window.alert(`Export failed: ${error instanceof Error ? error.message : String(error)}`));
+        }}
         onSnapshots={() => setSnapshotsOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onHelp={() => setHelpOpen(true)}
@@ -451,6 +512,7 @@ export default function App() {
         onOpenRecent={isTauri() ? handleOpenRecent : undefined}
         onClearRecent={isTauri() ? handleClearRecent : undefined}
       />
+      </div>
       <PanelErrorBoundary panelName="Left panel">
       <LeftPanel
         data={lintedProject}
@@ -468,7 +530,6 @@ export default function App() {
         onSelectScene={(id, targetLine) => {
           const scene = lintedProject.scenes.find((candidate) => candidate.id === id);
           const keepTextMode = generatedDocumentId === "scene";
-          const hasPreservedSource = Boolean(scene && !scene.isStart && !scene.special && lintedProject.sceneData?.[scene.name]?.sourceText);
           setPlayOpen(false);
           if (scene?.isStart || scene?.special) {
             setGeneratedDocumentId(scene.isStart ? "startup" : "stats");
@@ -476,10 +537,14 @@ export default function App() {
             setSelectedId(null);
             return;
           }
-          setGeneratedDocumentId(targetLine || keepTextMode || hasPreservedSource ? "scene" : null);
+          const graph = scene?.name === lintedProject.sceneTitle
+            ? { nodes: lintedProject.nodes }
+            : scene ? lintedProject.sceneData?.[scene.name] : null;
+          setGeneratedDocumentId(targetLine || keepTextMode ? "scene" : null);
           setGeneratedDocumentLine(targetLine ?? null);
           actions.selectScene(id);
-          setSelectedId(targetLine || hasPreservedSource ? null : "n1");
+          if (targetLine || keepTextMode) setSelectedId(null);
+          else focusSceneStart(graph?.nodes ?? []);
         }}
         onUpdateScene={actions.updateScene}
         onMoveScene={actions.moveScene}
@@ -517,9 +582,9 @@ export default function App() {
       />
       <PanelErrorBoundary panelName="Canvas / editor">
       {validateOpen ? (
-        <ValidationView project={lintedProject} onClose={() => setValidateOpen(false)} />
+        <ValidationView project={lintedProject} onClose={closeValidationView} />
       ) : playOpen ? (
-        <OfficialPlayView project={lintedProject} onClose={() => setPlayOpen(false)} />
+        <OfficialPlayView project={lintedProject} onClose={closePlayView} />
       ) : generatedDocument ? (
         <Suspense fallback={<section className="generated-doc generated-doc-loading">Loading editor...</section>}>
           <GeneratedDocumentView
@@ -529,6 +594,11 @@ export default function App() {
             sourcePreserved={generatedDocumentId === "scene" && currentSceneSourcePreserved}
             isConverting={isConvertingScene}
             onConvertSource={confirmVisualConversion}
+            conversionError={sceneConversionError}
+            onPreviewSource={() => {
+              setPreviewScene(lintedProject.sceneTitle);
+              return actions.previewCurrentScene();
+            }}
             onClose={() => {
               setGeneratedDocumentId(null);
               setGeneratedDocumentLine(null);
@@ -626,11 +696,11 @@ export default function App() {
           const scene = lintedProject.scenes.find((s) => s.id === id);
           if (!scene) return;
           setPlayOpen(false);
-          const hasPreserved = Boolean(!scene.isStart && !scene.special && lintedProject.sceneData?.[scene.name]?.sourceText);
-          setGeneratedDocumentId(hasPreserved ? "scene" : null);
+          setGeneratedDocumentId(null);
           setGeneratedDocumentLine(null);
+          const graph = scene.name === lintedProject.sceneTitle ? { nodes: lintedProject.nodes } : lintedProject.sceneData?.[scene.name];
           actions.selectScene(id);
-          setSelectedId(hasPreserved ? null : "n1");
+          focusSceneStart(graph?.nodes ?? []);
         }}
       />
       </PanelErrorBoundary>
@@ -675,9 +745,9 @@ export default function App() {
           setActiveTab(tabForLintMessage(lint.msg));
         }}
       />
-      {view === "manuscript" && <ManuscriptView data={lintedProject} onClose={() => setView("editor")} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
-      {view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} onUpdateWordGoal={(goal) => actions.updateMetadata({ wordGoal: goal })} onUpdateSceneGoal={(id, goal) => actions.updateSceneMetadata(id, { wordGoal: goal })} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
-      {view === "map" && (
+      {showSecondaryView && view === "manuscript" && <ManuscriptView data={lintedProject} onClose={() => setView("editor")} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
+      {showSecondaryView && view === "dashboard" && <Dashboard data={lintedProject} labels={i18n[lang]} onClose={() => setView("editor")} onUpdateWordGoal={(goal) => actions.updateMetadata({ wordGoal: goal })} onUpdateSceneGoal={(id, goal) => actions.updateSceneMetadata(id, { wordGoal: goal })} onNavigateToNode={(sceneName, nodeId) => { const scene = lintedProject.scenes.find((s) => s.name === sceneName); if (scene) navigateToScene(scene.id); setSelectedId(nodeId); setView("editor"); }} />}
+      {showSecondaryView && view === "map" && (
         <SceneMapView
           data={lintedProject}
           labels={i18n[lang]}
@@ -748,7 +818,7 @@ export default function App() {
             else if (cmd === "dashboard") { setView("dashboard"); }
             else if (cmd === "map") { setView("map"); }
             else if (cmd === "manuscript") { setView("manuscript"); }
-            else if (cmd === "play") { setPlayOpen(true); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setSelectedId(null); }
+            else if (cmd === "play") { openPlayView(); }
             else if (cmd === "export") { if (confirmExportWithLintErrors(lintedProject, lang)) downloadGeneratedProject(lintedProject); }
             else if (cmd === "save") { actions.saveNow(); setSaveStatus(formatSaveStatus(lang)); }
             else if (cmd === "undo") { actions.undo(); setSelectedId(null); setGeneratedDocumentId(null); setGeneratedDocumentLine(null); setPlayOpen(false); }
@@ -762,9 +832,10 @@ export default function App() {
           lang={lang}
           labels={i18n[lang]}
           onPick={(template) => {
-            // Center the template on the rough viewport center in world coords.
-            const cx = Math.round((window.innerWidth / 2 - pan.x) / zoom);
-            const cy = Math.round((window.innerHeight / 2 - pan.y) / zoom);
+            // Center the template on the actual canvas viewport in world coords.
+            const viewport = getCanvasViewportSize();
+            const cx = Math.round((viewport.width / 2 - pan.x) / zoom);
+            const cy = Math.round((viewport.height / 2 - pan.y) / zoom);
             const newIds = actions.pasteNodes(
               JSON.parse(JSON.stringify(template.nodes)),
               JSON.parse(JSON.stringify(template.edges)),
@@ -815,12 +886,45 @@ function formatSaveStatus(lang: Language): string {
 }
 
 function centerPanForNode(node: StoryNode, zoom: number, layout: { left: number; right: number }, consoleOpen: boolean) {
-  const canvasWidth = Math.max(BOARD_MIN, window.innerWidth - layout.left - layout.right - RESIZE_GUTTERS);
-  const canvasHeight = Math.max(240, window.innerHeight - 56 - (consoleOpen ? 220 : 36));
+  const viewport = getCanvasViewportSize(layout, consoleOpen);
   return {
-    x: Math.round(canvasWidth / 2 - (node.x + node.w / 2) * zoom),
-    y: Math.round(canvasHeight / 2 - (node.y + 110) * zoom),
+    x: Math.round(viewport.width / 2 - (node.x + node.w / 2) * zoom),
+    y: Math.round(viewport.height / 2 - (node.y + 110) * zoom),
   };
+}
+
+function firstReadableNode(nodes: StoryNode[]): StoryNode | null {
+  return nodes.find((node) => node.type === "choice" || node.type === "fake_choice")
+    ?? nodes.find((node) => node.type === "passage")
+    ?? nodes[0]
+    ?? null;
+}
+
+function readablePanForNode(node: StoryNode) {
+  return {
+    x: Math.round(72 - node.x),
+    y: Math.round(220 - node.y),
+  };
+}
+
+function getCanvasViewportSize(layout?: { left: number; right: number }, consoleOpen = false) {
+  const canvas = document.querySelector<HTMLElement>(".canvas-wrap");
+  if (canvas?.clientWidth && canvas?.clientHeight) {
+    return { width: canvas.clientWidth, height: canvas.clientHeight };
+  }
+  const uiZoom = getEffectiveUiZoom();
+  const viewportWidth = window.innerWidth / uiZoom;
+  const viewportHeight = window.innerHeight / uiZoom;
+  return {
+    width: Math.max(BOARD_MIN, viewportWidth - (layout?.left ?? 0) - (layout?.right ?? 0) - RESIZE_GUTTERS),
+    height: Math.max(240, viewportHeight - 56 - (consoleOpen ? 220 : 36)),
+  };
+}
+
+function getEffectiveUiZoom() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--cf-ui-zoom");
+  const zoom = Number.parseFloat(raw);
+  return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
 }
 
 function resetViewport(setPan: (pan: { x: number; y: number }) => void, setZoom: (zoom: number) => void) {
@@ -871,6 +975,19 @@ function createGeneratedDocument(id: GeneratedDocumentId, project: ChoiceForgePr
     description: preserved ? "Imported ChoiceScript source preserved for safe export." : "ChoiceScript generated from the current scene graph.",
     content: `${generateSceneChoiceScript(project)}\n`,
   };
+}
+
+async function saveDownload(bytes: Uint8Array, filename: string, mime: string, filter: string, extensions: string[]) {
+  if (isTauri()) {
+    await nativeSaveBytes(bytes, filename, filter, extensions);
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: mime }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function downloadGeneratedProject(project: ChoiceForgeProject) {
@@ -935,6 +1052,13 @@ async function importChoiceForgeProject(files: File[], currentProject: ChoiceFor
   try {
     if (files.length === 0) return;
     if (files.length === 1 && isSceneTextFile(files[0])) {
+      const sceneName = normalizeImportIdentifier(files[0].name.replace(/\.txt$/i, ""));
+      const existing = currentProject.scenes.some((scene) => scene.name === sceneName && !scene.isStart && !scene.special);
+      if (existing && !window.confirm(
+        lang === "pt" ? `Substituir a cena ${sceneName}? O conteúdo atual será substituído pelo arquivo importado.`
+        : lang === "es" ? `¿Reemplazar la escena ${sceneName}? El archivo importado sustituirá el contenido actual.`
+        : `Replace scene ${sceneName}? The imported file will replace its current content.`,
+      )) return;
       setProject(await importSingleSceneFile(currentProject, files[0]));
     } else if (files.length === 1 && files[0].name.toLowerCase().endsWith(".zip")) {
       const file = files[0];

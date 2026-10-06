@@ -10,15 +10,18 @@ interface GeneratedDocumentViewProps {
   targetLine?: number | null;
   sourcePreserved?: boolean;
   isConverting?: boolean;
+  conversionError?: string | null;
   onSave?: (content: string) => string | void;
+  onPreviewSource?: () => Promise<void> | void;
   onConvertSource?: () => void;
   onClose?: () => void;
 }
 
-export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, isConverting = false, onSave, onConvertSource, onClose }: GeneratedDocumentViewProps) {
+export function GeneratedDocumentView({ title, path, description, content, editable = false, targetLine = null, sourcePreserved = false, isConverting = false, conversionError, onSave, onPreviewSource, onConvertSource, onClose }: GeneratedDocumentViewProps) {
   const [draft, setDraft] = useState(content);
   const [saveStatus, setSaveStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+  const [previewStatus, setPreviewStatus] = useState("");
   const visibleContent = editable ? draft : content;
   const lines = visibleContent.replace(/\n$/, "").split("\n");
   const dirty = draft !== content;
@@ -26,6 +29,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
   useEffect(() => {
     setDraft(content);
     setSaveStatus("");
+    setPreviewStatus("");
   }, [content]);
 
   const saveDraft = () => {
@@ -35,6 +39,16 @@ export function GeneratedDocumentView({ title, path, description, content, edita
       setSaveStatus(message || "Saved to project.");
     } catch (error) {
       setSaveStatus(error instanceof Error ? error.message : "Could not save changes.");
+    }
+  };
+  const previewSource = async () => {
+    if (dirty || isConverting) return;
+    try {
+      setPreviewStatus("Preparing graph preview…");
+      await onPreviewSource?.();
+      setPreviewStatus("Graph preview updated. Source text is still preserved for export.");
+    } catch (error) {
+      setPreviewStatus(error instanceof Error ? error.message : "Could not preview source.");
     }
   };
   const closeDocument = () => {
@@ -70,6 +84,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           <div className="generated-doc-kicker">{editable ? "editable file" : "generated file"}</div>
           <h1>{title}</h1>
           <p>{description}</p>
+          {conversionError && <p role="alert">{conversionError}</p>}
           {editable && <span className={`generated-doc-dirty ${dirty ? "is-dirty" : ""}`}>{dirty ? "unsaved changes" : "no local changes"}</span>}
         </div>
         <div className="generated-doc-actions">
@@ -90,6 +105,11 @@ export function GeneratedDocumentView({ title, path, description, content, edita
               Close
             </button>
           )}
+          {sourcePreserved && onPreviewSource && (
+            <button className="ghost-btn" disabled={dirty || isConverting} title={dirty ? "Save changes before previewing the graph." : "Build a graph preview while keeping this source text for export."} onClick={previewSource}>
+              {isConverting ? "Preparing preview…" : dirty ? "Save before preview" : "Show graph preview"}
+            </button>
+          )}
           {sourcePreserved && onConvertSource && (
             <button className="ghost-btn" disabled={dirty || isConverting} title={dirty ? "Save changes before converting." : "Convert this imported source into visual graph editing."} onClick={onConvertSource}>
               {isConverting ? "Converting…" : dirty ? "Save before convert" : "Convert to visual editing"}
@@ -102,6 +122,7 @@ export function GeneratedDocumentView({ title, path, description, content, edita
           )}
         </div>
         {editable && saveStatus && <div className="generated-doc-status">{saveStatus}</div>}
+        {previewStatus && <div className="generated-doc-status">{previewStatus}</div>}
       </div>
       <div className="generated-doc-body">
         <div className="generated-doc-gutter">

@@ -27,6 +27,25 @@ First public release with desktop installers.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-10-06
+
+### Added
+- **Existing ChoiceScript project workflow upgrade**: importing multi-scene `.txt` projects now keeps original source for safe export while showing useful non-destructive graph previews for every scene.
+- **Portable playable export path**: exported playable packages include the runtime assets needed to run offline, while omitting private ChoiceForge source metadata.
+- **Top bar file menu and zoom usability polish**: file actions are discoverable from a menu, panel visibility/zoom controls work at narrow widths, and Play/Validate open as exclusive central views from every main tab.
+- **Browser regression suite** with Playwright coverage for import/source preservation, playable export, toolbar layout, panel zoom coordinates, view navigation, and top-bar accessibility. Real public ChoiceScript sample fixture added under `tests/fixtures/choicescript-public-sample/`.
+
+### Fixed
+- Preserved-source imports no longer show real scenes as empty/disconnected when the importer can create a safe preview graph.
+- Source-preserved `startup.txt`, scene files, and `choicescript_stats.txt` export byte-for-byte instead of being regenerated or mutated before explicit conversion.
+- Duplicate `startup` diagnostics, stat-chart casing false positives, page-break label false positives, and graph layout readability issues on imported projects were corrected.
+- Global UI zoom now keeps toolbar actions, panel resizing, canvas panning/dragging, readable focus, and minimap placement usable at 125–150% zoom.
+- Play view now runs from exported project files instead of a divergent in-memory path.
+
+### Internal
+- Version bumped to `0.11.0` across package, lockfile, Tauri config, and Cargo manifest.
+- Verification for release: 421 domain tests, 123 UI tests, 37 browser tests, and production build pass locally.
+
 ## [0.10.0] — 2026-06-08
 
 ### Added

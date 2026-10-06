@@ -235,7 +235,7 @@ export function createExportPackage(project: ChoiceForgeProject): ChoiceForgeExp
     .map((scene) => ({
       path: `mygame/${scene.name}.txt`,
       encoding: "utf-8" as const,
-      content: `${generateSceneChoiceScript(project, scene.name)}\n`,
+      content: project.sceneData?.[scene.name]?.sourceText ?? `${generateSceneChoiceScript(project, scene.name)}\n`,
     }));
   const assetFiles = (project.assets ?? [])
     .filter((asset) => asset.dataUrl)
@@ -592,7 +592,7 @@ function lintProjectMetadata(project: ChoiceForgeProject, issues: LintIssue[]) {
   if (!project.author.trim()) issues.push({ level: "error", msg: "project has an empty author", key: "project_empty_author", scene: null });
   const generatedExportPaths = generatedChoiceScriptExportPaths(project);
 
-  findDuplicates(project.scenes.map((scene) => scene.name))
+  findDuplicates(project.scenes.filter((scene) => !scene.isStart && !scene.special).map((scene) => scene.name))
     .forEach((name) => issues.push({ level: "error", msg: `duplicate scene name: ${name}`, key: "duplicate_scene_name", params: { name }, scene: null }));
   findDuplicates(project.variables.map((variable) => variable.name))
     .forEach((name) => issues.push({ level: "error", msg: `duplicate variable name: ${name}`, key: "duplicate_var_name", params: { name }, scene: null }));
@@ -1177,9 +1177,6 @@ function lintPreservedScriptSource(project: ChoiceForgeProject, sourceText: stri
     if (command === "save_checkpoint") {
       if (!sourceCommandValue(trimmed, "*save_checkpoint")) issues.push({ level: "error", msg: "*save_checkpoint needs a checkpoint name", key: "checkpoint_no_name", scene: sceneName, line: lineNumber });
     }
-    if (command === "page_break" && !sourceCommandValue(trimmed, "*page_break")) {
-      issues.push({ level: "error", msg: "*page_break needs a button label", key: "page_break_no_label", scene: sceneName, line: lineNumber });
-    }
     if (command === "set") {
       lintPreservedSetLine(variableNames, variableTypes, trimmed, sceneName, lineNumber, issues);
     }
@@ -1621,6 +1618,7 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
   lintPreservedScriptSource(project, sourceText, "choicescript_stats", "stats screen exports preserved ChoiceScript source", issues);
 
   const statVariables = new Map(project.variables.map((variable) => [variable.name, variable]));
+  const chartTypeNames = new Set(["percent", "text", "opposed_pair"]);
   let inStatChart = false;
   let opposedPairLabelsLeft = 0;
   sourceText.split(/\r?\n/).forEach((line, index) => {
@@ -1647,13 +1645,14 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
       opposedPairLabelsLeft--;
       return;
     }
+    if (isOpposedPairLabelLine(line, chartTypeNames)) return;
     const [chartType = "", rawVariable = ""] = trimmed.split(/\s+/, 2);
     if (!["percent", "text", "opposed_pair"].includes(chartType)) {
       issues.push({ level: "error", msg: `*stat_chart has an invalid row type: ${chartType || "(empty)"}`, key: "stat_chart_invalid_type", params: { type: chartType || "(empty)" }, scene: "choicescript_stats", line: lineNumber });
       return;
     }
     const variable = normalizeSourceIdentifier(rawVariable);
-    if (!rawVariable || !isValidChoiceScriptIdentifier(rawVariable)) {
+    if (!rawVariable || !/^[a-z_][a-z0-9_]*$/i.test(rawVariable)) {
       issues.push({ level: "error", msg: `*stat_chart has an invalid variable identifier: ${rawVariable || "(empty)"}`, key: "stat_chart_invalid_var", params: { name: rawVariable || "(empty)" }, scene: "choicescript_stats", line: lineNumber });
       return;
     }
@@ -1674,6 +1673,13 @@ function lintPreservedStatsSource(project: ChoiceForgeProject, sourceText: strin
       issues.push({ level: "warning", msg: `*stat_chart text displays ${variable} as a raw number — use percent or opposed_pair for a bar chart`, key: "stat_chart_raw_number", params: { name: variable }, scene: "choicescript_stats", line: lineNumber });
     }
   });
+}
+
+function isOpposedPairLabelLine(line: string, chartTypeNames: Set<string>): boolean {
+  const indent = line.match(/^\s*/)?.[0].length ?? 0;
+  if (indent < 4) return false;
+  const firstToken = line.trim().split(/\s+/, 1)[0] ?? "";
+  return !chartTypeNames.has(firstToken);
 }
 
 function lintNodeIds(nodes: StoryNode[], issues: LintIssue[], sceneName: string) {

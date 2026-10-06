@@ -1,6 +1,6 @@
 {
   "name": "choiceforge",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,6 +11,7 @@
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:ui": "vitest run",
+    "test:browser": "playwright test",
     "test:ui:watch": "vitest",
     "test:ui:coverage": "vitest run --coverage",
     "test:all": "npm run test && npm run test:ui",
@@ -43,6 +44,7 @@
     "vite": "^4.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tauri-apps/cli": "^2.11.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

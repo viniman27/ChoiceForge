@@ -6,6 +6,8 @@ npm-debug.log*
 
 # Test artifacts
 coverage/
+test-results/
+playwright-report/
 
 # Tauri / Rust
 src-tauri/target/
